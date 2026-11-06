@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D EBSD reconstruction · Dragonfly Prototype Apps</title>
+<meta name="description" content="3D EBSD reconstruction - User Manual Dragonfly Prototype Apps · 3D EBSD reconstruction... Version 1.0 · 2026-09-01 English Manual Contents 1. Introduction …">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">3D EBSD reconstruction</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · 3D EBSD reconstruction...</div>
+    <h1>3D EBSD reconstruction</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-09-01</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-conventions-this-plugin-fixes">2. Conventions this plugin fixes</a></li><li class="t2"><a href="#3-tab-1-load">3. Tab 1 - Load</a></li><li class="t2"><a href="#4-tab-2-clean">4. Tab 2 - Clean</a></li><li class="t2"><a href="#5-tab-3-align">5. Tab 3 - Align</a></li><li class="t2"><a href="#6-tab-4-segment">6. Tab 4 - Segment</a></li><li class="t2"><a href="#7-tab-5-measure">7. Tab 5 - Measure</a></li><li class="t2"><a href="#8-tab-6-publish">8. Tab 6 - Publish</a></li><li class="t2"><a href="#9-what-this-plugin-does-not-do">9. What this plugin does not do</a></li></ul></nav>
+  <main class="manual"><p><strong>3D EBSD reconstruction - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · 3D EBSD reconstruction...</p>
+<p>Version 1.0 · 2026-09-01</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Electron backscatter diffraction measures a <strong>crystal orientation</strong> at every point of a surface. Serial sectioning repeats that measurement slice by slice, and this plugin turns the resulting stack into a three-dimensional grain structure.</p>
+<p>The six tabs are the workflow itself, in order. Every tab is open from the start, so you can read and set them all before running anything; a step whose input does not exist yet refuses at its own button and names the step you have to run first. One button on the Load tab, <strong>Execute All Steps with Current Settings</strong>, runs the whole workflow unattended with the settings each tab shows at that moment.</p>
+<p>Nothing is created or modified in your session until you press <strong>Publish</strong> on the last tab.</p>
+<p><strong>Why this is not just a colour segmentation.</strong> An IPF map is orientation <em>rendered as colour</em>, and two different orientations can be rendered in nearly the same colour. This plugin segments on the orientations themselves - the disorientation between neighbouring voxels, with crystal symmetry taken into account - so a twin that looks like one grain in colour is still two grains here. If you only have a colour picture of an IPF map and not the orientation data, use <em>Color Image Processing</em> instead, which says plainly that it decodes no orientation.</p>
+<h2 id="2-conventions-this-plugin-fixes">2. Conventions this plugin fixes</h2>
+<p>Every one of these is a documented source of wrong answers in EBSD work, so each is fixed once, at the boundary, and stated here.</p>
+<ul>
+<li><strong>Euler angles are Bunge (ZXZ).</strong> .ang files store them in <strong>radians</strong> and .ctf files in <strong>degrees</strong>; the readers convert, so nothing downstream has to remember which file it came from.</li>
+<li><strong>Quaternions are (w, x, y, z), unit length, with w &gt;= 0</strong>, so a rotation has exactly one representation.</li>
+<li><strong>What is reported is the disorientation</strong>: the smallest angle over all symmetry-equivalent representations. For cubic-cubic that can never exceed <strong>62.8 degrees</strong>, which is the cheapest sanity check there is.</li>
+<li><strong>Lengths are micrometres</strong> throughout the panel. When results are published, the spacing is converted to metres, which is what Dragonfly stores, so measurements made in Dragonfly agree with the Measure tab.</li>
+</ul>
+<h2 id="3-tab-1-load">3. Tab 1 - Load</h2>
+<p>Three sources, chosen at the top:</p>
+<p><figure><img src="../assets/ebsd3d-plugin-usermanual-en/img1.png" alt="" width="585" loading="lazy"></figure></p>
+<p><em>Tab 1, Load. The file&#x27;s own conventions are read and shown; nothing is assumed.</em></p>
+<ul>
+<li><strong>A folder of serial sections</strong> (.ang / .ctf). Files are sorted <strong>naturally</strong>, so slice_2 comes before slice_10; plain alphabetical sorting gets serial sections wrong. You give the slice spacing, because no single-slice file records it.</li>
+<li><strong>One 3-D file</strong> (HDF5, .h5ebsd, DREAM.3D). The dataset list is built by <strong>shape</strong> - a trailing axis of 3 (Euler) or 4 (quaternion) - not by name, and you choose from it, because a name alone does not prove what a dataset holds. Tick the box if the file stores degrees.</li>
+<li><strong>A synthetic test volume</strong>, so the workflow can be tried without a microscope. It reports its own true grain count and the closest touching pair of orientations, which is the bound any threshold has to respect.</li>
+</ul>
+<p>Set the <strong>crystal symmetry</strong> before loading. Grid shape is derived from the point <strong>coordinates</strong>, not from the header: a truncated export still claims its full size in the header, and trusting that reshapes the data into nonsense.</p>
+<p><strong>Unindexed points stay unindexed.</strong> They are never given a substitute orientation, so a badly indexed region becomes a hole rather than a fake grain.</p>
+<h2 id="4-tab-2-clean">4. Tab 2 - Clean</h2>
+<p>Drop points the microscope could not index reliably: below a <strong>confidence</strong> (CI in .ang, MAD in .ctf) or carrying <strong>phase 0</strong>. The controls are disabled, and say so, when the dataset carries no such column.</p>
+<p><figure><img src="../assets/ebsd3d-plugin-usermanual-en/img2.png" alt="" width="585" loading="lazy"></figure></p>
+<p><em>Tab 2, Clean. Every cleaning step reports how many points it changed, so a destructive setting is visible.</em></p>
+<p>Cleaning always restarts from the data <strong>as loaded</strong>, so a threshold that was set too high can simply be lowered again without reloading.</p>
+<p><strong>Kernel average misorientation (KAM)</strong> is each point&#x27;s mean disorientation to its six face neighbours. Pairs above the ceiling are <strong>excluded</strong>, not clipped, so a grain boundary does not dominate the value of the points beside it.</p>
+<p>KAM is a <strong>strain indicator, not a strain measurement</strong>. It rises with stored dislocation content, but its absolute value depends on the step size and on the angular resolution of the indexing, so numbers are comparable within one dataset and not across instruments.</p>
+<p>Running Clean or computing KAM clears any grains already found, because they would no longer match the data they came from.</p>
+<h2 id="5-tab-3-align">5. Tab 3 - Align</h2>
+<p>Serial sectioning drifts. An unaligned stack turns one grain into a staircase of separate grains, so this is worth running before Segment even when the drift looks small.</p>
+<p><figure><img src="../assets/ebsd3d-plugin-usermanual-en/img3.png" alt="" width="585" loading="lazy"></figure></p>
+<p><em>Tab 3, Align.</em></p>
+<p>What is maximised is the fraction of overlapping voxels whose disorientation is below the high-angle threshold - that is, how much of this slice <strong>continues</strong> the one below it. That is the thing that actually matters, rather than an image correlation on a colour rendering.</p>
+<p><strong>Integer shifts only: no rotation, no scale, no sub-pixel.</strong> A stack that needs those needs a real registration tool, and this says so rather than pretending. The shift applied to every slice is listed so you can see what happened.</p>
+<h2 id="6-tab-4-segment">6. Tab 4 - Segment</h2>
+<p>A face between two neighbouring voxels is a <strong>boundary</strong> when their disorientation exceeds the threshold; the grains are the connected regions that remain. This runs in 3-D, so a grain is one object through the whole stack rather than a separate region on every slice.</p>
+<p><figure><img src="../assets/ebsd3d-plugin-usermanual-en/img4.png" alt="" width="585" loading="lazy"></figure></p>
+<p><em>Tab 4, Segment. Grains are found from ORIENTATIONS, not from a picture; the threshold&#x27;s sensitivity is published rather than hidden.</em></p>
+<p><strong>The threshold is not a detail.</strong> 15 degrees is the usual high-angle boundary, but with noisy data a small threshold splits one grain into many: on a phantom with 1 degree of orientation noise, 2 degrees gave over a thousand grains where 5 and 15 degrees both gave about 35. If the count looks wrong, compare 5, 10 and 15 degrees before believing any of them.</p>
+<ul>
+<li><strong>Discard grains smaller than</strong> removes specks left by noise.</li>
+<li><strong>Give unindexed voxels their nearest grain</strong> is the usual grain dilation clean-up, so small unindexed patches inside a grain do not punch holes in it. It runs <strong>after</strong> the size filter, so it cannot resurrect a grain that was already discarded.</li>
+</ul>
+<p>Grains are never merged across unindexed voxels unless that option is on.</p>
+<h2 id="7-tab-5-measure">7. Tab 5 - Measure</h2>
+<p>Per grain: voxel count, volume, and <strong>equivalent diameter</strong> - the diameter of the sphere with the same volume. Over the volume: mean, median and D10 / D50 / D90.</p>
+<p><figure><img src="../assets/ebsd3d-plugin-usermanual-en/img5.png" alt="" width="585" loading="lazy"></figure></p>
+<p><em>Tab 5, Measure.</em></p>
+<p><strong>A grain touching the edge of the volume is cut off</strong>, so its measured size is a lower bound. Both figures are given: include those grains and the mean is biased low, exclude them and the sample is smaller. Which to report is your decision, not this plugin&#x27;s.</p>
+<p><strong>Export CSV</strong> writes every grain, including its mean orientation as a quaternion. The mean orientation of a set of rotations is computed as the dominant eigenvector of the summed outer product, which is invariant to each quaternion&#x27;s arbitrary sign.</p>
+<h2 id="8-tab-6-publish">8. Tab 6 - Publish</h2>
+<p><strong>The grains go in as a MultiROI</strong>, which is what a segmentation is in Dragonfly: one label per grain, named with its size and coloured by its own mean orientation.</p>
+<p><figure><img src="../assets/ebsd3d-plugin-usermanual-en/img6.png" alt="" width="585" loading="lazy"></figure></p>
+<p><em>Tab 6, Publish. A segmentation publishes as a MultiROI; the IPF and KAM channels are optional extras, labelled as renderings.</em></p>
+<p>Optionally the <strong>IPF colouring</strong> goes in as three Red / Green / Blue channels, and <strong>KAM</strong> as a channel in degrees.</p>
+<p><strong>The IPF channels are a rendering, not data.</strong> TSL, Oxford and MTEX shade the standard triangle differently, so colours from this plugin and from a vendor package are not comparable pixel for pixel, and nothing here can turn a colour back into an orientation. The grain MultiROI and the CSV are the measurement.</p>
+<p>Voxel spacing is written from the step size you gave on the Load tab, converted to metres. If it could not be set on some object, the panel says so instead of leaving you to discover it by measuring.</p>
+<h2 id="9-what-this-plugin-does-not-do">9. What this plugin does not do</h2>
+<ul>
+<li><strong>It does not index diffraction patterns.</strong> It starts from orientations a vendor package has already indexed.</li>
+<li><strong>It does not do sub-pixel or rotational slice registration.</strong> Integer shifts only.</li>
+<li><strong>It does not compute HR-EBSD elastic strain</strong>, and KAM is not a substitute for it.</li>
+<li><strong>It does not identify twins or special boundaries</strong> by their sigma value, and does not produce a misorientation distribution function or a pole figure.</li>
+<li><strong>It does not colour non-cubic IPF maps.</strong> Hexagonal symmetry is supported for misorientation and segmentation, but the IPF colouring refuses rather than guessing a convention.</li>
+<li><strong>It does not invert a colour back into an orientation</strong>, which is why an IPF picture alone can never be used as input here.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>EBSD3D-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

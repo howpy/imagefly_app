@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Macro Editor (Prototype) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Macro Editor (Prototype) - User Manual Dragonfly Prototype Apps · Macro Editor (Prototype) Version 1.0 · 2026-10-28 English Manual Contents 1. Introduction…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Macro Editor (Prototype)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Macro Editor (Prototype)</div>
+    <h1>Macro Editor (Prototype)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-10-28</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#files-and-edit-history">Files and edit history</a></li><li class="t3"><a href="#step-list">Step list</a></li><li class="t3"><a href="#high-level-workflow">High-level workflow</a></li><li class="t3"><a href="#inspector">Inspector</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Macro Editor (Prototype) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Macro Editor (Prototype)</p>
+<p>Version 1.0 · 2026-10-28</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Macro Editor (Prototype)</strong> is my personal experimental Dragonfly plugin for analysing, organizing and modifying recorded Python macros. It can be installed in Dragonfly 2025.1 or 2027.1 and opened from <strong>Utilities ▸ Macro Editor (Prototype)</strong>, immediately below Macro Builder.</p>
+<p>Important disclaimer: this plugin is a personal experiment. It is not an official feature developed, certified or supported by Object Research Systems (ORS) or Dragonfly. It is provided only for Dragonfly users to learn, practise and evaluate macro-editing ideas. Always keep the original macro and validate edits on a copy of the data.</p>
+<p>I designed it because recorded macros can contain many low-level operations: publishing objects, display ranges, overlay text, view state and repeated updates may be mixed with the steps that actually process data. The official Macro Player is suited to running macros, and Macro Builder to recording or constructing them. Macro Editor focuses on <strong>understanding, inspecting, refactoring and reusing an existing macro</strong>.</p>
+<ul>
+<li><strong>Macro Player</strong> primarily runs a macro in its recorded order; Macro Editor adds pre-run inspection of structure, parameters and dependencies, plus editing of a copy.</li>
+<li><strong>Macro Builder</strong> primarily records or constructs a macro; Macro Editor imports an existing recording and organizes its steps and parameters.</li>
+<li><strong>Macro Editor (Prototype)</strong> adds a high-level overview, step refactoring, parameter tables, editor projects and runtime object binding.</li>
+</ul>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Summarize a recording with tens or hundreds of steps as higher-level loading, preprocessing, segmentation, ROI/label, measurement, export and view/annotation stages.</li>
+<li>Find and change thresholds, file paths, sizes, iteration counts, label numbers and output options in one place.</li>
+<li>Duplicate, rename, move, disable or delete steps to create a more readable and maintainable macro copy.</li>
+<li>Adapt a macro that was tied to one set of objects or files for use with other data.</li>
+<li>Review unknown code, input dependencies, parameter expressions and original source before execution.</li>
+</ul>
+<p>“Display-related” does not mean “irrelevant to the result.” A window range may later be read as a threshold, the current label or view plane may select what is processed, and a screenshot may be the intended output. Automated analysis therefore supplies candidates, never a guarantee that a step is safe to remove.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install a Prototype Apps online package or App Store version that includes Macro Editor.</p>
+<p>2. Confirm that <strong>Macro Editor (Prototype)</strong> is selected in the component list.</p>
+<p>3. Completely exit and restart Dragonfly after installation so it can discover the plugin and its menu action.</p>
+<p>4. Open <strong>Utilities ▸ Macro Editor (Prototype)</strong>. It appears immediately below Dragonfly&#x27;s native Macro Builder.</p>
+<p>5. To disable it later, use the Prototype Apps Menu Item Manager or rerun the installer and adjust the selected components.</p>
+<p>The plugin supports Dragonfly 2025.1 and 2027.1. Interface preferences may be shared across versions, while each Dragonfly user profile still needs the corresponding plugin files installed.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>Macro Editor runs inside the Dragonfly process and uses Dragonfly&#x27;s bundled PyQt6 and MacroPlayer. It requires no separate virtual environment, GPU, internet connection or language model, and performs no first-run download.</p>
+<ul>
+<li>Import reads text and parses Python AST metadata only. It does not execute, import or deserialize the opened macro.</li>
+<li>The edited macro executes in the current Dragonfly session only after you click <strong>Step</strong> or <strong>Run all</strong> and confirm.</li>
+<li>The shared settings system remembers interface preferences. Macro content, dynamic object bindings and parameter presets belong to a project you explicitly save.</li>
+</ul>
+<p>For a first exercise, open the bundled examples/parameter_demo.py. It performs simple arithmetic only, creates no Dragonfly objects and writes no files.</p>
+<h2 id="5-interface">5. Interface</h2>
+<h3 id="files-and-edit-history">Files and edit history</h3>
+<p><strong>Open macro</strong> imports a recorded .py; <strong>Save macro as</strong> exports a .py usable by the native Macro Player; <strong>Open/Save project</strong> stores the editable Macro Editor state, presets and bindings; <strong>Undo/Redo</strong> applies to the current editing session.</p>
+<h3 id="step-list">Step list</h3>
+<p>The left pane contains every original step and its category. You can search, select multiple steps, include or omit disabled steps, and enable, disable, move, duplicate, rename or delete. <strong>Hide display steps</strong> changes only what the editor shows; it does not change macro execution.</p>
+<h3 id="high-level-workflow">High-level workflow</h3>
+<p>The central workflow does not make one node for every recorded step. It groups consecutive work into higher-level stages and uses arrows only for stage order. Click a stage to see all its original steps in <strong>Stage overview</strong>; then click a member to edit the exact step.</p>
+<p>Stages can represent input/loading, preprocessing, segmentation, ROI/label editing, measurement, output/export, view/annotation, display updates and other operations. Very complex workflows are explicitly coarsened into mixed phases rather than becoming another unreadable forest of lines.</p>
+<p>For example, a 118-step text-overlay recording is summarized as two stages: create and publish the annotation (2 steps), then update its content/display (116 steps). The summary is navigation only; source and execution order are unchanged.</p>
+<h3 id="inspector">Inspector</h3>
+<p>The right tabs are <strong>Parameters, All parameters, Source, Changes, Validation, Run / inputs, Log, and Stage overview</strong>. They edit one step, survey parameters, show read-only source, track edits, report warnings, bind inputs and execute, display runtime logs, and navigate stage members.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Back up the original .py macro, then use <strong>Open macro…</strong> to import a copy.</p>
+<p>2. Read the high-level workflow. Click a stage and verify its original members in <strong>Stage overview</strong>.</p>
+<p>3. Select an original step and inspect its actual purpose in <strong>Parameters</strong> and <strong>Source</strong>. Unknown APIs and opaque Python are preserved and labelled, not guessed into a new operation.</p>
+<p>4. Edit an expression and click <strong>Apply parameters</strong>. Python strings need quotes, for example &#x27;output.tif&#x27;.</p>
+<p>5. Organize with move, duplicate, rename, enable, disable or delete. Use <strong>Focus dependencies</strong> to inspect the conservative prerequisites of an output step.</p>
+<p>6. For display simplification, click <strong>Simplify display…</strong> and review each candidate and reason. Prefer hiding or disabling first; never assume all candidates may be deleted.</p>
+<p>7. Use <strong>Save project…</strong> to retain an editable project and <strong>Save macro as…</strong> for a separate native macro. Do not overwrite the only original recording.</p>
+<p>8. In <strong>Run / inputs</strong>, refresh current published objects and bind missing inputs. Step through or test on a data copy before adapting the workflow to other data.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control/parameter</th><th>Purpose</th><th>Important detail</th></tr><tr><td>Step parameter expression</td><td>Change the Python expression passed by the selected step</td><td>Strings need quotes; object references and complex expressions remain expressions</td></tr><tr><td>All parameters</td><td>Survey step, parameter, expression and type in one table</td><td>Useful for repeated thresholds, paths and dimensions</td></tr><tr><td>Parameter preset</td><td>Save and reapply a set of expressions</td><td>Belongs to the Macro Editor project; it is not a global object binding</td></tr><tr><td>Runtime binding</td><td>Bind a missing name to a currently published Dragonfly object or a literal value</td><td>Object lists show only published objects visible in Dragonfly&#x27;s object list</td></tr><tr><td>Enable/Disable</td><td>Set the native :execution: skip state</td><td>Disabling changes execution; hiding does not</td></tr><tr><td>Focus dependencies</td><td>Show a conservative prerequisite set for the selected output step</td><td>An inspection aid, not proof of result equivalence</td></tr><tr><td>Zoom/Fit/Overview/100%</td><td>Control the readable extent of the high-level diagram</td><td>Display only; no effect on macro execution</td></tr><tr><td>Language and UI scale</td><td>Switch English/Chinese and adjust plugin UI size</td><td>Remembered automatically as interface preferences</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<ul>
+<li><strong>Native macro (</strong>.py)<strong>: current edited steps, execution flags and preserved unknown code, suitable for Dragonfly Macro Player.</strong></li>
+<li><strong>Macro Editor project (</strong>.json)<strong>: editable document, editor state, presets and explicitly saved bindings for later work.</strong></li>
+<li><strong>Results in the current Dragonfly session</strong>: produced only after explicit Step or Run all; depending on the macro these may be Channels, ROIs, MultiROIs, Meshes, measurements or files on disk.</li>
+</ul>
+<p>The high-level workflow and stage-member list are analysis views. They are not written back into the macro and are not a replacement executable workflow format.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>Macro Editor is missing from the menu</strong>: confirm the component was selected during installation and fully restart Dragonfly. Look under Utilities, below Macro Builder.</li>
+<li><strong>The workflow looks too summarized</strong>: click a stage to see every member. The high-level graph intentionally omits individual nodes; exact edits remain in the step list and Stage overview.</li>
+<li><strong>The workflow contains Other operations</strong>: that phase contains an unknown API, opaque Python or work that cannot be classified reliably. Inspect its members and source; do not disable it blindly.</li>
+<li><strong>A parameter causes a syntax error</strong>: check Python expression syntax. Quote text paths/names; a Windows path can use a raw string such as r&#x27;C:\data\a.tif&#x27;.</li>
+<li><strong>A runtime object cannot be found</strong>: refresh objects in Run / inputs, make sure the target is published and visible in Dragonfly&#x27;s object list, then bind it again.</li>
+<li><strong>Stop does not end immediately</strong>: Stop is cooperative between steps. A long native API call cannot be safely interrupted before it returns.</li>
+<li><strong>The result changed after simplification</strong>: restore disabled/deleted steps, preferably with Undo or a saved project. Compare data, geometry, labels and measurements on the same input, not just the screen appearance.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>This is a personal experimental prototype, not an official tool. Classification, dependency analysis and simplification suggestions are conservative aids and cannot replace professional judgement about an imaging workflow.</li>
+<li>Import does not execute code, but running the edited macro can change Dragonfly objects and overwrite output files named by the macro.</li>
+<li>Undo/Redo reverses editor document changes only. It cannot roll back data processing already completed in Dragonfly.</li>
+<li>Stop takes effect at step boundaries and cannot forcibly terminate a native Dragonfly operation already in progress.</li>
+<li>Complex control flow, dynamic Python, unknown APIs and opaque expressions are preserved where possible and explicitly marked. The plugin does not pretend to understand them fully.</li>
+<li>High-level stages are a navigation summary, not a complete data-dependency graph and not a decision about safe deletion.</li>
+<li>Before using a macro with other data, recheck object bindings, paths, voxel sizes, units, thresholds, label numbers and output destinations.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<p>Refer to the bundled README, the side-effect-free examples/parameter_demo.py, and Dragonfly&#x27;s native Macro Player and Macro Builder. When reporting experimental results, include the Dragonfly version, whether the original macro was preserved, the relevant step title, and whether the issue occurred during import, editing, saving or explicit execution. Do not put customer data, sensitive paths or confidential macro content in a public report.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MacroEditor-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

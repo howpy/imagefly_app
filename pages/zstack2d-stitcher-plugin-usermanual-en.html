@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Z-Stack 2D Stitcher · Dragonfly Prototype Apps</title>
+<meta name="description" content="Z-Stack 2D Stitcher - User Manual Dragonfly Prototype Apps · Z-Stack 2D Stitcher... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cas…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Z-Stack 2D Stitcher</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Z-Stack 2D Stitcher...</div>
+    <h1>Z-Stack 2D Stitcher</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-and-algorithm">Underlying engine and algorithm</a></li><li class="t3"><a href="#licensing-notes">Licensing notes</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-internet-and-hardware">Download size, internet, and hardware</a></li><li class="t3"><a href="#where-the-environment-and-jobs-live">Where the environment and jobs live</a></li><li class="t3"><a href="#fallback-if-setup-fails">Fallback if setup fails</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t2"><a href="#5-1-setup-tab-environment">5.1 Setup tab (environment)</a></li><li class="t2"><a href="#5-2-layout-tab-input-and-route">5.2 Layout tab (input and route)</a></li><li class="t2"><a href="#5-3-stitch-tab-alignment-and-output">5.3 Stitch tab (alignment and output)</a></li><li class="t2"><a href="#5-4-summary-tab">5.4 Summary tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Z-Stack 2D Stitcher - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Z-Stack 2D Stitcher...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Z-Stack 2D Stitcher</strong> is a Dragonfly plugin. It treats the <strong>Z stack</strong> of one Dragonfly Channel as a set of same-plane <strong>2D tiles</strong> and stitches them into one large <strong>single-slice 2D image</strong>, publishing the result back into Dragonfly as a new Channel.</p>
+<p>Many microscopy, camera, or other tiled 2D acquisitions arrive in Dragonfly as a Z stack that really ought to be laid out flat. This plugin re-flattens that Z stack. You select an input Channel, set the grid rows/columns and a stitching route, and the panel draws a grid preview with slice indices and arrows so you can see the acquisition/stitch order.</p>
+<h3 id="underlying-engine-and-algorithm">Underlying engine and algorithm</h3>
+<ul>
+<li><strong>Nominal offsets</strong>: derived from the X/Y overlap percentages you supply, giving the expected translation between adjacent tiles.</li>
+<li><strong>Phase correlation</strong>: optionally refines those offsets on adjacent tile overlap strips using scikit-image&#x27;s skimage.registration.phase_cross_correlation.</li>
+<li><strong>Fusion</strong>: blends overlapping regions into one canvas using mean, max, first-tile-wins, or last-tile-wins modes.</li>
+</ul>
+<p>The stitching computation runs as a subprocess inside an isolated Python virtual environment (venv), so it never disturbs Dragonfly&#x27;s own runtime. The only dependencies are numpy, scipy, and scikit-image.</p>
+<h3 id="licensing-notes">Licensing notes</h3>
+<p>All third-party libraries are open source: numpy and scipy are BSD-licensed, and scikit-image is BSD-licensed. They are downloaded automatically from PyPI under their respective licenses during first-time environment setup.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is for data that was <strong>imported into Dragonfly as a Z stack but is really a set of same-plane 2D tiles</strong> acquired in a grid:</p>
+<ul>
+<li>Microscope multi-field-of-view tiles, each stored as one Z slice;</li>
+<li>Industrial cameras, scanning stages, or other 2D acquisition devices that shoot in rows/columns and are stitched into one large image afterward;</li>
+<li>Cases where you want a large 2D stitched image inside Dragonfly by scan route, without exporting to external software.</li>
+</ul>
+<p>It is <strong>best suited to translation-dominant, fixed-overlap tile data</strong>: adjacent tiles differ mainly by a shift, with no significant rotation, scale, or lens distortion.</p>
+<p>Note: this plugin estimates translation only. If your tiles differ by significant rotation, scale, affine transform, or nonlinear distortion, it will not correct them and the stitch may be misaligned.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships as part of <strong>Prototype Apps</strong>. The recommended way to install it is through the <strong>Full Package</strong> installer.</p>
+<p><strong>1. </strong>Unzip the Full Package to any (short) folder and double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>2. </strong>In the installer dialog, choose the core install mode (Fresh or Compatible) and <strong>tick Z-Stack 2D Stitcher</strong> in the app list. By default all plugins are unticked, so this plugin must be enabled manually.</p>
+<p><strong>3. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>4. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are discovered only at startup).</p>
+<p>After the restart, open <strong>Prototype Apps &gt; Z-Stack 2D Stitcher...</strong> (under the <strong>Reconstruction &amp; Imaging</strong> group). The panel opens as a dockable floating window titled Z-Stack 2D Stitcher.</p>
+<p>To enable or disable the plugin later, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick/untick the plugin in the “Prototype Apps (Full Package)” list at the bottom, then restart Dragonfly to apply.</p>
+<p>Disabling a plugin <strong>never</strong> deletes the environment (venv) it already built; re-enabling is instant, with no rebuild required.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</h2>
+<p>This plugin uses a <strong>venv-in-code</strong> mechanism: stitching does not run in Dragonfly&#x27;s own interpreter but as a subprocess inside an isolated Python virtual environment. Before first use you must build that environment on the <strong>Setup</strong> tab.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>Clicking <strong>Setup Environment (numpy + scipy + scikit-image)</strong> on the Setup tab will:</p>
+<p><strong>1. </strong>Auto-detect a usable base Python (Dragonfly&#x27;s built-in Python is preferred by default, then system py / python / Miniconda / Anaconda, etc.); you can also point <strong>Base Python</strong> at a specific python.exe.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p><strong>2. </strong>Create a venv subfolder inside the plugin&#x27;s code directory as the virtual environment.</p>
+<p><strong>3. </strong>Upgrade pip and install numpy, scipy, and scikit-image from PyPI.</p>
+<p><strong>4. </strong>On success, fill the venv python.exe path into <strong>Analysis venv python</strong> and save the configuration. The status bar shows “Environment ready.”.</p>
+<h3 id="download-size-internet-and-hardware">Download size, internet, and hardware</h3>
+<ul>
+<li><strong>Internet: needed only for first-time setup.</strong> numpy / scipy / scikit-image and their dependencies are downloaded from PyPI (tens of MB typically). Once the environment is built, everyday stitching is offline.</li>
+<li><strong>GPU: not required.</strong> Stitching runs entirely on the CPU.</li>
+<li><strong>External software: not required.</strong> No Fiji, ImageJ, Java, or WSL is needed.</li>
+</ul>
+<h3 id="where-the-environment-and-jobs-live">Where the environment and jobs live</h3>
+<ul>
+<li><strong>Virtual environment</strong>: a venv\ subfolder inside the installed plugin code directory (i.e. ...\GenericMenuItems\ZStack2DStitcher\venv).</li>
+<li><strong>Job root</strong>: defaults to C:\ZStack2DStitcherJobs, editable on the Setup tab. Each run creates a timestamped subfolder there holding the exported input stack, the stitched result, and offsets.csv.</li>
+</ul>
+<h3 id="fallback-if-setup-fails">Fallback if setup fails</h3>
+<ul>
+<li>If the auto-detected base Python has no usable pip, the plugin retries other candidates automatically; if it still fails, point <strong>Base Python</strong> at a Python that has pip (e.g. a Miniconda python.exe) and click Setup Environment again.</li>
+<li>If you already have a Python environment elsewhere with numpy / scipy / scikit-image, you can fill its python.exe into <strong>Analysis venv python</strong> directly and skip Setup.</li>
+</ul>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The top of the panel shows a one-line description, followed by four tabs: <strong>Setup, Layout, Stitch, Summary</strong>; a green status line and a read-only log box sit at the bottom.</p>
+<h2 id="5-1-setup-tab-environment">5.1 Setup tab (environment)</h2>
+<ul>
+<li><strong>Analysis venv python</strong>: path to the analysis venv python.exe, normally filled by Setup Environment; can also be entered manually.</li>
+<li><strong>Base Python</strong>: the base Python used to build the venv; blank = auto-detect Dragonfly/system Python. The <strong>Browse...</strong> button lets you pick a python.exe.</li>
+<li><strong>Job root</strong>: root directory for job outputs, default C:\ZStack2DStitcherJobs.</li>
+<li><strong>Setup Environment (numpy + scipy + scikit-image)</strong>: builds/rebuilds the virtual environment.</li>
+</ul>
+<h2 id="5-2-layout-tab-input-and-route">5.2 Layout tab (input and route)</h2>
+<ul>
+<li><strong>Z-stack Channel</strong> dropdown: choose the input Channel whose Z slices are the tile stack; each entry shows its title and shape. The <strong>Refresh</strong> button re-enumerates all Channels in Dragonfly.</li>
+<li><strong>Rows</strong>: grid rows, default 3, range 1–10000.</li>
+<li><strong>Columns</strong>: grid columns, default 4, range 1–10000.</li>
+<li><strong>Route</strong>: the scan/stitch order — Zigzag / serpentine, Spiral clockwise inward, or Raster rows; default Zigzag.</li>
+<li><strong>Route preview</strong>: the area below draws the grid, per-cell slice index, and blue arrows showing the stitch order; it redraws live whenever rows, columns, or route change.</li>
+</ul>
+<p>Tip: after you pick a Channel, if the current rows×columns does not equal the Z slice count, the plugin auto-guesses a near-square rows/columns as a starting point, which you can then adjust.</p>
+<h2 id="5-3-stitch-tab-alignment-and-output">5.3 Stitch tab (alignment and output)</h2>
+<p><strong>Overlap alignment</strong> group:</p>
+<ul>
+<li><strong>Alignment</strong>: either “Use scikit-image phase correlation on overlap strips” (default) or “Nominal grid only” (no registration, nominal grid positions only).</li>
+<li><strong>Y overlap %</strong>: vertical overlap percentage, default 10.00, range 0–95.</li>
+<li><strong>X overlap %</strong>: horizontal overlap percentage, default 10.00, range 0–95.</li>
+<li><strong>Subpixel upsample</strong>: phase-correlation upsampling factor, default 1 (= whole-pixel), range 1–100; larger is finer but slower.</li>
+<li><strong>Max correction px</strong>: the maximum shift phase correlation may add on top of the nominal position, default 20.00; corrections beyond this are rejected as anomalous (falling back to the nominal position).</li>
+<li><strong>Normalize overlap strips before alignment</strong>: checkbox, default on.</li>
+</ul>
+<p><strong>Output</strong> group:</p>
+<ul>
+<li><strong>Blend mode</strong>: Mean blend (default) / Max intensity / First tile wins / Last tile wins.</li>
+<li><strong>Fill value</strong>: value used for canvas regions not covered by any tile, default 0.0000.</li>
+<li><strong>Output Channel</strong>: title of the new Channel, default Z-stack 2D stitched.</li>
+<li><strong>Run 2D Stitching</strong> (blue button): starts stitching.</li>
+</ul>
+<h2 id="5-4-summary-tab">5.4 Summary tab</h2>
+<p>A two-column table (Metric / Value) shown automatically after stitching, listing tile count, rows/columns, route, alignment and blend modes, step sizes, output dimensions, the number of adjacent pairs successfully aligned, and more; the panel switches to this tab on completion.</p>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p><strong>Prerequisite</strong>: a Channel is open in Dragonfly whose Z slices are same-plane 2D tile images.</p>
+<p><strong>1. </strong>Open <strong>Prototype Apps &gt; Z-Stack 2D Stitcher...</strong>.</p>
+<p><strong>2. </strong>First use: go to the <strong>Setup</strong> tab, optionally change Job root, click <strong>Setup Environment</strong>, and wait for the status bar to read “Environment ready.”. Skip this if the environment already exists.</p>
+<p><strong>3. </strong>Go to the <strong>Layout</strong> tab, click <strong>Refresh</strong>, and select the input Channel in the Z-stack Channel dropdown.</p>
+<p><strong>4. </strong>Set <strong>Rows / Columns</strong> (rows×columns must not exceed the Z slice count), choose a <strong>Route</strong>, and confirm against the preview that the stitch order matches your acquisition order.</p>
+<p><strong>5. </strong>Go to the <strong>Stitch</strong> tab, set X/Y overlap percentages (as close to the real acquisition overlap as possible), choose the alignment and blend modes, and optionally adjust upsample, max correction, fill value, and output name.</p>
+<p><strong>6. </strong>Click <strong>Run 2D Stitching</strong>. The plugin exports the Channel stack → estimates offsets and stitches in the venv → publishes the result back to Dragonfly. The log box shows live progress.</p>
+<p><strong>7. </strong>On completion, the panel switches to the <strong>Summary</strong> tab; the status bar shows the result and the offsets.csv path; the new 2D Channel appears in Dragonfly&#x27;s object list.</p>
+<p>If rows×columns exceeds the Z slice count, or the analysis venv python is not set, the status bar reports an error and the run is blocked.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Rows / Columns</td><td>3 / 4</td><td>Grid rows and columns; rows×columns must not exceed the input Channel&#x27;s Z slice count. Range 1–10000 each.</td></tr><tr><td>Route</td><td>Zigzag</td><td>Stitch scan route: Zigzag (serpentine) / Spiral / Raster rows. Must match acquisition order.</td></tr><tr><td>Alignment</td><td>phase_overlap</td><td>Alignment mode: phase_overlap (scikit-image phase correlation) or none (nominal grid only).</td></tr><tr><td>Y overlap %</td><td>10.00</td><td>Vertical overlap percentage between adjacent tiles, used to derive nominal step. Range 0–95.</td></tr><tr><td>X overlap %</td><td>10.00</td><td>Horizontal overlap percentage between adjacent tiles. Range 0–95.</td></tr><tr><td>Subpixel upsample</td><td>1</td><td>Phase-correlation upsampling factor; 1 = whole-pixel, larger gives subpixel localization. Range 1–100.</td></tr><tr><td>Max correction px</td><td>20.00</td><td>Max shift phase correlation may add; larger corrections are rejected, falling back to nominal position.</td></tr><tr><td>Normalize</td><td>on</td><td>Whether to normalize (subtract mean / divide by std) overlap strips before alignment.</td></tr><tr><td>Blend mode</td><td>mean</td><td>Fusion mode: mean / max / first (first tile wins) / last (last tile wins).</td></tr><tr><td>Fill value</td><td>0.0000</td><td>Fill value for canvas regions not covered by any tile.</td></tr><tr><td>Output Channel</td><td>Z-stack 2D stitched</td><td>Title of the new Channel published back to Dragonfly.</td></tr><tr><td>Job root</td><td>C:\ZStack2DStitcherJobs</td><td>Root output directory; each run creates a timestamped subfolder underneath.</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>After stitching completes you get:</p>
+<ul>
+<li><strong>A new 2D Channel</strong>: the single-slice stitched image is published back to Dragonfly as a new Channel (default title Z-stack 2D stitched) and appears in the object browser. Its X/Y/Z spacing and origin are inherited from the input Channel and adjusted by the stitch origin offset, so the physical scale matches the source data.</li>
+<li><strong>`offsets.csv`</strong>: written to the current job folder (a timestamped subfolder under Job root). It records, per slice, the row, column, offset Y/X, whether alignment was used, the estimated shift, and (if alignment was not used) the reason.</li>
+<li><strong>Summary metrics table</strong>: shown on the panel&#x27;s Summary tab (tile count, output dimensions, number of adjacent pairs successfully aligned, etc.).</li>
+</ul>
+<p>To view: double-click the new Channel in Dragonfly&#x27;s object list to display it in a view; open offsets.csv in any spreadsheet / text editor to inspect the stitch offsets.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q1: The status bar says “Run Setup first, or set the analysis venv python.” and I cannot run.</strong></p>
+<p>A: The analysis environment has not been built. Click <strong>Setup Environment</strong> on the Setup tab, or fill <strong>Analysis venv python</strong> with a python.exe that already has numpy/scipy/scikit-image.</p>
+<p><strong>Q2: It says “Rows x columns exceeds the Channel Z slice count.”</strong></p>
+<p>A: The product of rows and columns is larger than the number of Z slices in the input Channel. On the Layout tab reduce Rows / Columns so their product does not exceed (it may equal) the actual slice count.</p>
+<p><strong>Q3: I enabled phase correlation, but many rows in offsets.csv have used_alignment = False.</strong></p>
+<p>A: The overlap strip may have too little texture for reliable registration, or the estimated shift exceeded <strong>Max correction px</strong> and was rejected (falling back to the nominal position). Try increasing Max correction, confirm the X/Y overlap percentages are close to the real values; if the overlap strip is still too low-texture, the nominal grid position may be more reliable.</p>
+<p><strong>Q4: The stitched image is badly misaligned.</strong></p>
+<p>A: First confirm the <strong>Route</strong> matches the real acquisition scan order (check the preview indices and arrows); then confirm the rows/columns are correct; then confirm the X/Y overlap percentages match the acquisition. This plugin handles translation only, so tiles with rotation/scale/distortion are out of scope.</p>
+<p><strong>Q5: Setup Environment fails, reporting no Python with pip.</strong></p>
+<p>A: Point <strong>Base Python</strong> at a python.exe that has pip (e.g. C:\ProgramData\miniconda3\python.exe), make sure it can reach PyPI for the first-time build, and click Setup Environment again.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Translation only</strong>: no rotation, scale, affine transform, lens distortion, or nonlinear correction.</li>
+<li><strong>Grid and route are manual</strong>: the plugin does not infer rows/columns or scan order from microscope stage metadata; you set them.</li>
+<li><strong>Phase correlation applies only to adjacent route steps</strong>: non-adjacent jumps (e.g. zigzag row changes, spiral turns) use the nominal grid position.</li>
+<li><strong>Low-texture overlap strips</strong>: when the overlap region lacks texture, the nominal position may be more reliable than phase correlation; Max correction guards against anomalous shifts.</li>
+<li><strong>Output is a single-slice 2D Channel</strong>: this plugin does not produce a volume reconstruction; it flattens same-plane tiles into one large image.</li>
+<li><strong>First-time setup needs internet</strong>: everyday stitching is offline afterward. The job root grows with each run — periodically clean out old timestamped subfolders under Job root.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>scikit-image documentation: skimage.registration.phase_cross_correlation (phase cross-correlation registration).</li>
+<li>scikit-image project: https://scikit-image.org</li>
+<li>NumPy: https://numpy.org · SciPy: https://scipy.org</li>
+<li>Full Package install / enable / uninstall instructions: the README bundled with the Full Package.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ZStack2D-Stitcher-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

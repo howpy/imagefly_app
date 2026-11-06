@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Porosity Analysis (Hands-on Workshop) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Porosity Analysis (Hands-on Workshop) - User Manual Dragonfly Prototype Apps · Porosity Analysis... Version 1.0 · 2026-07-26 English Manual Contents 1. Int…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Porosity Analysis (Hands-on Workshop)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Porosity Analysis...</div>
+    <h1>Porosity Analysis (Hands-on Workshop)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-the-five-steps-teaching-content">2. The five steps &amp; teaching content</a></li><li class="t2"><a href="#3-features">3. Features</a></li><li class="t2"><a href="#4-how-to-use">4. How to use</a></li><li class="t2"><a href="#5-requirements">5. Requirements</a></li><li class="t2"><a href="#6-tips-delegation">6. Tips &amp; delegation</a></li></ul></nav>
+  <main class="manual"><p><strong>Porosity Analysis (Hands-on Workshop) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Porosity Analysis...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Porosity Analysis (Hands-on Workshop)</strong> is the first project in the <strong>Hands-on Workshops</strong> category: a <strong>multi-tab teaching wizard</strong> that walks you through the complete workflow of analysing the pore structure of <strong>porous media</strong> (digital rock, metal foams, filter media, bone, ...). A toolbar at the top (Overview, an Image dropdown, Refresh) sits above <strong>five linked step tabs</strong> that you work left to right.</p>
+<p>Every tab pairs two kinds of content: <strong>📖 Learn</strong> buttons open a resizable, <strong>中文|EN</strong>-switchable teaching pop-up that explains the concepts and workflow in depth; <strong>🛠 Try it</strong> buttons run the analysis on <strong>real data</strong>. Everything runs <strong>in-process</strong> on Dragonfly&#x27;s bundled <strong>numpy/scipy</strong> — no venv, no download, no GPU, no internet.</p>
+<p><strong>Execute All Steps with Current Settings</strong> on the Import tab runs the whole workshop unattended - use the selected image, choose the threshold with Otsu, compute the total porosity, split open from closed porosity, count the pore clusters, estimate the permeability - each step with whatever its own tab shows at the moment you press it. Nothing is written to the session unless you tick one of the two boxes in that group (creating the synthetic sample publishes a Channel; creating the pore ROI publishes an ROI); both are off by default. Every tab stays open at all times, so an instructor can set every parameter BEFORE the run and a learner can still work the steps one at a time; a step whose input does not exist yet refuses when you press ITS button and says which step has to run first.</p>
+<p>Use it for teaching and self-study (couple abstract pore concepts with real operations, learning by doing); onboarding new staff/students to digital-rock analysis quickly; as a guided standard operating procedure that prevents skipping key steps (threshold checking, connectivity, REV, permeability estimate); and as an interactive tutorial for demos and marketing.</p>
+<h2 id="2-the-five-steps-teaching-content">2. The five steps &amp; teaching content</h2>
+<p>The five tabs are the five steps of pore analysis. Each carries 3 <strong>📖 Learn</strong> documents and one or more <strong>🛠 Try it</strong> actions:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Step (tab)</th><th>📖 Learn documents</th><th>🛠 Try it actions</th></tr><tr><td>1 · Import</td><td>3D imaging of porous media; voxel, resolution &amp; representativeness; image formats &amp; import</td><td>Create synthetic porous sample; open Dragonfly import; use the selected image</td></tr><tr><td>2 · Segment</td><td>Thresholding &amp; Otsu; advanced segmentation methods; threshold pitfalls</td><td>Auto threshold (Otsu) with porosity preview; create &amp; publish a pore ROI</td></tr><tr><td>3 · Porosity</td><td>Porosity definition &amp; formula; open/closed porosity &amp; connectivity; REV</td><td>Compute total porosity; open vs closed connectivity analysis</td></tr><tr><td>4 · Pore Network</td><td>The Pore Network Model (PNM); SNOW watershed extraction; network metrics</td><td>Lightweight pore stats (connected components); guide to full SNOW extraction</td></tr><tr><td>5 · Simulation</td><td>Darcy&#x27;s law &amp; permeability; simulation methods (PNM/LBM/Stokes); Kozeny–Carman</td><td>Kozeny–Carman permeability estimate; guide to rigorous OpenPNM simulation</td></tr></table></div>
+<h2 id="3-features">3. Features</h2>
+<ul>
+<li><strong>One-click synthetic sample:</strong> enter a sample size (voxels), target porosity φ and pore coarseness (blobiness) to generate a practice volume with a <strong>known porosity</strong> and publish it as a Channel. It prefers <strong>porespy</strong> (if present in the Dragonfly environment) and otherwise falls back to a <strong>numpy Gaussian-random-field</strong> generator — so you can start even with no data.</li>
+<li><strong>Otsu auto-threshold:</strong> a pure-numpy Otsu (maximum between-class variance) finds the segmentation threshold and previews the porosity; tick <strong>&quot;Pore = low intensity&quot;</strong> (pores are usually dark in CT) and fine-tune the threshold manually.</li>
+<li><strong>Pore ROI segmentation &amp; publishing:</strong> build an <strong>ROI</strong> of the pore-phase voxels at the current threshold and publish it back into Dragonfly (getAsROIWithinRange) so you can check the boundary in 2D slices / 3D.</li>
+<li><strong>Porosity calculation:</strong> φ = pore voxels / total voxels — a dimensionless ratio, independent of voxel size.</li>
+<li><strong>Open/closed connectivity analysis:</strong> scipy.ndimage.label (26-connectivity) labels pore clusters, marks clusters touching a boundary face as <strong>open</strong> and fully-enclosed ones as <strong>closed</strong>, and reports total/open/closed porosity, cluster count, largest-cluster share and cluster-size distribution.</li>
+<li><strong>Kozeny–Carman permeability estimate:</strong> from porosity φ and a mean grain size d, estimate k = φ³·d² / [180·(1−φ)²], converted to m² / Darcy / mD (order-of-magnitude).</li>
+<li><strong>Rich bilingual teaching docs:</strong> 15 📖 Learn documents cover imaging physics, thresholding/segmentation, porosity, connectivity, REV, the pore network model, SNOW, Darcy&#x27;s law, simulation methods and more — each <strong>中文|EN</strong>-switchable, resizable and left open while you work.</li>
+</ul>
+<h2 id="4-how-to-use">4. How to use</h2>
+<p>1. Open <strong>Prototype Apps ▸ Hands-on Workshops ▸ Porosity Analysis...</strong> in Dragonfly.</p>
+<p>2. Click <strong>📘 Overview</strong> at the top first to read the workshop overview and see how the five steps connect.</p>
+<p>3. <strong>Step 1 (Import):</strong> with no data, set the sample size / target porosity / coarseness and click <strong>🧪 Create synthetic porous sample</strong> to generate and publish one; with your own data use <strong>📂 Open Dragonfly import</strong>, then come back, click <strong>↻ Refresh</strong> and pick it in the Image dropdown.</p>
+<p>4. <strong>Step 2 (Segment):</strong> click <strong>🎯 Auto threshold (Otsu)</strong> to find the threshold and preview porosity, adjust the Threshold manually if needed and confirm <strong>Pore = low intensity</strong>; then <strong>🧩 Create pore ROI</strong> and check the boundary hugs the real pore walls in slices / 3D.</p>
+<p>5. <strong>Step 3 (Porosity):</strong> click <strong>📊 Compute total porosity</strong> for φ; click <strong>🔗 Open vs closed (connectivity)</strong> to split open/closed pores and view cluster stats (only open porosity contributes to flow).</p>
+<p>6. <strong>Step 4 (Pore Network):</strong> click <strong>🕸 Lightweight pore stats</strong> for cluster count, open/closed fractions, largest-cluster share and size distribution; for a full pore-body/throat network, follow the prompt to the <strong>ROI to MultiROI (SNOW)</strong> plugin.</p>
+<p>7. <strong>Step 5 (Simulation):</strong> enter a mean grain size d and click <strong>⚗ Estimate permeability (Kozeny–Carman)</strong> for an order-of-magnitude k; for rigorous quantitative values, follow the prompt to the <strong>Permeability (OpenPNM)</strong> plugin.</p>
+<p>8. At any step, click that tab&#x27;s <strong>📖 Learn</strong> buttons to study the concept, then return to <strong>🛠 Try it</strong> to verify hands-on.</p>
+<h2 id="5-requirements">5. Requirements</h2>
+<ul>
+<li><strong>No venv, no download, no GPU, no admin, no internet.</strong> All actions run in-process on Dragonfly&#x27;s bundled <strong>numpy/scipy</strong>.</li>
+<li><strong>The action buttons run inside Dragonfly</strong> (they read Channels and publish ROIs via the object model). The teaching docs work anywhere — in a standalone test environment with no Dragonfly object model, 📖 Learn still works and 🛠 Try it reports that it must run inside Dragonfly.</li>
+<li><strong>Synthetic-sample generation</strong> prefers <strong>porespy</strong> (if installed in the Dragonfly environment) and otherwise falls back to a <strong>numpy Gaussian-random-field</strong> generator; neither path needs any extra install.</li>
+</ul>
+<h2 id="6-tips-delegation">6. Tips &amp; delegation</h2>
+<p>The pore-network and simulation steps here are deliberately <strong>lightweight, in-process</strong> approximations: Step 4 gives a connectivity snapshot via connected-component labelling, and Step 5 gives an <strong>order-of-magnitude</strong> permeability via Kozeny–Carman.</p>
+<ul>
+<li>For a full <strong>pore-body/throat network extraction</strong> (coordination number, pore/throat-size distributions), use the Prototype Apps <strong>ROI to MultiROI (SNOW)</strong> plugin (porespy&#x27;s SNOW watershed algorithm).</li>
+<li>For <strong>rigorous permeability</strong> (absolute permeability, two-phase drainage, relative-permeability curves), extract the network first then use the <strong>Permeability (OpenPNM)</strong> plugin. These heavier plugins may each need a one-time environment setup.</li>
+<li>Key insight: permeability k ∝ φ³ — the <strong>cube</strong> of porosity! A small porosity change is amplified cubically, so always verify the segmentation threshold rather than blindly trusting the automatic value.</li>
+</ul>
+<p>This is the first project in the Hands-on Workshops category; its multi-tab StepTab + bilingual DocDialog framework is reusable to build more hands-on workshops for other domains.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>PorosityWorkshop-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

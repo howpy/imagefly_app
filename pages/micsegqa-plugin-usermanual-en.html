@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segmentation QA (3D) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Segmentation QA (3D) - User Manual Dragonfly Prototype Apps · Segmentation QA: Compare Masks in 3D... Version 1.0 · 2026-07-31 English Manual Contents 1. I…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Segmentation QA (3D)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Segmentation QA: Compare Masks in 3D...</div>
+    <h1>Segmentation QA (3D)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-31</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-two-levels-of-metric-and-why-accuracy-is-not-reported">2. Two levels of metric, and why accuracy is not reported</a></li><li class="t2"><a href="#3-matching-greedy-or-optimal">3. Matching: greedy or optimal</a></li><li class="t2"><a href="#4-boundary-distances-optional">4. Boundary distances (optional)</a></li><li class="t2"><a href="#5-how-to-use-it">5. How to use it</a></li><li class="t2"><a href="#6-the-tp-fp-fn-overlay">6. The TP/FP/FN overlay</a></li><li class="t2"><a href="#7-requirements-and-limits">7. Requirements and limits</a></li></ul></nav>
+  <main class="manual"><p><strong>Segmentation QA (3D) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Segmentation QA: Compare Masks in 3D...</p>
+<p>Version 1.0 · 2026-07-31</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Segmentation QA (3D)</strong> answers one concrete question: <em>how good is this segmentation?</em> It treats one <strong>published MultiROI or ROI</strong> as the <strong>ground truth</strong> and another as the <strong>segmentation to evaluate</strong>, then reports the standard agreement metrics - computed over the <strong>whole 3D volume</strong>.</p>
+<p>This reimplements the metric set of the ImageJ plugin <strong>MiC</strong> (MIT, https://github.com/MultimodalImagingCenter/MiC). MiC’s README says it works only in 2D, but <strong>that line is stale relative to its own code</strong> — MiC ships a registered “Mask instant Comparator 3D” entry, so <strong>3D is not the differentiator</strong>. What this plugin actually offers is running inside Dragonfly on <strong>published MultiROI/ROI</strong> objects, with results wired into Dragonfly’s own tables, overlays and reports, plus <strong>boundary distances in world units</strong> (ASSD / Hausdorff), which MiC does not compute. The per-slice mode is kept so results can be compared with the ImageJ original.</p>
+<p>The two inputs must come from the <strong>same image grid</strong> (identical shape). A mismatch is reported as an explicit error naming both shapes - never as silently wrong numbers.</p>
+<h2 id="2-two-levels-of-metric-and-why-accuracy-is-not-reported">2. Two levels of metric, and why accuracy is not reported</h2>
+<p><strong>Voxel level</strong>: TP (both call it foreground), FP (only the evaluated mask does - over-segmentation), FN (only the ground truth does - missed), then precision = TP/(TP+FP), recall = TP/(TP+FN), Jaccard (IoU) = TP/(TP+FP+FN) and F1 = 2TP/(2TP+FP+FN), which is the same number as the Dice coefficient.</p>
+<p><strong>Accuracy and specificity are deliberately NOT reported.</strong> Both need TN, the voxels both sides call background - and in a volume that is often over 99% of the data, so any TN-based score reads above 0.99 no matter how bad the segmentation is. Reporting it would only mislead.</p>
+<p><strong>Object level</strong>: every ground-truth object is matched <strong>one-to-one</strong> with a predicted object by IoU, then counted across a sweep of IoU thresholds: a matched pair with IoU &gt;= threshold is a TP, an unmatched prediction is an FP, an unmatched ground-truth object is an FN. The default sweep is 0.50 to 0.95 in steps of 0.05 (the COCO and StarDist/Cellpose convention). From those counts: <strong>AP = TP/(TP+FP+FN)</strong>, its mean over the sweep <strong>mAP</strong>, and <strong>panoptic quality PQ</strong> = (sum of matched IoU) / (TP + FP/2 + FN/2).</p>
+<p><strong>mAP is only meaningful when BOTH inputs are labelled MultiROIs.</strong> With a binary ROI the whole foreground is one object, so only the voxel-level metrics apply.</p>
+<h2 id="3-matching-greedy-or-optimal">3. Matching: greedy or optimal</h2>
+<p>Matching is GREEDY by descending IoU by default (what the ImageJ MiC original does), and <strong>at IoU thresholds &gt;= 0.5 greedy is provably optimal</strong> - one prediction cannot exceed 0.5 IoU with two ground-truth objects at once. The results panel always states which rule produced the numbers.</p>
+<p>&quot;Maximise TOTAL IoU (Hungarian)&quot; is <strong>off by default and not recommended</strong>: it optimises the SUM of IoU, while these metrics count PAIRS ABOVE THE THRESHOLD - a different objective. Measured case: with IoUs 0.5556 / 0.2857 / 0.2857 it discards the 0.5556 pair (0.2857+0.2857 is a larger sum) and reports TP/FP/FN = 0/2/2 and mAP 0.0000 at IoU 0.50, where the correct answer is non-zero.</p>
+<h2 id="4-boundary-distances-optional">4. Boundary distances (optional)</h2>
+<p>When ticked, the plugin also reports <strong>ASSD</strong> (average symmetric surface distance), <strong>95% Hausdorff</strong> and maximum Hausdorff, <strong>scaled by the voxel spacing</strong> so the numbers are world units even for anisotropic voxels.</p>
+<p>Why it is worth having: two masks can share a Dice of 0.9 and still be a whole voxel off everywhere. Volume-overlap metrics cannot see that; a boundary distance shows it immediately. Upstream MiC has no equivalent. Needs scipy; if either mask is empty the result is reported as &quot;not computed&quot; rather than as 0.</p>
+<h2 id="5-how-to-use-it">5. How to use it</h2>
+<p>1. <strong>Publish</strong> both segmentations into the session - the plugin lists published objects only.</p>
+<p>2. Open <strong>Prototype Apps &gt; Segmentation QA: Compare Masks in 3D...</strong> and pick the ground truth and the prediction on tab 1. Press Refresh if the lists are empty.</p>
+<p>3. Adjust the IoU sweep if needed, tick per-slice comparison / boundary distances / publish overlay, then press <strong>Compare now</strong>.</p>
+<p>4. Tab 2 shows a one-line headline (voxel Dice, Jaccard, object counts, mAP, matching method), the full metric table, and the per-threshold object table.</p>
+<p>5. Tab 3 exports Excel/CSV/JSON and the plots to a folder of your choice.</p>
+<h2 id="6-the-tp-fp-fn-overlay">6. The TP/FP/FN overlay</h2>
+<p>With &quot;Publish a TP/FP/FN overlay MultiROI when done&quot; ticked, a new MultiROI is created and published with three labels: <strong>TP (agree) green</strong>, <strong>FP (extra) red</strong>, <strong>FN (missed) blue</strong>.</p>
+<p>This is the most useful part of the plugin: the numbers say how much is wrong, the overlay says where. Red rims around every object means the segmentation is systematically too fat; blue where the small objects are means they were missed; no blue boundary between two touching objects means the model merged them.</p>
+<p>The overlay inherits the source spacing and origin, so it lines up exactly in the 2D/3D views. If the two segmentations agree everywhere (no FP or FN voxel at all) the plugin says so instead of publishing an empty object.</p>
+<h2 id="7-requirements-and-limits">7. Requirements and limits</h2>
+<p>No GPU, no internet, no admin rights and nothing to install: everything runs inside Dragonfly on the bundled numpy. Optimal matching and boundary distances need scipy, Excel export needs openpyxl, plots need matplotlib - all shipped with Dragonfly.</p>
+<p>Limits: the two inputs must have the same shape; for a time series compare one time point at a time (the plugin reads the current one); object-level metrics need labels, so a binary ROI supports voxel-level evaluation only.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MiCSegQA-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open3D Mesh Tools · Dragonfly Prototype Apps</title>
+<meta name="description" content="Open3D Mesh Tools - User Manual Dragonfly Prototype Apps · Open3D Mesh Tools... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cases 3…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Open3D Mesh Tools</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Open3D Mesh Tools...</div>
+    <h1>Open3D Mesh Tools</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#5-1-setup-tab-environment">5.1 Setup tab (Environment)</a></li><li class="t3"><a href="#5-2-operate-tab">5.2 Operate tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-single-mesh-operations-simplify-smooth-clean-fill-holes-normals-reconstruct">6.1 Single-mesh operations (simplify / smooth / clean / fill holes / normals / reconstruct)</a></li><li class="t3"><a href="#6-2-icp-registration-align-mesh-a-to-mesh-b">6.2 ICP registration (align mesh A to mesh B)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t3"><a href="#7-1-simplify-quadric-decimation">7.1 Simplify (quadric decimation)</a></li><li class="t3"><a href="#7-2-smooth-taubin-laplacian">7.2 Smooth (Taubin / Laplacian)</a></li><li class="t3"><a href="#7-3-clean">7.3 Clean</a></li><li class="t3"><a href="#7-4-fill-holes">7.4 Fill holes</a></li><li class="t3"><a href="#7-5-compute-normals">7.5 Compute normals</a></li><li class="t3"><a href="#7-6-reconstruct-surface-poisson-ball-pivoting">7.6 Reconstruct surface (Poisson / Ball-Pivoting)</a></li><li class="t3"><a href="#7-7-register-icp">7.7 Register (ICP)</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Open3D Mesh Tools - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Open3D Mesh Tools...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Open3D Mesh Tools</strong> is a Dragonfly plugin that brings the professional mesh-processing capabilities of the open-source geometry library <strong>Open3D</strong> into Dragonfly. You pick a surface mesh in your scene, choose an operation (simplify, smooth, clean up defects, fill holes, compute normals, reconstruct a surface from vertices, or align one mesh to another with ICP registration), set the parameters, and click <strong>Run</strong>. The result is published back into the scene as a <strong>brand-new mesh</strong>, leaving the original untouched.</p>
+<p>The underlying engine is <strong>Open3D</strong> (open3d.org), using only the <strong>CPU</strong> wheel — there is <strong>no CUDA / GPU dependency</strong>. To avoid polluting Dragonfly&#x27;s own Python, Open3D is installed into a <strong>dedicated virtual environment (venv)</strong> and runs as a subprocess; Dragonfly and that subprocess exchange data through temporary <strong>PLY</strong> files and a JSON config file. As a result, <strong>Open3D is never imported into Dragonfly&#x27;s own Python.</strong></p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>The only dependencies are open3d and numpy, both installed from the default PyPI index (no torch, no CUDA index). Open3D is MIT-licensed and numpy is BSD-licensed — both permissive, commercially friendly licenses.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is useful whenever meshes extracted from CT or microscopy data need post-processing. Typical scenarios include:</p>
+<ul>
+<li><strong>Shrinking huge meshes</strong>: simplify very-high-triangle-count segmentation meshes for simulation, 3D printing, or faster rendering.</li>
+<li><strong>Smoothing and repairing noisy surfaces</strong>: clean up noise and defects on bones, pores, fibers, or industrial parts.</li>
+<li><strong>Aligning two scans</strong>: register two scans of the same object, e.g. before/after comparison or metrology against a reference part.</li>
+<li><strong>Cleaning topology defects</strong>: remove duplicated vertices/faces, degenerate triangles, and non-manifold edges for a cleaner mesh.</li>
+<li><strong>Reconstructing a surface from a point cloud</strong>: treat the vertices as a point cloud and rebuild a closed surface with Poisson or Ball-Pivoting.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin ships as part of <strong>Prototype Apps</strong> and is deployed with the Full Package installer:</p>
+<p><strong>1. </strong>Unzip the Full Package and double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>2. </strong>In the dialog, pick the core install mode (Fresh / Compatible) and tick <strong>Open3D Mesh Tools...</strong> in the plugin list.</p>
+<p><strong>3. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>4. </strong><strong>Quit and restart Dragonfly completely</strong> (menus are discovered only at startup).</p>
+<p>By default every plugin (including this one) is <strong>unchecked</strong> in the installer list; you must tick Open3D Mesh Tools yourself for it to be deployed.</p>
+<p>After the restart the menu item appears at: <strong>Prototype Apps → Open3D Mesh Tools...</strong> (in the “Measurements &amp; Analysis” group). Clicking it opens a dockable, floatable panel.</p>
+<p>You can change the enabled state later from inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, and use the checkbox next to Open3D Mesh Tools in the “Prototype Apps (Full Package)” list — tick = deploy, untick = remove the menu entry. Restart Dragonfly to apply. Disabling never deletes the plugin&#x27;s already-built environment; re-enabling is instant.</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p>Nothing is downloaded at install time. On first use, go to the <strong>Setup</strong> tab and click the <strong>“Setup Environment”</strong> button to build a one-time environment:</p>
+<ul>
+<li><strong>What it does</strong>: creates a dedicated venv next to the plugin code, then runs pip install open3d numpy inside that venv.</li>
+<li><strong>Download size</strong>: a couple of minutes; Open3D is a wheel of a few hundred MB.</li>
+<li><strong>Internet</strong>: required (the wheels are fetched from PyPI).</li>
+<li><strong>GPU</strong>: not required — CPU only, no CUDA dependency.</li>
+<li><strong>Where it installs</strong>: the venv lives inside the installed code directory (%LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\Open3DTools\venv).</li>
+<li><strong>Job folder</strong>: defaults to C:\Open3DJobs; each run creates an o3d_&lt;timestamp&gt; subfolder to hold the PLY exchange files.</li>
+</ul>
+<p><strong>Base Python (build interpreter)</strong>: left blank by default, which means the venv is built from <strong>this Dragonfly&#x27;s own python.exe</strong> (Dragonfly 2025.1 / 2027.1 bundle a full CPython 3.10 whose venv + pip work), so you need no separate Python install. If a given Dragonfly build&#x27;s interpreter lacks a working pip, the tool automatically falls back to a system CPython.</p>
+<p>Fallback if setup fails: Open3D only ships wheels for CPython 3.8–3.12 (Windows x86-64). If the automatic build fails, put a path to a CPython in that range with pip (e.g. C:\Python312\python.exe) or py -3.12 in the Base Python field, then click Setup Environment again.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel has a short blue note at the top, two tabs (<strong>Setup</strong> and <strong>Operate</strong>), and at the bottom a result label plus a read-only <strong>Log</strong> area.</p>
+<h3 id="5-1-setup-tab-environment">5.1 Setup tab (Environment)</h3>
+<ul>
+<li><strong>Open3D venv python</strong>: text field showing the current venv&#x27;s python path; filled in automatically after a successful “Setup Environment”.</li>
+<li><strong>Base Python (build)</strong>: text field; blank = use this Dragonfly&#x27;s own python.exe (recommended); or a path / py -3.12.</li>
+<li><strong>Run mode</strong>: dropdown, windows (default) or wsl. Keep windows for normal use.</li>
+<li><strong>Job root</strong>: text field, the job root directory; default C:\Open3DJobs.</li>
+<li><strong>Setup Environment</strong> button: builds the venv and installs open3d + numpy (one-time, a couple of minutes).</li>
+</ul>
+<h3 id="5-2-operate-tab">5.2 Operate tab</h3>
+<ul>
+<li><strong>Mesh A (source)</strong>: dropdown to pick the input (source) scene mesh; the <strong>Refresh</strong> button next to it re-enumerates scene meshes. Each entry shows vertex count V, face count F, and class.</li>
+<li><strong>Mesh B (target, ICP only)</strong>: dropdown, enabled only for the ICP operation (greyed out otherwise), used to pick the alignment target mesh.</li>
+<li><strong>Operation</strong>: dropdown to choose the operation (7 in total; see Chapter 7). Switching the operation automatically rebuilds the <strong>Parameters</strong> area below for that operation.</li>
+<li><strong>Parameters</strong>: a form built dynamically for the current operation (spin boxes / double spin boxes / checkboxes / dropdowns); hover a control to see its help tooltip.</li>
+<li><strong>Result mesh title</strong>: text field for the result mesh title; blank = auto-named (e.g. “Open3D Smooth (Taubin / Laplacian)”).</li>
+<li><strong>Run</strong> button (blue): starts the operation.</li>
+<li><strong>Open Output Folder</strong> button: opens this (or the last) job folder in the file explorer.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-single-mesh-operations-simplify-smooth-clean-fill-holes-normals-reconstruct">6.1 Single-mesh operations (simplify / smooth / clean / fill holes / normals / reconstruct)</h3>
+<p><strong>1. </strong>Make sure you have completed Setup Environment from Chapter 4 (the venv python path on the Setup tab is not empty).</p>
+<p><strong>2. </strong>Switch to the <strong>Operate</strong> tab and click <strong>Refresh</strong> to enumerate scene meshes.</p>
+<p><strong>3. </strong>In the <strong>Mesh A</strong> dropdown, select the mesh to process (a triangle surface mesh; reconstruct can work from vertices only).</p>
+<p><strong>4. </strong>Pick an operation in <strong>Operation</strong> and adjust the values in the <strong>Parameters</strong> area.</p>
+<p><strong>5. </strong>(Optional) Enter a name in <strong>Result mesh title</strong>.</p>
+<p><strong>6. </strong>Click <strong>Run</strong>. The Log area shows progress as a percentage.</p>
+<p><strong>7. </strong>When finished, the result is published as a new FaceVertexMesh; the result label shows its vertex and face counts. Click <strong>Open Output Folder</strong> to see the saved PLY copy.</p>
+<h3 id="6-2-icp-registration-align-mesh-a-to-mesh-b">6.2 ICP registration (align mesh A to mesh B)</h3>
+<p><strong>1. </strong>Click <strong>Refresh</strong> to enumerate meshes.</p>
+<p><strong>2. </strong>Select the mesh to align (source) in <strong>Mesh A</strong>.</p>
+<p><strong>3. </strong>In <strong>Operation</strong>, choose <strong>Register (ICP) mesh A -&gt; mesh B</strong>; the <strong>Mesh B</strong> dropdown becomes enabled.</p>
+<p><strong>4. </strong>Select the target (reference) mesh in <strong>Mesh B</strong>.</p>
+<p><strong>5. </strong>Adjust the ICP parameters (method / max_correspondence_distance / max_iterations).</p>
+<p><strong>6. </strong>Click <strong>Run</strong>. When finished, the result label reports the fitness and RMSE, and the transformed mesh A is published as a new mesh.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>The following tables list every operation&#x27;s parameters, defaults, and descriptions (matching the OPERATIONS definition in the code exactly).</p>
+<h3 id="7-1-simplify-quadric-decimation">7.1 Simplify (quadric decimation)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>target_triangles</td><td>0</td><td>Target #triangles (0 = use reduction_ratio instead); range 0–100000000</td></tr><tr><td>reduction_ratio</td><td>0.5</td><td>Fraction of triangles to KEEP when target_triangles=0; range 0.01–1.0</td></tr></table></div>
+<h3 id="7-2-smooth-taubin-laplacian">7.2 Smooth (Taubin / Laplacian)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>method</td><td>taubin</td><td>Smoothing method: taubin or laplacian</td></tr><tr><td>iterations</td><td>10</td><td>Number of iterations; range 1–1000</td></tr></table></div>
+<h3 id="7-3-clean">7.3 Clean</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>remove_duplicated_vertices</td><td>Yes</td><td>Remove duplicated vertices</td></tr><tr><td>remove_duplicated_triangles</td><td>Yes</td><td>Remove duplicated triangles</td></tr><tr><td>remove_degenerate_triangles</td><td>Yes</td><td>Remove degenerate (zero-area) triangles</td></tr><tr><td>remove_non_manifold_edges</td><td>Yes</td><td>Remove non-manifold edges</td></tr></table></div>
+<p>The clean operation always additionally removes unreferenced vertices after the steps above.</p>
+<h3 id="7-4-fill-holes">7.4 Fill holes</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>hole_size</td><td>1000000</td><td>Max hole boundary size to fill (tensor API); range 0–1e12</td></tr></table></div>
+<h3 id="7-5-compute-normals">7.5 Compute normals</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>normalized</td><td>Yes</td><td>Whether to normalize the normals</td></tr></table></div>
+<h3 id="7-6-reconstruct-surface-poisson-ball-pivoting">7.6 Reconstruct surface (Poisson / Ball-Pivoting)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>method</td><td>poisson</td><td>Reconstruction method: poisson or ball_pivoting</td></tr><tr><td>depth</td><td>8</td><td>Poisson octree depth; range 2–14</td></tr><tr><td>density_quantile</td><td>0.01</td><td>Poisson: trim vertices below this density quantile (0 = off); range 0–0.9</td></tr><tr><td>radii_scale</td><td>1.5</td><td>Ball-Pivoting: ball radii as multiples of average point spacing; range 0.1–10.0</td></tr></table></div>
+<h3 id="7-7-register-icp">7.7 Register (ICP)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>method</td><td>point_to_plane</td><td>Registration method: point_to_plane or point_to_point</td></tr><tr><td>max_correspondence_distance</td><td>0.0</td><td>Max pair distance (0 = auto from the target bounding box); range 0–1e12</td></tr><tr><td>max_iterations</td><td>50</td><td>Max ICP iterations; range 1–2000</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>After each successful run, the plugin creates a <strong>brand-new FaceVertexMesh</strong> in the Dragonfly scene, leaving the original mesh untouched. You can find it in the object tree and view it in the 3D view.</p>
+<ul>
+<li><strong>New mesh name</strong>: taken from Result mesh title; auto-named when blank (e.g. “Open3D Simplify (quadric decimation)”).</li>
+<li><strong>PLY copies</strong>: all intermediate artifacts of each run (input PLY, output PLY, config.json, status.json, results.json) are saved in the job folder C:\Open3DJobs\o3d_&lt;timestamp&gt;\; click <strong>Open Output Folder</strong> to open it.</li>
+<li><strong>ICP extra info</strong>: besides publishing the transformed mesh A, the result label reports the fitness and inlier RMSE, and a 4×4 transform matrix is produced.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: I clicked Run but it says “Open3D venv not set”.</strong></p>
+<p>A: You have not built the environment yet. Go to the <strong>Setup</strong> tab, click <strong>Setup Environment</strong>, wait for the venv to be built (the venv python path fills in automatically), then run from the Operate tab.</p>
+<p><strong>Q: The mesh dropdown on the Operate tab is empty.</strong></p>
+<p>A: Click <strong>Refresh</strong> first. If it is still empty, there is no FaceVertexMesh or Mesh object in the scene; import or generate a surface mesh first (for example, generate a mesh from an ROI / MultiROI).</p>
+<p><strong>Q: Setup Environment fails saying it cannot install open3d.</strong></p>
+<p>A: First confirm you have internet access to PyPI. Second, Open3D only ships wheels for CPython 3.8–3.12; if this Dragonfly&#x27;s Python is outside that range, set a matching CPython (e.g. miniconda 3.12) in the <strong>Base Python</strong> field and retry.</p>
+<p><strong>Q: I chose Fill holes but it says the tensor API is required.</strong></p>
+<p>A: Fill holes relies on Open3D&#x27;s tensor API (open3d.t). Recent Open3D releases include it; if you get this error, re-run Setup Environment to install a recent Open3D.</p>
+<p><strong>Q: I chose ICP but it says a second mesh is required.</strong></p>
+<p>A: ICP needs two meshes. After selecting the ICP operation, the Mesh B dropdown becomes enabled — pick the target (reference) mesh there before running.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>CPU only; Open3D installs only the CPU wheel and never uses a GPU.</li>
+<li>The input must be a surface mesh (FaceVertexMesh or base Mesh); apart from reconstruct, operations require the mesh to have triangle faces.</li>
+<li>The result is written back as a new FaceVertexMesh; the write-back is done face-by-face, which can be slow for very large meshes with millions of faces.</li>
+<li>Mesh data is exchanged with the venv subprocess through temporary PLY files; make sure the disk holding Job root (default C:\Open3DJobs) has enough free space.</li>
+<li>Menus are discovered only at Dragonfly startup; a restart is needed after enabling or disabling the plugin.</li>
+<li>Reconstruct (especially Poisson) auto-estimates normals for point clouds without them; results depend heavily on point distribution and parameters and may need several tuning passes.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Open3D official website: https://www.open3d.org/</li>
+<li>Open3D is MIT-licensed; numpy is BSD-licensed.</li>
+<li>For the full install / enable / uninstall story, see the README bundled with the Full Package.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Open3D-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MorphoLibJ via Fiji · Dragonfly Prototype Apps</title>
+<meta name="description" content="MorphoLibJ via Fiji - User Manual Dragonfly Prototype Apps · MorphoLibJ via Fiji... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cas…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">MorphoLibJ via Fiji</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · MorphoLibJ via Fiji...</div>
+    <h1>MorphoLibJ via Fiji</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t3"><a href="#changing-your-choice-later">Changing your choice later</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and First-Run Setup</a></li><li class="t3"><a href="#4-1-install-fiji">4.1 Install Fiji</a></li><li class="t3"><a href="#4-2-point-the-panel-at-the-fiji-launcher">4.2 Point the panel at the Fiji launcher</a></li><li class="t3"><a href="#4-3-check-install-morpholibj">4.3 Check / install MorphoLibJ</a></li><li class="t3"><a href="#4-4-memory-jvm-heap">4.4 Memory (JVM heap)</a></li><li class="t2"><a href="#5-interface-reference">5. Interface Reference</a></li><li class="t3"><a href="#5-1-input-roi">5.1 Input ROI</a></li><li class="t3"><a href="#5-2-morpholibj-operation">5.2 MorphoLibJ operation</a></li><li class="t3"><a href="#5-3-fiji-morpholibj">5.3 Fiji / MorphoLibJ</a></li><li class="t3"><a href="#5-4-output">5.4 Output</a></li><li class="t3"><a href="#5-5-run-and-log">5.5 Run and log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t3"><a href="#7-1-the-five-operations">7.1 The five operations</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>MorphoLibJ via Fiji - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · MorphoLibJ via Fiji...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>MorphoLibJ via Fiji</strong> is a Dragonfly plugin that bridges an existing Dragonfly ROI to a locally installed <strong>Fiji / ImageJ</strong>, runs <strong>MorphoLibJ</strong> (IJPB-plugins) morphology and segmentation algorithms inside Fiji, then imports the resulting label image back into Dragonfly as a <strong>MultiROI</strong>.</p>
+<p>The workflow is file-based: the plugin first exports the selected ROI as a Fiji-readable <strong>binary ImageJ TIFF</strong> (foreground = 255, background = 0, with Dragonfly voxel-spacing metadata). It then launches Fiji <strong>headlessly</strong> to run an auto-generated ImageJ macro so MorphoLibJ performs connected-components labeling, watershed, or morphology-assisted labeling, saving the result as a label TIFF. Finally the plugin reads that label TIFF, treats each positive integer label as a separate object, builds a Dragonfly MultiROI and publishes it into the scene.</p>
+<p>Underlying engines and algorithms:</p>
+<ul>
+<li><strong>Fiji / ImageJ</strong> — the user&#x27;s own image-processing platform, driven by this plugin as an external application in headless mode.</li>
+<li><strong>MorphoLibJ (IJPB-plugins)</strong> — Fiji&#x27;s mathematical-morphology image-analysis toolkit, provided by Fiji&#x27;s <strong>IJPB-plugins</strong> update site (https://sites.imagej.net/IJPB-plugins/); this plugin calls its Connected Components Labeling, Distance Transform Watershed, Morphological Filters, and Fill Holes commands.</li>
+<li><strong>tifffile</strong> — used for TIFF read/write of the ROI and label images, provided by Dragonfly&#x27;s bundled Python (no separate install).</li>
+</ul>
+<p>License notes: the plugin code follows the same terms as the DragonflyPrototypeLabs repository. The plugin <strong>bundles no Fiji or MorphoLibJ code</strong>; it merely drives a separately, user-installed Fiji/ImageJ and MorphoLibJ as external software. Fiji and MorphoLibJ each carry their own license terms as published officially.</p>
+<p>This plugin does not create the source ROI. Prepare a ROI in Dragonfly first (for example a thresholded pore/grain/cell foreground), then use this plugin to split it into objects and apply morphology.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin targets users who already have a Dragonfly ROI and want to reuse the mature <strong>MorphoLibJ</strong> segmentation and morphology algorithms in Fiji to produce object-level MultiROIs. Typical uses include:</p>
+<ul>
+<li><strong>Connected-components splitting</strong>: break one binary foreground into individual objects (pores, grains, cells, fiber fragments, etc.) by connectivity, with each object becoming a label in the MultiROI.</li>
+<li><strong>Watershed segmentation</strong>: for touching, merged objects, use MorphoLibJ&#x27;s distance-transform watershed to separate them into individual objects.</li>
+<li><strong>Morphology cleanup, then labeling</strong>: remove thin bridges and noise with an opening, close small gaps with a closing, or fill internal holes, then run connected-components labeling for a cleaner object set.</li>
+<li><strong>Bridge Dragonfly and Fiji workflows</strong>: let users familiar with Fiji/MorphoLibJ call these algorithms from Dragonfly without manual export/import.</li>
+</ul>
+<p>If you need a more general Fiji bridge (arbitrary ImageJ built-in operations or custom macros), or you prefer not to depend on a local Fiji install, consider the other plugins in the same group (such as ImageJ / Fiji Bridge, or MorphoLibJ Remade by Python). This plugin focuses on the single <strong>ROI → MultiROI</strong> morphology-segmentation workflow.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships with the <strong>Prototype Labs Full Package</strong>, which installs it into every Dragonfly version on the machine at once.</p>
+<p><strong>1. </strong>Unzip the Full Package to any short folder (Desktop or C:\PL\ is fine; avoid deep download folders or a OneDrive-redirected Desktop to prevent Windows path-too-long errors).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong> — this affects only the Prototype Labs core blocks &amp; recipes, not any plugin), and <strong>tick “MorphoLibJ via Fiji”</strong> in the Prototype Apps list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p>All plugins are <strong>unticked by default</strong> in the installer list. If you do not tick it, MorphoLibJ via Fiji will not be deployed. Be sure to tick it at install time, or enable it later via the Menu Item Manager below.</p>
+<p>After restart, the menu entry appears at:</p>
+<p>Prototype Apps  ▸  MorphoLibJ via Fiji...</p>
+<p>The entry sits in the <strong>Detection &amp; Bridges</strong> group under the Prototype Apps menu. Clicking it opens a dockable floating panel.</p>
+<h3 id="changing-your-choice-later">Changing your choice later</h3>
+<p>The easiest way to enable/disable this plugin is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, find this plugin&#x27;s checkbox in the bottom “Prototype Apps (Full Package)” list — tick = deploy the menu entry, untick = remove it. <strong>Restart Dragonfly once to apply.</strong> Disabling never deletes any configured content; re-enabling is instant.</p>
+<p>You can also re-run the installer anytime (it remembers your previous choices as the new defaults). Everything installs under the per-user %LOCALAPPDATA% folder and needs no admin rights.</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and First-Run Setup</h2>
+<p>This plugin is an <strong>external-app</strong> type: it creates <strong>no Python virtual environment (venv), needs no GPU, and needs no WSL</strong>; TIFF I/O uses Dragonfly&#x27;s bundled tifffile. It therefore has <strong>no</strong> heavy “Setup Environment” step. Its only external dependency is a <strong>user-installed Fiji / ImageJ with MorphoLibJ</strong>.</p>
+<h3 id="4-1-install-fiji">4.1 Install Fiji</h3>
+<p>If Fiji is not yet on the machine, download and unpack it from https://fiji.sc. When the panel opens, it auto-searches common locations (such as %LOCALAPPDATA%, Program Files, Desktop, Downloads, and drive roots&#x27; Fiji.app / Fiji / ImageJ subfolders) for a launcher (ImageJ-win64.exe, fiji-windows-x64.exe, etc.). You may also predefine the launcher path via the DF_FIJI_PATH environment variable.</p>
+<h3 id="4-2-point-the-panel-at-the-fiji-launcher">4.2 Point the panel at the Fiji launcher</h3>
+<p>In the panel&#x27;s <strong>Fiji / MorphoLibJ</strong> group:</p>
+<ul>
+<li>If auto-detection succeeds, the launcher path is filled into the <strong>Launcher</strong> text box automatically.</li>
+<li>Click <strong>Locate</strong> to re-run the automatic search.</li>
+<li>Click <strong>Browse...</strong> to pick the launcher executable manually (usually ImageJ-win64.exe or fiji-windows-x64.exe).</li>
+</ul>
+<p>When you select a newer Fiji (Jaunch) launcher, the plugin tries to switch to the classic ImageJ-win64.exe launcher in the same folder to run the headless batch macro, because the classic launcher has the most reliable -batch (headless) behavior.</p>
+<h3 id="4-3-check-install-morpholibj">4.3 Check / install MorphoLibJ</h3>
+<p>Click <strong>Check / Install MorphoLibJ</strong>: the plugin scans the selected Fiji install&#x27;s plugins, jars, and related folders for jar/class files whose names contain morpholibj or ijpb.</p>
+<ul>
+<li><strong>Detected</strong>: a dialog reports where MorphoLibJ was found, and the status bar shows “MorphoLibJ detected: …”.</li>
+<li><strong>Not detected</strong>: an “Install MorphoLibJ?” prompt appears. Choosing <strong>Yes</strong> runs Fiji&#x27;s updater commands headlessly to add the <strong>IJPB-plugins</strong> update site (https://sites.imagej.net/IJPB-plugins/) and apply updates.</li>
+</ul>
+<p><strong>Installing/updating MorphoLibJ needs internet access</strong> (to reach the IJPB-plugins update site) and may take a few minutes. After install, new commands sometimes are not available immediately — if the status bar reports it still cannot be found by the file scan, <strong>restart Fiji/Dragonfly</strong>, or install manually via Fiji <strong>Help ▸ Update ▸ Manage update sites ▸ IJPB-plugins</strong>. Normal processing (running algorithms once MorphoLibJ is installed) needs no internet.</p>
+<h3 id="4-4-memory-jvm-heap">4.4 Memory (JVM heap)</h3>
+<p>The <strong>Max heap</strong> spin box sets Fiji&#x27;s maximum JVM heap, default <strong>4096 MB</strong>. For larger 3D volumes, raise it to avoid Fiji out-of-memory errors.</p>
+<p>The launcher path, heap size, and output suffix entered in the panel are saved to morpholibj_config.json in the plugin&#x27;s code folder and restored the next time the panel opens.</p>
+<h2 id="5-interface-reference">5. Interface Reference</h2>
+<p>A one-line description sits at the top of the panel. The controls are described top-to-bottom by group (matching the plugin code).</p>
+<h3 id="5-1-input-roi">5.1 Input ROI</h3>
+<ul>
+<li><strong>ROI dropdown</strong>: lists ROIs available in the current Dragonfly scene. It prefers the currently selected ROI and aggregates all ROI instances; each item shows the ROI title followed by its shape (Z × Y × X).</li>
+<li><strong>Refresh button</strong>: rescans and refreshes the ROI list. When done, the status bar shows “Found N ROI(s).”.</li>
+</ul>
+<h3 id="5-2-morpholibj-operation">5.2 MorphoLibJ operation</h3>
+<ul>
+<li><strong>Operation dropdown</strong>: selects the MorphoLibJ operation to run — 5 in total (see Section 7, Parameters).</li>
+<li><strong>Parameter area</strong>: changes dynamically with the selected operation, exposing that operation&#x27;s tunable parameters (dropdown / integer / float).</li>
+<li><strong>Note text</strong>: gray small text showing a short description of the current operation.</li>
+</ul>
+<h3 id="5-3-fiji-morpholibj">5.3 Fiji / MorphoLibJ</h3>
+<ul>
+<li><strong>Launcher text box</strong>: full path to the Fiji/ImageJ launcher executable; placeholder is path to ImageJ-win64.exe / fiji-windows-x64.exe.</li>
+<li><strong>Locate button</strong>: auto-searches the machine for a Fiji launcher and fills it in.</li>
+<li><strong>Browse... button</strong>: opens a file dialog to pick the launcher manually (filter *.exe).</li>
+<li><strong>Max heap spin box</strong>: Fiji JVM maximum heap in MB, default <strong>4096</strong>, step 512, range 0–262144.</li>
+<li><strong>Check / Install MorphoLibJ button</strong>: checks whether the selected Fiji has MorphoLibJ; if not, prompts to install the IJPB-plugins update site.</li>
+</ul>
+<h3 id="5-4-output">5.4 Output</h3>
+<ul>
+<li><strong>MultiROI suffix text box</strong>: suffix for the output MultiROI name, default <strong>`MorphoLibJ`</strong>. The final name is &lt;ROI title&gt; - &lt;suffix&gt;.</li>
+</ul>
+<h3 id="5-5-run-and-log">5.5 Run and log</h3>
+<ul>
+<li><strong>Run MorphoLibJ + Create MultiROI button</strong> (blue with white text): starts the full workflow — export ROI, run the Fiji macro, import the result as a MultiROI.</li>
+<li><strong>Status bar</strong>: shows the current state (how many ROIs were found, whether MorphoLibJ was detected, done or failed, etc.).</li>
+<li><strong>Log area</strong>: a read-only text box showing step-by-step progress, Fiji error lines, and the final result; while running, the Run and Check/Install buttons are disabled to prevent re-triggering.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>Below is the complete end-to-end path from an existing ROI to a MultiROI.</p>
+<p><strong>Prerequisites</strong>: a ROI already exists in the Dragonfly scene; Fiji is installed on the machine; MorphoLibJ is installed in Fiji (or you are ready to install it when prompted).</p>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ MorphoLibJ via Fiji...</strong> to bring up the panel.</p>
+<p><strong>2. </strong>In <strong>Input ROI</strong>, pick the ROI to process from the dropdown; if the list looks incomplete, click <strong>Refresh</strong>.</p>
+<p><strong>3. </strong>In <strong>MorphoLibJ operation</strong>, select an operation (e.g. Distance Transform Watershed) and adjust the parameters that appear (e.g. Connectivity, Dynamic, Radius) as needed.</p>
+<p><strong>4. </strong>In <strong>Fiji / MorphoLibJ</strong>, confirm the <strong>Launcher</strong> path is filled correctly; if empty or wrong, use <strong>Locate</strong> or <strong>Browse...</strong>; adjust <strong>Max heap</strong> if needed.</p>
+<p><strong>5. </strong>(Recommended on first use) Click <strong>Check / Install MorphoLibJ</strong> to confirm MorphoLibJ is ready; if prompted that it is missing, install it (needs internet), and restart Fiji/Dragonfly if it does not take effect.</p>
+<p><strong>6. </strong>In <strong>Output</strong>, adjust the <strong>MultiROI suffix</strong> if desired (default MorphoLibJ).</p>
+<p><strong>7. </strong>Click <strong>Run MorphoLibJ + Create MultiROI</strong>. The plugin will: export the ROI to a binary TIFF → launch Fiji headlessly to run the MorphoLibJ macro → produce a label TIFF → import it back into Dragonfly as a MultiROI.</p>
+<p><strong>8. </strong>Watch the status bar and log: on success the status bar shows “Done: created MultiROI with N label(s).”, the log reports the MultiROI name and label count, and the new MultiROI is published into the Dragonfly scene.</p>
+<p>At run time the plugin automatically checks whether MorphoLibJ is ready (an implicit Check/Install in the background). If it is not installed and you choose to install it, this run will not continue automatically — Fiji usually needs a restart to load newly installed jars, so install, restart, and click Run again.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<p>The table below lists every tunable parameter in the panel, its default, and its meaning. The parameter area shows the parameters for the selected operation dynamically.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Launcher</td><td>auto-detected</td><td>Path to the Fiji/ImageJ launcher executable (e.g. ImageJ-win64.exe). Auto-detected, or set via Locate/Browse.</td></tr><tr><td>Max heap</td><td>4096 MB</td><td>Fiji JVM maximum heap, in MB. Range 0–262144, step 512. Raise it for large volumes.</td></tr><tr><td>MultiROI suffix</td><td>MorphoLibJ</td><td>Suffix for the output MultiROI name; the final name is “&lt;ROI title&gt; - &lt;suffix&gt;”.</td></tr><tr><td>Connectivity</td><td>26</td><td>Connected-components connectivity, either 6 or 26. In 3D, 6 = face-adjacent only, 26 = face/edge/corner. Present in all 5 operations.</td></tr><tr><td>Dynamic</td><td>2.0</td><td>Distance Transform Watershed only. The watershed merge dynamic; higher merges more (fewer resulting objects). Range 0–100000, step 0.5.</td></tr><tr><td>Radius</td><td>1</td><td>Opening / Closing then Connected Components only. Morphological structuring element (Cube) radius in voxels. Range 1–128, step 1.</td></tr></table></div>
+<h3 id="7-1-the-five-operations">7.1 The five operations</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Operation</th><th>Parameters</th><th>Effect</th></tr><tr><td>Connected Components Labeling</td><td>Connectivity</td><td>Directly labels the binary foreground so each connected component becomes a label.</td></tr><tr><td>Distance Transform Watershed</td><td>Connectivity, Dynamic</td><td>Splits touching objects with MorphoLibJ distance-transform watershed (Borgefors (3,4) distances, 16-bit output, normalized).</td></tr><tr><td>Opening then Connected Components</td><td>Radius, Connectivity</td><td>Removes thin bridges/noise with a cube opening, then labels components.</td></tr><tr><td>Closing then Connected Components</td><td>Radius, Connectivity</td><td>Closes small gaps with a cube closing, then labels components.</td></tr><tr><td>Fill Holes then Connected Components</td><td>Connectivity</td><td>Fills internal holes in the binary foreground, then labels components.</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>On a successful run, the plugin creates and publishes one <strong>MultiROI</strong> in Dragonfly:</p>
+<ul>
+<li><strong>Name</strong>: &lt;source ROI title&gt; - &lt;MultiROI suffix&gt; (suffix defaults to MorphoLibJ).</li>
+<li><strong>Content</strong>: each non-zero label in the label TIFF is renumbered and becomes one object in the MultiROI; the label count is reported in the log (“Created MultiROI &#x27;…&#x27; with N label(s).”).</li>
+<li><strong>Geometry</strong>: the plugin reuses the source ROI&#x27;s voxel spacing and origin where possible, so the MultiROI aligns spatially with the source data.</li>
+<li><strong>Appearance</strong>: default colors are assigned to the labels on import (assignDefaultColors).</li>
+</ul>
+<p>How to view: find the MultiROI in Dragonfly&#x27;s object browser / data panel and toggle its visibility to see it in the 2D/3D views. It behaves like any MultiROI — you can measure it, color it by a scalar, export it, and so on.</p>
+<p>Intermediate files: the exported input TIFF, the macro file, and the label TIFF are written to a morpholibj_-prefixed job folder under the OS temp directory. <strong>The job folder path is printed in the log even after a successful import</strong>, so you can inspect Fiji&#x27;s input/output manually if needed; on failure, the error text retains these paths for troubleshooting.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q1: After clicking Run it says “set the Fiji/ImageJ launcher path.” or Fiji cannot be found?</strong></p>
+<p>A: The panel has no valid Fiji launcher. Install Fiji first (https://fiji.sc), then click <strong>Locate</strong> to auto-search, or use <strong>Browse...</strong> to pick ImageJ-win64.exe / fiji-windows-x64.exe manually. You can also set the path via the DF_FIJI_PATH environment variable.</p>
+<p><strong>Q2: It reports MorphoLibJ was not detected, or a command is unavailable during the run?</strong></p>
+<p>A: Click <strong>Check / Install MorphoLibJ</strong> and follow the prompt to install the IJPB-plugins update site (needs internet). If it still does not take effect after install, <strong>restart Fiji/Dragonfly</strong>, or install manually via Fiji <strong>Help ▸ Update ▸ Manage update sites ▸ IJPB-plugins</strong>. Note that MorphoLibJ command names can differ across Fiji builds; the log echoes Fiji stdout/stderr to help you diagnose.</p>
+<p><strong>Q3: The ROI dropdown is empty?</strong></p>
+<p>A: This plugin does not create ROIs; it only processes an existing one. Prepare a ROI in Dragonfly first (for example a thresholded foreground), then return to the panel and click <strong>Refresh</strong>.</p>
+<p><strong>Q4: The run fails with a Fiji out-of-memory error, or large volumes are slow?</strong></p>
+<p>A: Fiji/MorphoLibJ runs as an external process; large volumes take time and need enough JVM heap. Raise <strong>Max heap</strong> (default 4096 MB) and be patient. If it still fails, use the job-folder path printed in the log to open the input TIFF and macro manually in Fiji for inspection.</p>
+<p><strong>Q5: It says “MorphoLibJ output contains no foreground labels” or the label count is 0?</strong></p>
+<p>A: This means Fiji&#x27;s label image has no foreground objects. Common causes are an empty source ROI, or a morphology operation (such as an opening with too large a radius) that erased the entire foreground. Check that the source ROI has foreground, and reduce Radius or switch operations.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li>The plugin <strong>requires an existing Dragonfly ROI</strong> as input; it does not create the source ROI.</li>
+<li>Fiji/MorphoLibJ runs as an <strong>external process</strong>, so large volumes take time and need enough JVM heap (see Max heap).</li>
+<li>The output MultiROI geometry reuses the source ROI geometry where possible; if the source geometry is incomplete, it may fall back to default spacing/origin.</li>
+<li>MorphoLibJ command names can vary between Fiji builds; the operation list uses standard command names from current MorphoLibJ/Fiji installs and echoes Fiji stdout/stderr when a command is unavailable.</li>
+<li>Installing/updating MorphoLibJ needs internet; new commands may require a Fiji/Dragonfly restart to load.</li>
+<li>MultiROI labels use uint16 numbering, so a single import is capped at 65535 labels; exceeding that raises an error.</li>
+<li>Menus are scanned only at Dragonfly startup, so a restart is needed after enabling/disabling or updating code.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Fiji (ImageJ distribution) home: https://fiji.sc</li>
+<li>MorphoLibJ / IJPB-plugins update site: https://sites.imagej.net/IJPB-plugins/</li>
+<li>MorphoLibJ project page (IJPB-plugins): https://imagej.net/plugins/morpholibj</li>
+<li>Prototype Labs Full Package install/enable/uninstall instructions: the packaged README.md and, in Dragonfly, Developer ▸ Prototype Labs... ▸ Menu Item Manager.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MorphoLibJ-via-Fiji-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

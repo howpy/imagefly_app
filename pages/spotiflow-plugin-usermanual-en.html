@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spot / Puncta Detection (spotiflow) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Spot / Puncta Detection (spotiflow) - User Manual Dragonfly Prototype Apps · Spot / Puncta Detection (spotiflow)... Version 1.0 · 2026-07-09 English Manual…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Spot / Puncta Detection (spotiflow)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Spot / Puncta Detection (spotiflow)...</div>
+    <h1>Spot / Puncta Detection (spotiflow)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-algorithm">Underlying engine &amp; algorithm</a></li><li class="t3"><a href="#isolation-key-design">Isolation (key design)</a></li><li class="t3"><a href="#license-notes">License notes</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t3"><a href="#change-your-choice-later">Change your choice later</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#requirements">Requirements</a></li><li class="t3"><a href="#where-the-environment-lives">Where the environment lives</a></li><li class="t3"><a href="#download-size-time">Download size &amp; time</a></li><li class="t3"><a href="#fallbacks-on-failure">Fallbacks on failure</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t2"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t2"><a href="#5-2-apply-tab">5.2 Apply tab</a></li><li class="t2"><a href="#5-3-train-tab-optional-fine-tune">5.3 Train tab (optional: fine-tune)</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#6-1-detect-spots-end-to-end">6.1 Detect spots (end to end)</a></li><li class="t2"><a href="#6-2-fine-tune-a-model-optional">6.2 Fine-tune a model (optional)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t3"><a href="#q1-detect-says-venv-not-set">Q1: Detect says &quot;venv not set&quot;?</a></li><li class="t3"><a href="#q2-setup-environment-fails-with-a-torch-install-error">Q2: Setup Environment fails with a torch install error?</a></li><li class="t3"><a href="#q3-detection-reports-cuda-unavailable-or-out-of-memory">Q3: Detection reports CUDA unavailable or out of memory?</a></li><li class="t3"><a href="#q4-too-many-too-few-spots-detected">Q4: Too many / too few spots detected?</a></li><li class="t3"><a href="#q5-the-first-detection-hangs-on-loading-model">Q5: The first detection hangs on &quot;loading model&quot;?</a></li><li class="t3"><a href="#q6-the-plugin-is-missing-from-the-menu">Q6: The plugin is missing from the menu?</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Spot / Puncta Detection (spotiflow) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Spot / Puncta Detection (spotiflow)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Spot / Puncta Detection (spotiflow)</strong> is a Dragonfly Prototype Apps plugin that uses the deep-learning <strong>Spotiflow</strong> model to detect <strong>subpixel</strong> 2D/3D spots / puncta (fluorescent dots, particles, seed points) in an image Channel. You pick an image Channel, a pretrained model, a probability threshold and a minimum distance; the plugin runs detection on your GPU and returns the result two ways.</p>
+<ul>
+<li><strong>A MultiROI of seed points</strong>: each detected spot is painted as a small sphere and published back into the scene (on the source image grid), ready for measurement and visualization.</li>
+<li><strong>A coordinate / count table</strong>: every spot&#x27;s subpixel coordinates (y/x for 2D, z/y/x for 3D), an optional probability, and the total count - exportable as CSV.</li>
+</ul>
+<p>An optional <strong>Train</strong> tab lets you <strong>fine-tune</strong> the model on your own labeled points, adapting it to image types the pretrained models do not cover.</p>
+<h3 id="underlying-engine-algorithm">Underlying engine &amp; algorithm</h3>
+<p>This plugin wraps the open-source <strong>Spotiflow</strong> project (from the Weigert lab, https://github.com/weigertlab/spotiflow). Spotiflow is built on the <strong>PyTorch (CUDA)</strong> deep-learning framework: it loads a model via Spotiflow.from_pretrained(name) (or Spotiflow.from_folder(dir) for a fine-tuned model), then calls model.predict(img, prob_thresh=..., min_distance=...) to return subpixel coordinates. The plugin rasterizes those coordinates into small spheres on the source grid and publishes a MultiROI via Dragonfly&#x27;s publish path.</p>
+<h3 id="isolation-key-design">Isolation (key design)</h3>
+<p>All heavy work (PyTorch CUDA + Spotiflow) runs in the plugin&#x27;s <strong>dedicated CUDA virtual environment (venv)</strong> as a <strong>subprocess</strong>, communicating over <strong>JSON file IPC</strong>, and <strong>never enters Dragonfly&#x27;s own Python interpreter</strong>. So the large, version-sensitive ML stack never pollutes or slows Dragonfly itself.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12 or 3.13) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="license-notes">License notes</h3>
+<p>This plugin is a wrapper around Spotiflow. Spotiflow and its dependencies (PyTorch, scikit-image, tifffile, lightning, numpy, etc.) each carry their own upstream licenses - refer to each project&#x27;s published terms. <strong>Pretrained model weights are not bundled</strong> with the plugin; they download from the internet on first detection. If you cache or redistribute those weights, confirm their licensing/redistribution terms yourself.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin fits any task that needs <strong>automated detection and counting of point-like targets</strong>. Typical uses include:</p>
+<ul>
+<li><strong>Fluorescence microscopy</strong> signals / puncta, e.g. dots produced by FISH, smFISH.</li>
+<li><strong>Nuclei or particle centroid localization</strong>: locate each target as a subpixel point.</li>
+<li><strong>Materials science</strong> counting/localization of precipitates, bubbles and similar point-like features.</li>
+<li>Any generic &quot;detect a batch of small dots/bright spots and count them&quot; task.</li>
+</ul>
+<p>The pretrained models are trained for <strong>fluorescence images</strong>. For CT or other modalities, applying a pretrained model directly may work poorly - use the Train tab to fine-tune on a few labeled points.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin ships in the <strong>Prototype Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the package to a short folder (e.g. C:\PL\; avoid deep download paths or a OneDrive-redirected Desktop).</p>
+<p><strong>2. </strong>Double-click <strong>Install_FullPackage.bat</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode (<strong>Fresh</strong> / <strong>Compatible</strong>) and <strong>tick</strong> &quot;Spot / Puncta Detection (spotiflow)...&quot; in the app list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p>This plugin is <strong>unticked by default</strong> in the installer (it is a heavy plugin, off by default), so you must tick it to deploy it. Installation <strong>downloads nothing</strong>; the runtime environment is built later, on first use.</p>
+<p>After the restart the plugin appears at <strong>Prototype Apps ▸ Spot / Puncta Detection (spotiflow)...</strong> (in the Detection group). Clicking it opens a floating panel window.</p>
+<h3 id="change-your-choice-later">Change your choice later</h3>
+<p>The easiest way to enable/disable it is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick/untick &quot;Spot / Puncta Detection (spotiflow)...&quot; in the bottom &quot;Prototype Apps (Full Package)&quot; list, then restart Dragonfly. Disabling <strong>never</strong> deletes the plugin&#x27;s built environment (venv), so re-enabling is instant. You can also re-run the installer anytime; it remembers your last selection as the new default.</p>
+<p>Everything installs under your user profile (%LOCALAPPDATA%), <strong>no admin rights needed</strong>. Once enabled, the plugin code lives at ...\pythonUserExtensions\GenericMenuItems\Spotiflow\ and ...\pythonUserExtensions\Plugins\OrsSpotiflow_&lt;uuid&gt;\.</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p>Before first use you must build the plugin&#x27;s dedicated environment on the <strong>Setup</strong> tab. Clicking <strong>Setup Environment</strong> makes the plugin:</p>
+<p><strong>1. </strong>Create a fresh virtual environment in venv\ inside the plugin&#x27;s code directory (by default using Dragonfly&#x27;s own Python_env\python.exe as the base interpreter - no separate Python needed).</p>
+<p><strong>2. </strong>Upgrade pip / setuptools / wheel inside that venv.</p>
+<p><strong>3. </strong>Install <strong>torch + torchvision</strong> from the CUDA wheel index (default https://download.pytorch.org/whl/cu124).</p>
+<p><strong>4. </strong>Install the remaining Spotiflow dependencies (spotiflow, numpy, etc.).</p>
+<p><strong>5. </strong>Run a smoke test importing torch/spotiflow and reporting whether CUDA is available and the GPU name.</p>
+<h3 id="requirements">Requirements</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Item</th><th>Required?</th><th>Notes</th></tr><tr><td>Internet</td><td>Yes</td><td>Building the venv downloads torch + spotiflow (~ several GB); weights download at first detection.</td></tr><tr><td>NVIDIA GPU</td><td>Yes</td><td>Detection and training use CUDA; without a GPU runs are very slow or may fail.</td></tr><tr><td>WSL</td><td>No</td><td>Only the Windows run mode is shipped.</td></tr><tr><td>External software</td><td>No</td><td>The environment is built locally by the plugin; no third-party app to install.</td></tr></table></div>
+<h3 id="where-the-environment-lives">Where the environment lives</h3>
+<p>The venv is built inside the <strong>installed plugin code directory</strong>, i.e. %LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\Spotiflow\venv. Job outputs, exported image .npy, status.json, results.json and other intermediates are written to the <strong>Output folder</strong> you set on the <strong>Apply</strong> tab (default ~\SpotiflowWorkspace). Disabling or uninstalling the plugin does <strong>not</strong> auto-delete the venv or the workspace; clean them manually to reclaim disk space.</p>
+<h3 id="download-size-time">Download size &amp; time</h3>
+<p>The first Setup typically takes <strong>several minutes</strong> and <strong>a few GB</strong> of disk (torch CUDA + spotiflow). Later, Setup Environment <strong>reuses</strong> an existing venv if its pip works; if a previous run left a half-built venv without a working pip, the plugin deletes and rebuilds it automatically.</p>
+<h3 id="fallbacks-on-failure">Fallbacks on failure</h3>
+<ul>
+<li><strong>torch install fails</strong>: check that the <strong>Torch CUDA wheel index</strong> matches your GPU driver (e.g. cu121 / cu124); change it and retry.</li>
+<li><strong>venv creation fails</strong>: point <strong>Base Python (build)</strong> at another CPython 3.9+ with the stdlib venv + pip (e.g. C:\Python312\python.exe), or a launcher command like py -3.12.</li>
+<li><strong>base Python has no venv module</strong>: as above, point it at Dragonfly&#x27;s own Python_env\python.exe or a system CPython.</li>
+</ul>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel has a blue description note at the top, then a tab widget with three tabs - <strong>Setup</strong>, <strong>Apply</strong>, <strong>Train</strong> - plus a green result status line and a read-only run log below. Each tab is described below.</p>
+<h2 id="5-1-setup-tab">5.1 Setup tab</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Notes</th></tr><tr><td>Spotiflow venv python</td><td>Text field</td><td>Path to the venv python. Filled automatically by Setup Environment; normally no need to edit.</td></tr><tr><td>Base Python (build)</td><td>Text field</td><td>Base interpreter used to build the venv. Blank = this Dragonfly&#x27;s own python (recommended); or a path / py -3.12.</td></tr><tr><td>Run mode</td><td>Dropdown</td><td>Run mode: windows (default) or wsl; only windows is shipped.</td></tr><tr><td>Torch CUDA wheel index</td><td>Text field</td><td>pip index URL for the CUDA torch wheels, default https://download.pytorch.org/whl/cu124.</td></tr><tr><td>Setup Environment</td><td>Button</td><td>Builds the venv and installs torch + spotiflow.</td></tr></table></div>
+<h2 id="5-2-apply-tab">5.2 Apply tab</h2>
+<p>This tab has four groups: <strong>Workspace</strong> (job/output folder), <strong>Input</strong>, <strong>Detection parameters</strong>, and <strong>Detected spots</strong> (results).</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type / Default</th><th>Notes</th></tr><tr><td>Output folder</td><td>Text field (default ~\SpotiflowWorkspace)</td><td>Output directory for jobs and intermediates; browse with &quot;...&quot;.</td></tr><tr><td>Image Channel (2D or 3D)</td><td>Dropdown + Refresh</td><td>Pick the image Channel to detect on; click Refresh to reload the list from the scene.</td></tr><tr><td>Pretrained model</td><td>Editable dropdown (default general)</td><td>Pick a pretrained model; choose a built-in one or type any model name.</td></tr><tr><td>Probability threshold</td><td>Spin box (default 0.5, range 0-1)</td><td>Detection confidence threshold; higher = stricter, fewer spots.</td></tr><tr><td>Min distance (voxels)</td><td>Spin box (default 1.0, range 0-1000)</td><td>Minimum voxel distance between two accepted spots; larger suppresses duplicates.</td></tr><tr><td>Seed sphere radius (voxels)</td><td>Spin box (default 2.0, range 0.5-100)</td><td>Radius of the sphere drawn at each spot (voxels); affects visualization only, not detection.</td></tr><tr><td>Custom model folder</td><td>Text field (optional)</td><td>Optional: a fine-tuned model folder; blank uses the pretrained model above. Browse with &quot;...&quot;.</td></tr><tr><td>Result title</td><td>Text field (optional)</td><td>Title of the published MultiROI; blank defaults to Spotiflow_spots.</td></tr><tr><td>Detect spots -&gt; publish MultiROI + table</td><td>Button (green)</td><td>Runs detection; on finish publishes the MultiROI and fills the result table.</td></tr></table></div>
+<p>The results group has a count label (initially &quot;No detection yet.&quot;), a monospaced coordinate-table box, and a <strong>Save coordinates as CSV...</strong> button.</p>
+<h2 id="5-3-train-tab-optional-fine-tune">5.3 Train tab (optional: fine-tune)</h2>
+<p>This tab fine-tunes a model on your own data in two steps:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type / Default</th><th>Notes</th></tr><tr><td>Image Channel</td><td>Dropdown</td><td>Image Channel for a training case.</td></tr><tr><td>Points (MultiROI)</td><td>Dropdown</td><td>A MultiROI whose non-zero voxels mark the spot locations.</td></tr><tr><td>Add case</td><td>Button</td><td>Add the current (image + points) pair to the training-case list.</td></tr><tr><td>Clear cases</td><td>Button</td><td>Clear all added training cases.</td></tr><tr><td>Training cases</td><td>Count label</td><td>Shows the number of accumulated cases; starts at 0.</td></tr><tr><td>Base model</td><td>Editable dropdown (default general)</td><td>The base pretrained model to fine-tune from.</td></tr><tr><td>Epochs (0 = default)</td><td>Spin box (default 0, range 0-5000)</td><td>Training epochs; 0 uses the Spotiflow default schedule.</td></tr><tr><td>Model output folder</td><td>Text field</td><td>Folder to save the fine-tuned model; browse with &quot;...&quot;.</td></tr><tr><td>Train</td><td>Button (blue)</td><td>Starts fine-tuning; on finish the model folder is pre-filled into the Apply tab&#x27;s Custom model folder.</td></tr></table></div>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h2 id="6-1-detect-spots-end-to-end">6.1 Detect spots (end to end)</h2>
+<p><strong>Input required</strong>: a 2D (single-slice) or 3D image Channel loaded in the scene.</p>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Spot / Puncta Detection (spotiflow)...</strong>.</p>
+<p><strong>2. </strong>On first use go to the <strong>Setup</strong> tab and click <strong>Setup Environment</strong>; wait for the environment to build (the log printing a venv python path means success).</p>
+<p><strong>3. </strong>Switch to the <strong>Apply</strong> tab and set the <strong>Output folder</strong> if needed.</p>
+<p><strong>4. </strong>Pick the target Channel in <strong>Image Channel</strong>; if the list is empty or incomplete, click <strong>Refresh</strong>.</p>
+<p><strong>5. </strong>Choose a <strong>Pretrained model</strong> (default general) and adjust <strong>Probability threshold</strong> (default 0.5) and <strong>Min distance</strong> (default 1.0) as needed.</p>
+<p><strong>6. </strong>For larger/smaller visualization spheres, adjust <strong>Seed sphere radius</strong> (default 2.0).</p>
+<p><strong>7. </strong>Click the green <strong>Detect spots -&gt; publish MultiROI + table</strong>.</p>
+<p><strong>8. </strong>Wait: the status line shows &quot;Done.&quot;, the count label shows spots and dimensionality, the coordinate table fills, and a MultiROI named (default) Spotiflow_spots appears in the scene.</p>
+<p><strong>9. </strong>To export coordinates, click <strong>Save coordinates as CSV...</strong> and choose a path.</p>
+<p><strong>What you get</strong>: a MultiROI seed-point object (one sphere per spot) plus a coordinate/count table (exportable as CSV).</p>
+<h2 id="6-2-fine-tune-a-model-optional">6.2 Fine-tune a model (optional)</h2>
+<p><strong>Input required</strong>: environment built; an image Channel plus a MultiROI whose non-zero voxels mark spot locations.</p>
+<p><strong>1. </strong>Switch to the <strong>Train</strong> tab.</p>
+<p><strong>2. </strong>Pick an image in <strong>Image Channel</strong> and its labels in <strong>Points (MultiROI)</strong>, then click <strong>Add case</strong>; repeat to add multiple cases.</p>
+<p><strong>3. </strong>Choose a <strong>Base model</strong> (default general) and set <strong>Epochs</strong> (0 = default schedule).</p>
+<p><strong>4. </strong>Set a <strong>Model output folder</strong>.</p>
+<p><strong>5. </strong>Click the blue <strong>Train</strong> to start fine-tuning.</p>
+<p><strong>6. </strong>On finish, the model is saved to the folder and auto-filled into the Apply tab&#x27;s <strong>Custom model folder</strong>; you can then detect with it on the Apply tab.</p>
+<p>Cases with 0 points are skipped automatically; if all cases have no points, training errors out. Label your spots in a MultiROI first.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Pretrained model</td><td>general</td><td>Pretrained model name; built-in choices are general, hybiss, synth_complex, synth_3d, smfish_3d, or type any other name.</td></tr><tr><td>Probability threshold</td><td>0.5</td><td>Detection probability threshold, 0-1; higher = stricter/fewer, lower = looser/more.</td></tr><tr><td>Min distance (voxels)</td><td>1.0</td><td>Minimum voxel distance between accepted spots, 0-1000; increase to suppress near-duplicate detections.</td></tr><tr><td>Seed sphere radius (voxels)</td><td>2.0</td><td>Radius of the sphere drawn per spot (voxels), 0.5-100; affects MultiROI display only, not the coordinates.</td></tr><tr><td>Custom model folder</td><td>(empty)</td><td>Optional path to a fine-tuned model folder; used instead of the pretrained model when set and present.</td></tr><tr><td>Result title</td><td>(empty → Spotiflow_spots)</td><td>Title of the published MultiROI.</td></tr><tr><td>Base model (Train)</td><td>general</td><td>The base pretrained model name to fine-tune from.</td></tr><tr><td>Epochs (Train)</td><td>0</td><td>Training epochs, 0-5000; 0 uses the Spotiflow default schedule.</td></tr><tr><td>Base Python (build)</td><td>(empty → Dragonfly&#x27;s own python)</td><td>Base interpreter path or launcher command to build the venv.</td></tr><tr><td>Run mode</td><td>windows</td><td>Run mode; only windows is shipped.</td></tr><tr><td>Torch CUDA wheel index</td><td>https://download.pytorch.org/whl/cu124</td><td>pip index URL for the CUDA torch wheels.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful detection produces the following in Dragonfly:</p>
+<ul>
+<li><strong>A MultiROI seed-point object</strong>: named Spotiflow_spots by default (or your Result title), published into the scene on the source Channel&#x27;s grid; each detected spot is rasterized as a small sphere whose radius is set by Seed sphere radius. View, color and measure it from Dragonfly&#x27;s object list (e.g. Data Properties).</li>
+<li><strong>A coordinate/count table</strong>: shown as a monospaced table in the Apply results box. 2D data has columns # / y / x / prob; 3D data has # / z / y / x / prob; the probability column shows &quot;-&quot; if the model returned no per-spot probability. The table shows up to the first 200 rows, with &quot;... (N more)&quot; for the rest.</li>
+<li><strong>A count label</strong> reading &quot;Detected N spot(s) (2D/3D).&quot;.</li>
+<li><strong>A CSV file</strong>: <strong>Save coordinates as CSV...</strong> exports all coordinates (not limited to the 200-row display cap); the 2D header is index,y,x,prob, the 3D header is index,z,y,x,prob.</li>
+</ul>
+<p>Training produces a <strong>fine-tuned Spotiflow model</strong> saved to the chosen folder, which can be reloaded on the Apply tab as the Custom model folder. Detection intermediates (exported image .npy, status.json, results.json) remain in the job directory for troubleshooting.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<h3 id="q1-detect-says-venv-not-set">Q1: Detect says &quot;venv not set&quot;?</h3>
+<p>The runtime environment is not built yet. Go to the <strong>Setup</strong> tab and click <strong>Setup Environment</strong>; once it fills the venv python path, detection will work.</p>
+<h3 id="q2-setup-environment-fails-with-a-torch-install-error">Q2: Setup Environment fails with a torch install error?</h3>
+<p>Usually a CUDA wheel index that mismatches your driver, or a dropped network. Confirm you are online and check the <strong>Torch CUDA wheel index</strong> against your driver (e.g. cu121 / cu124), then retry. If the venv itself fails to create, point <strong>Base Python (build)</strong> at another CPython 3.9+.</p>
+<h3 id="q3-detection-reports-cuda-unavailable-or-out-of-memory">Q3: Detection reports CUDA unavailable or out of memory?</h3>
+<p>The plugin needs an NVIDIA GPU. If the log&#x27;s error category is no_cuda, confirm a working NVIDIA GPU and driver; if cuda_oom (out of memory), use a smaller image/region or free other GPU memory and retry.</p>
+<h3 id="q4-too-many-too-few-spots-detected">Q4: Too many / too few spots detected?</h3>
+<p>Adjust <strong>Probability threshold</strong>: raise it (stricter) when there are too many/noisy spots; lower it when spots are missed. If many near-duplicate spots appear, increase <strong>Min distance</strong>. If your modality differs greatly from fluorescence (e.g. CT), the pretrained model may not fit - fine-tune on the Train tab.</p>
+<h3 id="q5-the-first-detection-hangs-on-loading-model">Q5: The first detection hangs on &quot;loading model&quot;?</h3>
+<p>The first load must <strong>download the pretrained weights</strong> (not bundled). Stay online and be patient; once done, the weights are cached. If the error category is network, check your connection or proxy.</p>
+<h3 id="q6-the-plugin-is-missing-from-the-menu">Q6: The plugin is missing from the menu?</h3>
+<p>Make sure you <strong>ticked</strong> the plugin in the installer (it is unticked by default) and <strong>fully restarted</strong> Dragonfly (menus are scanned only at startup). You can also tick it in Developer ▸ Prototype Labs... ▸ Menu Item Manager and restart.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>Needs an NVIDIA GPU and internet</strong>: the environment build downloads several GB; pretrained weights download at first detection.</li>
+<li><strong>Pretrained models are fluorescence-oriented</strong>: CT or other modalities may need fine-tuning on the Train tab for good results.</li>
+<li><strong>2D / 3D handling</strong>: a single-slice Channel (shape (1, y, x)) is treated as 2D (y/x coordinates); a multi-slice volume is 3D (z/y/x coordinates).</li>
+<li><strong>Seed sphere radius affects display only</strong>: changing it changes only the sphere size, not the detected coordinates or counts.</li>
+<li><strong>The coordinate table shows at most 200 rows</strong>; export the full set with Save as CSV.</li>
+<li><strong>The probability column may be empty</strong>: whether per-spot probabilities come back depends on the Spotiflow version&#x27;s return structure; an empty column does not affect coordinates or counts.</li>
+<li><strong>Only the Windows run mode is shipped</strong> (the wsl Run mode option is reserved but not shipped).</li>
+<li><strong>Disabling/uninstalling does not delete the environment</strong>: clean the venv and workspace manually when needed.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Spotiflow upstream project: https://github.com/weigertlab/spotiflow</li>
+<li>PyTorch CUDA wheel index: https://download.pytorch.org/whl/cu124</li>
+<li>Prototype Apps Full Package install / enable / uninstall: the bundled UserManual_用户手册.docx and the installer&#x27;s README.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>spotiflow-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

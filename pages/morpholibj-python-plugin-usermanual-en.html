@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MorphoLibJ Remade by Python · Dragonfly Prototype Apps</title>
+<meta name="description" content="MorphoLibJ Remade by Python - User Manual Dragonfly Prototype Apps · MorphoLibJ Remade by Python... Version 1.0 · 2026-07-04 English Manual Contents 1. Ove…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">MorphoLibJ Remade by Python</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · MorphoLibJ Remade by Python...</div>
+    <h1>MorphoLibJ Remade by Python</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-and-algorithm">Underlying engine and algorithm</a></li><li class="t3"><a href="#license-notes">License notes</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t3"><a href="#changing-your-choices-later">Changing your choices later</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-internet-gpu-wsl-external-apps">Download size / internet / GPU / WSL / external apps</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#fallbacks-when-setup-fails">Fallbacks when setup fails</a></li><li class="t2"><a href="#5-interface-reference">5. Interface Reference</a></li><li class="t2"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t2"><a href="#5-2-run-tab">5.2 Run tab</a></li><li class="t2"><a href="#5-3-summary-tab">5.3 Summary tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#6-1-build-the-environment-once">6.1 Build the environment (once)</a></li><li class="t2"><a href="#6-2-distance-transform-watershed-separate-touching-objects">6.2 Distance Transform Watershed (separate touching objects)</a></li><li class="t2"><a href="#6-3-connected-components-optionally-with-preprocessing">6.3 Connected components (optionally with preprocessing)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#7-1-operations-algorithm">7.1 Operations (Algorithm)</a></li><li class="t2"><a href="#7-2-default-values-at-a-glance">7.2 Default values at a glance</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>MorphoLibJ Remade by Python - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · MorphoLibJ Remade by Python...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>MorphoLibJ Remade by Python</strong> is a Dragonfly Prototype Apps plugin. It reimplements the most commonly used MorphoLibJ binary-segmentation workflow in pure Python, operating directly on a Dragonfly <strong>ROI</strong> and importing the result back into Dragonfly as a <strong>MultiROI</strong>. It does <strong>not</strong> call ImageJ, Fiji, Java, or the MorphoLibJ jar.</p>
+<p>MorphoLibJ is a well-known mathematical-morphology and segmentation plugin in the Fiji/ImageJ ecosystem. Traditionally, using it requires installing Fiji, enabling the IJPB-plugins update site, and bridging Dragonfly to Java. This plugin rewrites the core part of that workflow -- <strong>connected-components labeling</strong> and the <strong>Distance Transform Watershed</strong> -- directly in Python with NumPy, SciPy, and scikit-image, so that <strong>after the one-time environment setup, no Fiji, ImageJ, or Java is required</strong>.</p>
+<h3 id="underlying-engine-and-algorithm">Underlying engine and algorithm</h3>
+<p>The plugin runs in an isolated Python virtual environment (venv) that depends on three open-source libraries:</p>
+<ul>
+<li><strong>NumPy</strong> -- array and numerical computing (BSD license).</li>
+<li><strong>SciPy</strong> -- provides scipy.ndimage connected-components labeling, binary morphology (opening / closing / fill holes), and the Euclidean distance transform (BSD license).</li>
+<li><strong>scikit-image</strong> -- provides h_maxima (extended maxima, used to generate watershed markers) and watershed (BSD license).</li>
+</ul>
+<p>The Distance Transform Watershed follows the MorphoLibJ Java design:</p>
+<p>binary ROI</p>
+<p>  -&gt; distance transform</p>
+<p>  -&gt; marker generation from distance-map extrema</p>
+<p>  -&gt; marker-controlled watershed</p>
+<p>  -&gt; Dragonfly MultiROI</p>
+<p>In MorphoLibJ&#x27;s Java wording this is a watershed on the inverse distance map with extended minima imposed. In Python the equivalent is watershed(-distance, h_maxima(distance), mask=ROI): inverting the distance map turns object centers into minima, so the plugin generates markers from the <strong>h-maxima (extended maxima)</strong> of the distance map -- the same marker-generation intent as extended minima on the inverted image.</p>
+<h3 id="license-notes">License notes</h3>
+<p>MorphoLibJ is licensed <strong>LGPL-3.0</strong>. This plugin bundles <strong>no</strong> MorphoLibJ Java classes or jar files; instead it implements the required algorithms directly with NumPy / SciPy / scikit-image, all under permissive BSD-style licenses. The main upstream references were MorphoLibJ&#x27;s DistanceTransformWatershed.java and DistanceTransformWatershed3D.java.</p>
+<p>This plugin currently implements only MorphoLibJ&#x27;s core segmentation path (connected components + distance-transform watershed + simple opening/closing/fill-holes preprocessing); it is not a complete port of MorphoLibJ.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is for users who want MorphoLibJ-style binary ROI splitting <strong>without installing or calling Fiji / ImageJ / Java</strong>. Typical scenarios:</p>
+<ul>
+<li><strong>Separating touching objects</strong>: on an already-binarized ROI, use the distance-transform watershed to split fused grains, pores, or cells into individual labels.</li>
+<li><strong>Grain / pore / cell-region segmentation</strong>: split one foreground ROI into a MultiROI, ready for per-object volume, area, or count measurements.</li>
+<li><strong>Connected-components labeling</strong>: assign a distinct label number to each disconnected region of a binary ROI.</li>
+<li><strong>Labeling with preprocessing</strong>: first apply morphological opening (remove small noise / break thin bridges), closing (close small gaps / join neighbors), or fill holes, then split into a MultiROI.</li>
+</ul>
+<p>Because all computation runs locally in Python, processing needs <strong>no internet, no GPU, and no Java</strong>, making it suitable for offline machines or machines without Fiji installed.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>The plugin ships in the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the Full Package to a <strong>short folder</strong> (e.g. C:\PL\) to avoid path-length errors.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick MorphoLibJ Remade by Python</strong> in the plugin list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>All plugins are <strong>unticked by default</strong> in the installer (light menu items are ON, all plugins are OFF). You must tick this plugin at install time, or enable it later in the Menu Item Manager.</p>
+<p>After the restart the plugin appears in the top menu:</p>
+<p>Prototype Apps  -&gt;  MorphoLibJ Remade by Python...</p>
+<p>It sits in the <strong>Detection &amp; Bridges</strong> section of the Prototype Apps menu. Clicking it opens a dockable floating panel.</p>
+<h3 id="changing-your-choices-later">Changing your choices later</h3>
+<p>The easiest way is inside Dragonfly: open <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong> and tick / untick this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then <strong>restart Dragonfly</strong> to apply. Disabling a plugin <strong>never</strong> deletes its built environment, so re-enabling is instant. You can also re-run the installer anytime; it remembers your previous choices as defaults.</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> to remove all Full-Package menu items and plugins. Uninstall keeps each plugin&#x27;s built environment (venv); the paths are listed at the end so you can delete them manually to reclaim disk space.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</h2>
+<p>The plugin uses a &quot;venv-in-code&quot; environment model: all third-party libraries live in the plugin&#x27;s own isolated virtual environment, separate from Dragonfly&#x27;s main environment. <strong>The installer downloads nothing</strong>; the environment is built by hand on first use.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>On the <strong>Setup</strong> tab, clicking <strong>Setup Environment (numpy + scipy + scikit-image)</strong> makes the plugin:</p>
+<p><strong>1. </strong>Create a venv folder inside the plugin&#x27;s code directory, based on a base Python (by default auto-detected from Dragonfly&#x27;s own Python or a system Python; you can override it via <strong>Base Python</strong>).</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p><strong>2. </strong>Upgrade pip / setuptools / wheel inside the venv.</p>
+<p><strong>3. </strong><strong>pip-install numpy, scipy, and scikit-image</strong> from PyPI over the internet (pure-Python wheels; usually tens to a few hundred MB, done within minutes).</p>
+<p><strong>4. </strong>Run an import self-check (importing numpy / scipy / skimage plus watershed and h_maxima); on success it writes the venv python path back into the <strong>Analysis venv python</strong> field and saves it to config.</p>
+<h3 id="download-size-internet-gpu-wsl-external-apps">Download size / internet / GPU / WSL / external apps</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Item</th><th>Required?</th><th>Notes</th></tr><tr><td>Internet</td><td>First setup only</td><td>Needed only the first time Setup Environment downloads wheels from PyPI; normal processing afterwards is fully offline.</td></tr><tr><td>GPU</td><td>No</td><td>All computation runs on the CPU; no graphics card needed.</td></tr><tr><td>WSL</td><td>No</td><td>Windows Subsystem for Linux is not used.</td></tr><tr><td>Fiji / ImageJ / Java</td><td>No</td><td>This is a pure-Python remake; none of them are needed after setup.</td></tr></table></div>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<ul>
+<li><strong>venv</strong>: inside the installed plugin code directory, i.e. ...\pythonUserExtensions\GenericMenuItems\MorphoLibJPython\venv.</li>
+<li><strong>Job root</strong>: default C:\MorphoLibJPythonJobs, editable on the Setup tab. Each run creates a timestamped job folder underneath it holding the exported ROI, the config, and result .npy files.</li>
+</ul>
+<h3 id="fallbacks-when-setup-fails">Fallbacks when setup fails</h3>
+<ul>
+<li>If the auto-detected base Python has no venv / pip capability, use <strong>Browse...</strong> on <strong>Base Python</strong> to point at a working Python 3.10-3.12 interpreter (python.exe) and click Setup Environment again.</li>
+<li>If you already have an environment with numpy / scipy / scikit-image, you can paste its python.exe path directly into <strong>Analysis venv python</strong> and skip the build.</li>
+<li>Keep the machine online for first setup; if a download is interrupted, clicking Setup Environment again reuses and resumes the existing venv.</li>
+</ul>
+<h2 id="5-interface-reference">5. Interface Reference</h2>
+<p>The panel has a title line at the top and three tabs: <strong>Setup</strong>, <strong>Run</strong>, and <strong>Summary</strong>. A green <strong>status line</strong> and a read-only <strong>log box</strong> at the bottom show progress and errors in real time.</p>
+<h2 id="5-1-setup-tab">5.1 Setup tab</h2>
+<ul>
+<li><strong>Analysis venv python</strong>: text field. Filled automatically with the venv python path after a successful setup; you may also paste an existing environment&#x27;s python.</li>
+<li><strong>Base Python</strong>: text field + <strong>Browse...</strong> button. Leave blank to auto-detect Dragonfly / system Python as the venv base, or Browse to pick a python.exe.</li>
+<li><strong>Job root</strong>: text field, default C:\MorphoLibJPythonJobs.</li>
+<li><strong>Setup Environment (numpy + scipy + scikit-image)</strong>: button; builds the venv and installs dependencies in a background thread.</li>
+<li>Note text below: reminds you that no Fiji / ImageJ / Java is used and first setup only downloads Python wheels.</li>
+</ul>
+<h2 id="5-2-run-tab">5.2 Run tab</h2>
+<p>The Run tab has two group boxes.</p>
+<p><strong>Input ROI group:</strong></p>
+<ul>
+<li><strong>ROI</strong>: dropdown + <strong>Refresh</strong> button. Lists the ROIs in the current Dragonfly scene (currently selected ROIs first), each item followed by its shape; Refresh re-scans.</li>
+<li><strong>Output MultiROI</strong>: text field, default MorphoLibJ Python MultiROI -- the title of the generated MultiROI.</li>
+</ul>
+<p><strong>Operation group:</strong></p>
+<ul>
+<li><strong>Algorithm</strong>: dropdown of five operations (see Chapter 7), default <strong>Distance Transform Watershed</strong>.</li>
+<li><strong>Connectivity</strong>: dropdown of <strong>6 / 18 / 26 neighborhoods</strong>, default <strong>26</strong> (2D images are automatically mapped to the corresponding 2D neighborhood).</li>
+<li><strong>Distance metric</strong>: dropdown of <strong>Borgefors chamfer 3/4/5 (MorphoLibJ-style)</strong> or <strong>Euclidean distance transform</strong>, default <strong>Borgefors</strong>. Affects the distance-transform watershed only.</li>
+<li><strong>Marker dynamic (h)</strong>: double spin box, range 0-100000, step 0.5, default <strong>2.0</strong>. Controls the strength of h-maxima marker generation (see Chapter 7).</li>
+<li><strong>Morphology radius</strong>: integer spin box, range 1-128, default <strong>1</strong>. Ball structuring-element radius for opening / closing.</li>
+<li><strong>Normalize chamfer distances</strong>: checkbox, <strong>checked</strong> by default. Divides Borgefors chamfer distances by 3.</li>
+<li><strong>Keep watershed lines as background</strong>: checkbox, <strong>unchecked</strong> by default. Keeps a background separation line between adjacent labels when checked.</li>
+<li><strong>Use voxel spacing for Euclidean distance</strong>: checkbox, <strong>unchecked</strong> by default. Uses the ROI&#x27;s real voxel spacing in the Euclidean distance transform when checked.</li>
+<li><strong>Publish distance and marker debug Channels</strong>: checkbox, <strong>unchecked</strong> by default. Publishes the intermediate distance map and marker volume as extra Channels.</li>
+<li><strong>Run Python MorphoLibJ + Create MultiROI</strong>: the blue main button; runs the full pipeline in a background thread and creates the MultiROI.</li>
+</ul>
+<h2 id="5-3-summary-tab">5.3 Summary tab</h2>
+<p>The panel switches here automatically after a run and shows a two-column <strong>Metric / Value</strong> table with the run summary -- e.g. operation, connectivity, distance metric, number of markers, number of labels, and foreground voxel count.</p>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h2 id="6-1-build-the-environment-once">6.1 Build the environment (once)</h2>
+<p><strong>1. </strong>Open <strong>Prototype Apps &gt; MorphoLibJ Remade by Python...</strong> and go to the <strong>Setup</strong> tab.</p>
+<p><strong>2. </strong>(Optional) Set <strong>Base Python</strong>; usually leaving it blank for auto-detect is fine.</p>
+<p><strong>3. </strong>(Optional) Change the <strong>Job root</strong>.</p>
+<p><strong>4. </strong>With the machine online, click <strong>Setup Environment (numpy + scipy + scikit-image)</strong>.</p>
+<p><strong>5. </strong>Watch the log box; when the status line reads <strong>Environment ready.</strong> the build succeeded and <strong>Analysis venv python</strong> is filled in.</p>
+<h2 id="6-2-distance-transform-watershed-separate-touching-objects">6.2 Distance Transform Watershed (separate touching objects)</h2>
+<p><strong>Input requirement</strong>: a binarized foreground ROI already in the scene (e.g. thresholded grains / pores / a cell cluster).</p>
+<p><strong>1. </strong>Go to the <strong>Run</strong> tab, click <strong>Refresh</strong>, and select the target ROI in the <strong>ROI</strong> dropdown.</p>
+<p><strong>2. </strong>Set <strong>Algorithm</strong> to <strong>Distance Transform Watershed</strong>.</p>
+<p><strong>3. </strong>Choose the <strong>Distance metric</strong>: use <strong>Borgefors</strong> for regular shapes / MorphoLibJ style; use <strong>Euclidean</strong> with <strong>Use voxel spacing</strong> checked for anisotropic / real-spacing distances.</p>
+<p><strong>4. </strong>Tune <strong>Marker dynamic (h)</strong>: larger values merge more and split less (less over-segmentation); smaller values split more finely. Start from the default 2.0.</p>
+<p><strong>5. </strong>(Optional) Set the <strong>Output MultiROI</strong> name; tick <strong>Publish distance and marker debug Channels</strong> to inspect intermediates.</p>
+<p><strong>6. </strong>Click <strong>Run Python MorphoLibJ + Create MultiROI</strong>.</p>
+<p><strong>7. </strong>When it finishes it jumps to <strong>Summary</strong>; find the new MultiROI in the object list, where each separated object is one label.</p>
+<h2 id="6-3-connected-components-optionally-with-preprocessing">6.3 Connected components (optionally with preprocessing)</h2>
+<p><strong>Input requirement</strong>: a binary ROI.</p>
+<p><strong>1. </strong>Select the target ROI on the <strong>Run</strong> tab.</p>
+<p><strong>2. </strong>Set <strong>Algorithm</strong> to <strong>Connected Components Labeling</strong> (direct), or <strong>Opening / Closing / Fill Holes then Connected Components</strong> for preprocessing before labeling.</p>
+<p><strong>3. </strong>Set <strong>Connectivity</strong> (6/18/26) to decide which voxels count as connected.</p>
+<p><strong>4. </strong>If opening / closing is chosen, set the <strong>Morphology radius</strong> for the structuring element.</p>
+<p><strong>5. </strong>Click <strong>Run Python MorphoLibJ + Create MultiROI</strong> to get a MultiROI split by connected component.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<h2 id="7-1-operations-algorithm">7.1 Operations (Algorithm)</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Operation</th><th>Description</th></tr><tr><td>Connected Components Labeling</td><td>Label the binary foreground directly; one label per connected region.</td></tr><tr><td>Distance Transform Watershed</td><td>MorphoLibJ-style: distance map -&gt; marker generation -&gt; marker-controlled watershed, to separate touching objects. Default operation.</td></tr><tr><td>Opening then Connected Components</td><td>Binary opening (remove small noise / break thin bridges) before labeling.</td></tr><tr><td>Closing then Connected Components</td><td>Binary closing (close small gaps / join neighbors) before labeling.</td></tr><tr><td>Fill Holes then Connected Components</td><td>Fill internal binary holes before labeling.</td></tr></table></div>
+<h2 id="7-2-default-values-at-a-glance">7.2 Default values at a glance</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Algorithm</td><td>Distance Transform Watershed</td><td>One of the five operations; see 7.1.</td></tr><tr><td>Connectivity</td><td>26</td><td>6 / 18 / 26 neighborhood defining which voxels are connected. 2D images map to the matching 2D neighborhood.</td></tr><tr><td>Distance metric</td><td>Borgefors</td><td>Borgefors chamfer 3/4/5 (Java-style two-pass chamfer distance: 3/4 weights in 2D, 3/4/5 in 3D) or Euclidean (SciPy EDT); affects the watershed only.</td></tr><tr><td>Marker dynamic (h)</td><td>2.0</td><td>Dynamic height for h-maxima; &gt;0 generates markers via h-maxima (larger = fewer markers, coarser split); =0 falls back to local maxima.</td></tr><tr><td>Morphology radius</td><td>1</td><td>Ball structuring-element radius for opening / closing (1-128).</td></tr><tr><td>Normalize chamfer distances</td><td>checked</td><td>Divide Borgefors chamfer distances by 3.</td></tr><tr><td>Keep watershed lines as background</td><td>unchecked</td><td>Keep a background separation line between adjacent labels.</td></tr><tr><td>Use voxel spacing for Euclidean distance</td><td>unchecked</td><td>Use the ROI&#x27;s real voxel spacing (anisotropic) in the Euclidean transform.</td></tr><tr><td>Publish distance and marker debug Channels</td><td>unchecked</td><td>Publish the distance map and marker volume as extra Channels.</td></tr><tr><td>Output MultiROI</td><td>MorphoLibJ Python MultiROI</td><td>Title of the generated MultiROI.</td></tr><tr><td>Job root</td><td>C:\MorphoLibJPythonJobs</td><td>Root folder for each run&#x27;s intermediate files.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>The plugin produces the following objects in Dragonfly:</p>
+<ul>
+<li><strong>MultiROI (multi-label ROI)</strong>: the primary output. The distance-transform watershed gives one label per separated object; connected-components labeling gives one label per connected region. Its title comes from the <strong>Output MultiROI</strong> field and it gets default colors automatically. It shares voxel spacing and origin with the source ROI (geometrically aligned).</li>
+<li><strong>Distance Channel (optional)</strong>: published when the debug option is checked, default title <strong>MorphoLibJ distance</strong>, showing the (approximate) float distance from each foreground voxel to the background.</li>
+<li><strong>Markers Channel (optional)</strong>: published when the debug option is checked, default title <strong>MorphoLibJ markers</strong>, showing the marker volume used by the watershed.</li>
+</ul>
+<p>To view: find the new objects in Dragonfly&#x27;s Object Browser; the MultiROI colors each label differently, can be shown in 2D / 3D views, and is ready for downstream morphometry, counting, or statistics.</p>
+<p>In addition, each run creates a timestamped job folder under <strong>Job root</strong> (e.g. morpholibj_py_YYYYMMDD_HHMMSS) containing the exported input mask input_roi.npy, an export.json, and the result .npy / results.json files for troubleshooting or reproducibility.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: I can&#x27;t find MorphoLibJ Remade by Python... in the menu.</strong></p>
+<p>A: Confirm you <strong>ticked</strong> the plugin at install time (all plugins are unticked by default) and <strong>fully restarted Dragonfly</strong> afterwards. If it still doesn&#x27;t appear, enable it in Developer &gt; Prototype Labs... &gt; Menu Item Manager and restart once more.</p>
+<p><strong>Q: Clicking Run says &quot;Run Setup first, or set the analysis venv python.&quot;</strong></p>
+<p>A: The environment isn&#x27;t built yet. Go to the Setup tab and click <strong>Setup Environment</strong> until the status line reads Environment ready., or manually paste a python path (with numpy/scipy/scikit-image) into <strong>Analysis venv python</strong>.</p>
+<p><strong>Q: Clicking Run says &quot;Select a ROI first.&quot;</strong></p>
+<p>A: No input ROI is selected. On the Run tab click <strong>Refresh</strong> and pick a binary ROI in the <strong>ROI</strong> dropdown; if the list is empty, first create / segment an ROI in Dragonfly.</p>
+<p><strong>Q: Setup Environment fails or hangs.</strong></p>
+<p>A: First setup downloads wheels from PyPI, so make sure the network works; if the auto-detected base Python lacks pip / venv, point <strong>Base Python</strong> (via Browse) at a working Python 3.10-3.12 and retry. The log box shows the exact error.</p>
+<p><strong>Q: The watershed over-segments (too many fragments).</strong></p>
+<p>A: Increase the <strong>Marker dynamic (h)</strong> value so more local maxima merge; you can also try the Euclidean metric, or run &quot;Opening then Connected Components&quot; first to remove small noise. Conversely, lower h if objects that should be split stay merged.</p>
+<p><strong>Q: The Euclidean distance ignores non-cubic voxels.</strong></p>
+<p>A: Tick <strong>Use voxel spacing for Euclidean distance</strong> and the plugin reads the ROI&#x27;s real voxel spacing for the distance computation (applies to the Euclidean metric only).</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Not a complete MorphoLibJ port</strong>: only connected-components labeling, distance-transform watershed, and opening / closing / fill-holes preprocessing are implemented.</li>
+<li><strong>Input must be a binary ROI</strong>: non-zero voxels are treated as foreground; threshold non-binary / grayscale data first.</li>
+<li><strong>The Borgefors chamfer distance is a pure-Python two-pass scan</strong> and can be slow on very large 3D volumes; switch to the faster <strong>Euclidean</strong> metric in that case.</li>
+<li><strong>The MultiROI is geometrically aligned to the source ROI</strong>: it inherits the source ROI&#x27;s voxel spacing and origin.</li>
+<li><strong>First setup needs internet</strong>; processing afterwards is fully offline. All computation runs on the CPU; no GPU is used.</li>
+<li><strong>Disabling the plugin does not delete the venv</strong>: re-enable to keep using it without rebuilding.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>MorphoLibJ source repository: https://github.com/ijpb/MorphoLibJ</li>
+<li>MorphoLibJ documentation: https://imagej.net/plugins/morpholibj</li>
+<li>MorphoLibJ license: LGPL-3.0</li>
+<li>SciPy documentation (ndimage morphology and distance transform): https://docs.scipy.org/</li>
+<li>scikit-image documentation (watershed / h_maxima): https://scikit-image.org/</li>
+</ul>
+<p>This plugin bundles no MorphoLibJ Java classes or jar files and needs no Fiji / ImageJ / Java; the algorithms are implemented directly with NumPy / SciPy / scikit-image.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MorphoLibJ-Python-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

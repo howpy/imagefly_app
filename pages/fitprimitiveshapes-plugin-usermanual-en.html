@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fit Primitive Shapes · Dragonfly Prototype Apps</title>
+<meta name="description" content="Fit Primitive Shapes - User Manual Dragonfly Prototype Apps · Fit Primitive Shapes... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use c…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Fit Primitive Shapes</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Fit Primitive Shapes...</div>
+    <h1>Fit Primitive Shapes</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-run-setup">4. Runtime environment and first-run setup</a></li><li class="t2"><a href="#5-user-interface">5. User interface</a></li><li class="t3"><a href="#5-1-input-shape-group">5.1 Input &amp; shape group</a></li><li class="t3"><a href="#5-2-environment-fitting-venv-group">5.2 Environment (fitting venv) group</a></li><li class="t3"><a href="#5-3-buttons-result-and-log">5.3 Buttons, result and log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t3"><a href="#6-1-first-use-one-time">6.1 First use (one time)</a></li><li class="t3"><a href="#6-2-fitting-a-primitive-end-to-end">6.2 Fitting a primitive (end to end)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Fit Primitive Shapes - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Fit Primitive Shapes...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Fit Primitive Shapes</strong> is a Dragonfly Prototype Apps plugin that <strong>best-fits</strong> a standard geometric primitive (plane, sphere, cylinder, cone, cuboid/box, 3D circle, line/axis) to the vertices of a mesh in the scene. After the fit, the plugin reports the primitive&#x27;s geometric parameters (centre, radius, axis, half-angle, extents, ...) together with the fit error (RMS deviation, max deviation, inlier ratio), and can publish the <strong>ideal fitted primitive</strong> as a new mesh object so you can overlay it on the original mesh for visual comparison and deviation inspection.</p>
+<p>The fitting itself never runs inside Dragonfly&#x27;s own Python. It executes as a subprocess in a <strong>dedicated virtual environment (venv)</strong> and exchanges data through JSON files, so the third-party fitting libraries stay fully isolated from Dragonfly&#x27;s Python environment.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>Fitting engines (all permissively licensed):</p>
+<ul>
+<li><strong>pyRANSAC-3D</strong> (MIT) - RANSAC fitting for plane, sphere, cylinder, cuboid, 3D circle and line;</li>
+<li><strong>trimesh</strong> (MIT) - least-squares sphere fit, minimum enclosing sphere, oriented bounding box (OBB), least-squares plane fit; also used to build the triangle mesh of the ideal primitive;</li>
+<li><strong>numpy / scipy</strong> (BSD) - the least-squares cone fit (closed-form initialisation + Levenberg-Marquardt refinement).</li>
+</ul>
+<p>The plugin code ships under the same terms as the DragonflyPrototypeLabs Full Package; every fitting engine is MIT/BSD, safe for commercial use.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li><strong>Reverse engineering</strong>: decide whether a scanned surface patch is really a cylinder, a cone or a sphere, and read its radius / axis / half-angle directly - as input for CAD reconstruction;</li>
+<li><strong>Metrology and quality control</strong>: compare a machined part&#x27;s mesh against the ideal primitive and quantify the manufacturing error via RMS / max deviation and the inlier ratio;</li>
+<li><strong>Geometric analysis</strong>: extract the axis direction of holes, shafts or pins (Line/axis fit) or a cross-section circle (Circle fit);</li>
+<li><strong>Visual comparison</strong>: the published ideal-primitive mesh can be overlaid on the original mesh in the 3D view to localise where the deviation is largest.</li>
+</ul>
+<p>The plugin complements the <strong>Compute Vertex Measurements</strong> plugin&#x27;s &#x27;deviation from a best-fit sphere/plane&#x27; measures: that plugin writes per-vertex deviations back into mesh scalar slots for colour display, while this plugin reports the primitive&#x27;s global parameters and publishes the ideal primitive itself.</p>
+<h2 id="3-installation-and-enabling">3. Installation and enabling</h2>
+<p>The plugin is distributed with the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the package to any short path (e.g. C:\PL\; avoid deeply nested folders because of the Windows 260-character path limit);</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>;</p>
+<p><strong>3. </strong>In the component dialog, <strong>tick &quot;Fit Primitive Shapes...&quot;</strong>. Note: all plugins are <strong>unticked by default</strong> - you must tick this plugin explicitly;</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish;</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p>After the restart the menu entry appears under <strong>Prototype Apps ▸ Fit Primitive Shapes...</strong> (in the Measurements &amp; Analysis section) and opens a dockable / floatable panel window.</p>
+<p>To enable or disable the plugin later, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick/untick &quot;Fit Primitive Shapes...&quot; in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then restart Dragonfly. <strong>Disabling never deletes the plugin&#x27;s environment (venv)</strong> - re-enabling is instant. Alternatively re-run the installer at any time; even after deleting the unzipped folder you can run %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat.</p>
+<p>Uninstall: double-click Uninstall_FullPackage.bat. It removes all Full Package menu items and plugins but keeps every plugin environment (venv); the paths are listed at the end so you can delete them manually to reclaim disk space. Everything installs per-user under %LOCALAPPDATA% - no administrator rights are needed.</p>
+<h2 id="4-runtime-environment-and-first-run-setup">4. Runtime environment and first-run setup</h2>
+<p>Installing the plugin downloads nothing. Before the first fit you must build the fitting environment once: open the panel and click <strong>Setup Environment</strong>. This button:</p>
+<p><strong>1. </strong>Chooses a <strong>base Python</strong> for the venv. By default (Base Python field left blank) it prefers <strong>Dragonfly&#x27;s own bundled Python</strong> - no separate Python installation needed; if that is unavailable it automatically probes system CPythons (the py launcher, python on PATH, common install locations), requiring a working pip;</p>
+<p><strong>2. </strong>Creates the venv inside the installed plugin code folder at %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\FitPrimitiveShapes\venv;</p>
+<p><strong>3. </strong>Pip-installs the 4 dependencies from the default PyPI index: numpy, scipy, pyransac3d, trimesh (pure wheels on CPython 3.9-3.12, nothing to compile, no CUDA);</p>
+<p><strong>4. </strong>Runs an import smoke check for each library and, on success, records the venv&#x27;s Python path in the plugin config file fitprim_config.json; the panel Status turns <strong>Ready</strong>.</p>
+<ul>
+<li><strong>Internet</strong>: required once (to download the pip packages); typically about 1-2 minutes. Fitting itself is fully offline afterwards;</li>
+<li><strong>GPU</strong>: not needed - everything is CPU-only;</li>
+<li><strong>WSL</strong>: not needed;</li>
+<li><strong>Safe to re-run</strong>: if the venv already exists and its pip works, Setup reuses it and only re-checks the dependencies.</li>
+</ul>
+<p><strong>If setup fails</strong>: when the log says no usable base Python / pip was found, type the full path of a CPython 3.9+ interpreter (e.g. C:\Python312\python.exe) into the <strong>Base Python</strong> field and click Setup Environment again. If the pip install fails or times out, check that the machine can reach PyPI (corporate proxies may need configuration) and retry.</p>
+<h2 id="5-user-interface">5. User interface</h2>
+<p>From top to bottom the panel shows a title line, two group boxes, the action-button row, the result area and the log area.</p>
+<h3 id="5-1-input-shape-group">5.1 Input &amp; shape group</h3>
+<ul>
+<li><strong>Mesh</strong> dropdown + <strong>Refresh</strong> button: lists all mesh objects in the current scene (FaceVertexMesh / Mesh), each shown as &quot;title  (vertex count v)&quot;. Click Refresh after creating or importing a mesh;</li>
+<li><strong>Shape</strong> dropdown: the primitive to fit - 7 choices: Plane, Sphere, Cylinder, Cone, Cuboid / box, Circle (3D), Line / axis;</li>
+<li><strong>Method (library)</strong> dropdown: the fitting backend. The available entries change with the selected Shape - see the shape/method table in 5.3;</li>
+<li><strong>Parameter area</strong>: generated dynamically per shape. Every shape except Cone has one <strong>Inlier distance</strong> spinbox (default 0.1, range 0.0001-1000, step 0.05, 4 decimals); Cone has no tunable parameter.</li>
+</ul>
+<h3 id="5-2-environment-fitting-venv-group">5.2 Environment (fitting venv) group</h3>
+<ul>
+<li><strong>Base Python</strong> field: blank = use this Dragonfly&#x27;s own Python as the venv base; or type a path to a Python interpreter. The value is saved in the plugin config and restored next time;</li>
+<li><strong>Output</strong> dropdown: two options - <strong>Publish fitted primitive mesh</strong> (default: publish the ideal primitive as a new mesh after the fit) and <strong>Report only</strong> (report parameters and error only, publish nothing);</li>
+<li><strong>Status</strong> label: shows <strong>Ready</strong> (environment available) or <strong>Not set up - click &#x27;Setup Environment&#x27;.</strong></li>
+</ul>
+<h3 id="5-3-buttons-result-and-log">5.3 Buttons, result and log</h3>
+<ul>
+<li><strong>Setup Environment</strong> button: one-time build (or reuse) of the fitting venv (see chapter 4);</li>
+<li><strong>Fit</strong> button (blue): runs the fit on the selected mesh. Both buttons grey out while a job runs; the work happens on a background thread so the Dragonfly UI stays responsive;</li>
+<li><strong>Result area</strong> (monospace): one summary line of primitive parameters (e.g. Sphere  center=(x,y,z)  r=...) plus a second line RMS=...   max dev=...   inliers=n/N (percent);</li>
+<li><strong>Log area</strong> (read-only): scrolling output of the environment setup, fit progress (Loading points / Fitting ...) and error messages.</li>
+</ul>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Shape</th><th>Available methods (library)</th><th>Reported parameters</th></tr><tr><td>Plane</td><td>pyRANSAC-3D (RANSAC); trimesh (least-squares)</td><td>point on plane, normal (RANSAC also reports the plane-equation constant d)</td></tr><tr><td>Sphere</td><td>pyRANSAC-3D (RANSAC); trimesh (least-squares); trimesh (min enclosing)</td><td>center, radius</td></tr><tr><td>Cylinder</td><td>pyRANSAC-3D (RANSAC)</td><td>center, axis, radius, height</td></tr><tr><td>Cone</td><td>scipy (least-squares)</td><td>apex, axis, half_angle_deg (degrees), height</td></tr><tr><td>Cuboid / box</td><td>trimesh (oriented bbox); pyRANSAC-3D (RANSAC)</td><td>OBB: extents + pose transform; RANSAC: bounding planes + extents</td></tr><tr><td>Circle (3D)</td><td>pyRANSAC-3D (RANSAC)</td><td>center, axis (normal), radius</td></tr><tr><td>Line / axis</td><td>pyRANSAC-3D (RANSAC)</td><td>point, direction, length (extent along the line)</td></tr></table></div>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<h3 id="6-1-first-use-one-time">6.1 First use (one time)</h3>
+<p><strong>1. </strong>Make sure the machine is online (PyPI must be reachable);</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Fit Primitive Shapes...</strong>;</p>
+<p><strong>3. </strong>Leave Base Python blank (recommended - uses Dragonfly&#x27;s own Python) and click <strong>Setup Environment</strong>;</p>
+<p><strong>4. </strong>Watch the log: venv creation → pip install of numpy/scipy/pyransac3d/trimesh → smoke check → Setup complete.;</p>
+<p><strong>5. </strong>Confirm that Status now reads <strong>Ready</strong>.</p>
+<h3 id="6-2-fitting-a-primitive-end-to-end">6.2 Fitting a primitive (end to end)</h3>
+<p><strong>1. </strong><strong>Prepare the input</strong>: the scene must contain a mesh object (Mesh or FaceVertexMesh) - e.g. a surface mesh generated from an ROI or an imported scan - with at least 8 vertices;</p>
+<p><strong>2. </strong>Pick the target mesh in the <strong>Mesh</strong> dropdown (click <strong>Refresh</strong> if the list is empty);</p>
+<p><strong>3. </strong>Choose the primitive type in <strong>Shape</strong> (e.g. Cylinder);</p>
+<p><strong>4. </strong>Choose the fitting backend in <strong>Method (library)</strong>; the first entry per shape is the recommended default;</p>
+<p><strong>5. </strong>Tune <strong>Inlier distance</strong> to your mesh&#x27;s coordinate units: it is the maximum deviation for a vertex to count as an inlier and should be of the same order as the expected surface noise (Cone has no such parameter);</p>
+<p><strong>6. </strong>Choose in <strong>Output</strong> whether to publish the ideal primitive mesh (default: publish);</p>
+<p><strong>7. </strong>Click <strong>Fit</strong>. The plugin reads the mesh vertices, writes them to a temporary job folder and runs the fit inside the venv (per-job timeout: 600 seconds);</p>
+<p><strong>8. </strong><strong>Read the results</strong>: the result area shows the parameter summary plus RMS / max deviation / inlier ratio; if publishing was selected, a new mesh named Fit &lt;Shape&gt; - &lt;original mesh title&gt; appears in the scene, ready to overlay on the original mesh.</p>
+<p>Tip: try several shapes/methods on the same data and compare RMS and inlier ratio - the lowest RMS and highest inlier ratio usually indicate the most plausible primitive hypothesis. RANSAC runs use a fixed random seed, so repeated runs on the same input are reproducible.</p>
+<h2 id="7-parameter-reference">7. Parameter reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Mesh</td><td>(first mesh in the scene)</td><td>The mesh to fit; only its vertex coordinates are used. Each entry shows the title and the vertex count.</td></tr><tr><td>Shape</td><td>Plane</td><td>The primitive to fit, one of 7: Plane / Sphere / Cylinder / Cone / Cuboid-box / Circle (3D) / Line-axis.</td></tr><tr><td>Method (library)</td><td>per shape (first list entry)</td><td>Fitting backend: pyRANSAC-3D (RANSAC), trimesh (least-squares / min enclosing / oriented bbox), scipy (least-squares, cone only).</td></tr><tr><td>Inlier distance</td><td>0.1 (range 0.0001-1000, step 0.05)</td><td>Inlier distance threshold in the mesh&#x27;s own coordinate units. RANSAC uses it to select inliers; the reported inlier ratio uses it for every shape. Too small = almost no inliers; too large = noise counted as inliers. Not present for Cone.</td></tr><tr><td>Base Python</td><td>(blank)</td><td>Blank = build the venv from this Dragonfly&#x27;s own Python; or the path of a CPython 3.9+ python.exe. Used only by Setup Environment.</td></tr><tr><td>Output</td><td>Publish fitted primitive mesh</td><td>Whether to publish the ideal fitted primitive as a new mesh; choose Report only to just show parameters and error in the panel.</td></tr></table></div>
+<p>Fixed internal behaviour (not adjustable in the UI): the random seed is fixed to 0 (RANSAC results are reproducible); a fitting job times out after 600 seconds; at least 8 input vertices are required; the cone fit initialises from the three principal axes in closed form, refines each with Levenberg-Marquardt least squares and keeps the solution with the lowest RMS.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful fit produces:</p>
+<ul>
+<li><strong>The ideal primitive mesh</strong> (with the default Output choice): published into the current scene as a FaceVertexMesh, automatically named Fit &lt;Shape&gt; - &lt;original mesh title&gt; (e.g. Fit Sphere - MyScan). It appears in the object list like any other mesh and can be overlaid on the original in the 3D view with transparency / colouring for comparison;</li>
+<li><strong>The parameter summary</strong> (first line of the result area): human-readable primitive parameters such as Cylinder  axis=(x,y,z)  r=...  h=...;</li>
+<li><strong>The error metrics</strong> (second line): RMS (root-mean-square of all vertex distances to the primitive surface), max dev (largest deviation) and inliers=n/N (percent) (vertices within the Inlier distance);</li>
+<li><strong>The log</strong>: the full run record stays in the log area, including progress and - on failure - the traceback.</li>
+</ul>
+<p>Visualisation meshes per shape: sphere = icosphere; cylinder = cylindrical surface; cone = cone surface with its tip at the fitted apex; plane = a square patch centred on the inlier centroid; cuboid = the oriented bounding box; 3D circle = a very thin disc; line = a very thin elongated cylinder (so the axis is visible in 3D).</p>
+<p>Intermediate job files (vertex array, config, result JSON, primitive-mesh npz) are written to a fitprim_-prefixed job folder in the Windows per-user temp directory; they only serve the current run and may be removed with normal temp-file cleanup.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and troubleshooting</h2>
+<p><strong>Q1: Fit says &quot;ERROR: environment not set up. Click &#x27;Setup Environment&#x27; first.&quot;?</strong></p>
+<p>A: The fitting venv has not been built yet (or was deleted). Click <strong>Setup Environment</strong> and wait until Status shows Ready before fitting.</p>
+<p><strong>Q2: The Mesh dropdown is empty / the log says &quot;No meshes found in the scene.&quot;?</strong></p>
+<p>A: The plugin lists only mesh-type objects (FaceVertexMesh / Mesh). First create or import a mesh in Dragonfly (e.g. generate a surface mesh from an ROI), then click <strong>Refresh</strong>. Channels and ROIs themselves never appear in this list.</p>
+<p><strong>Q3: Setup Environment fails - no base Python found, or pip is unusable?</strong></p>
+<p>A: Type the full path of a CPython 3.9+ interpreter with a working pip (e.g. C:\Python312\python.exe) into the <strong>Base Python</strong> field and retry. If the pip download fails, make sure PyPI is reachable (corporate proxies may need configuration).</p>
+<p><strong>Q4: The cone fit fails with &quot;could not fit a cone: the point cloud has no cone-like radial growth along any principal axis&quot;?</strong></p>
+<p>A: This is a deliberate, clear algorithmic failure: along none of the principal axes do the vertices show the &#x27;radius grows linearly with axial position&#x27; signature of a cone (the data may actually be planar, a constant-radius cylinder, or an isotropic cloud). Re-fit with a different shape hypothesis such as Cylinder or Plane.</p>
+<p><strong>Q5: A RANSAC fit returns a very low inlier ratio or clearly wrong parameters?</strong></p>
+<p>A: The most common cause is an <strong>Inlier distance that does not match the mesh units</strong> - the threshold uses the mesh&#x27;s raw coordinate units, so if the mesh is in micrometres and the threshold is still the default 0.1, almost nothing counts as an inlier. Set the threshold to the order of the surface noise and retry; you can also cross-check with a least-squares method (trimesh/scipy).</p>
+<p><strong>Q6: A long-running fit ends with &quot;processing timed out&quot;?</strong></p>
+<p>A: A single fitting job is capped at 600 seconds. RANSAC on very large meshes (millions of vertices) can exceed that; decimate/simplify the mesh first, or switch to a least-squares backend (much cheaper).</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and known limitations</h2>
+<ul>
+<li><strong>Vertices only</strong>: the fit uses the mesh&#x27;s vertex coordinates; faces are ignored and the surface is not resampled. Uneven vertex density (locally very dense areas) gives those regions more weight in the fit;</li>
+<li><strong>Minimum size</strong>: meshes with fewer than 8 vertices are rejected with an error;</li>
+<li><strong>Single primitive</strong>: each run fits exactly one primitive; automatic multi-primitive segmentation of a whole mesh (many planes/cylinders/cones at once) is not supported - it is a possible future extension;</li>
+<li><strong>Cuboid via RANSAC</strong>: this backend reports the RANSAC bounding planes and inlier count, but RMS and max dev are shown as 0 (no distance metrics are computed for it) and the published box is the oriented bounding box; use the <strong>trimesh (oriented bbox)</strong> method when you need distance metrics;</li>
+<li><strong>Circle / Line visualisation</strong>: the published 3D circle is a very thin disc and the line a very thin cylinder - visualisation aids, not zero-thickness ideal geometry; the reported parameters are the exact result;</li>
+<li><strong>Sign of directions</strong>: the sign of axis/normal vectors is mathematically non-unique (an axis a and -a are equivalent) - keep this in mind when comparing with external data;</li>
+<li><strong>Units</strong>: all length-type outputs (radius, height, extents, RMS, ...) are in the mesh&#x27;s raw coordinate units; the plugin performs no unit conversion;</li>
+<li><strong>Safe disable/update</strong>: disabling the plugin in the Menu Item Manager or refreshing its code via the installer never deletes the venv or the fitprim_config.json settings.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>pyRANSAC-3D (MIT, RANSAC primitive fitting): https://github.com/leomariga/pyRANSAC-3D</li>
+<li>trimesh (MIT, sphere / bounding-box / plane fits and mesh creation): https://github.com/mikedh/trimesh</li>
+<li>numpy / scipy (BSD): numerical and optimisation libraries used by the least-squares cone fit</li>
+<li>Companion plugin: Compute Vertex Measurements (per-vertex &#x27;deviation from best-fit sphere/plane&#x27; colour display)</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>FitPrimitiveShapes-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

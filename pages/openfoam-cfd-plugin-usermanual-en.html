@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenFOAM CFD · Dragonfly Prototype Apps</title>
+<meta name="description" content="OpenFOAM CFD - User Manual Dragonfly Prototype Apps · OpenFOAM CFD... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cases 3. Installa…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">OpenFOAM CFD</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · OpenFOAM CFD...</div>
+    <h1>OpenFOAM CFD</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t3"><a href="#3-1-install-the-plugin-via-the-full-package">3.1 Install the plugin via the Full Package</a></li><li class="t3"><a href="#3-2-change-your-choice-later-menu-item-manager">3.2 Change your choice later (Menu Item Manager)</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#4-1-prerequisites">4.1 Prerequisites</a></li><li class="t3"><a href="#4-2-import-the-openfoam-wsl-compute-image">4.2 Import the OpenFOAM WSL compute image</a></li><li class="t3"><a href="#4-3-detecting-the-environment-in-the-panel-setup-detect-openfoam">4.3 Detecting the environment in the panel (Setup / Detect OpenFOAM)</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#5-1-left-column-beginner-demo">5.1 Left column: Beginner demo</a></li><li class="t3"><a href="#5-2-right-column-part-1-input-structure">5.2 Right column, part 1: Input structure</a></li><li class="t3"><a href="#5-3-right-column-part-2-wsl-openfoam-environment">5.3 Right column, part 2: WSL OpenFOAM environment</a></li><li class="t3"><a href="#5-4-right-column-part-3-flow-incompressible-laminar">5.4 Right column, part 3: Flow (incompressible, laminar)</a></li><li class="t3"><a href="#5-5-right-column-part-4-mesh-solver">5.5 Right column, part 4: Mesh + solver</a></li><li class="t3"><a href="#5-6-bottom-run-log">5.6 Bottom: run + log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-workflow-a-beginner-demo-no-data-needed">6.1 Workflow A: Beginner demo (no data needed)</a></li><li class="t3"><a href="#6-2-workflow-b-run-on-your-own-segmentation">6.2 Workflow B: Run on your own segmentation</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>OpenFOAM CFD - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · OpenFOAM CFD...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p>The <strong>OpenFOAM CFD</strong> plugin lets you run a <strong>pore-scale computational fluid dynamics (CFD) simulation</strong> directly on your segmented 3D data inside Dragonfly. You select a ROI, MultiROI, or Channel that defines the solid/pore structure, choose the flow direction and mesh/solver options, and the plugin automatically meshes the <strong>pore (void) phase</strong> and solves <strong>steady, incompressible, laminar</strong> flow. The resulting velocity and pressure fields are imported back into the scene as Channels, together with an estimated <strong>Darcy permeability</strong> value.</p>
+<p>The underlying engine is the open-source <strong>OpenFOAM (v2412, the ESI build from conda-forge)</strong>. The pipeline reads a solid mask from the chosen object, extracts the solid surface with <strong>marching cubes (scikit-image)</strong> to produce an STL surface, builds a background mesh with <strong>blockMesh</strong>, carves out the pore space and marks grain surfaces as walls with <strong>snappyHexMesh</strong>, solves the flow with <strong>simpleFoam</strong> (the steady incompressible laminar solver), then samples the velocity/pressure back onto the original voxel grid and computes the Darcy permeability from the inlet flow rate and the inlet-to-outlet pressure drop.</p>
+<p><strong>Important: the CFD does not run inside Dragonfly&#x27;s own Python.</strong> The plugin exports the chosen structure as a solid mask file and hands the heavy meshing and solving to a dedicated Linux (WSL2) compute environment; Dragonfly only prepares the input, streams the progress log, and finally imports the results as Channels. This keeps Dragonfly&#x27;s runtime clean while leveraging the mature OpenFOAM toolchain.</p>
+<p><strong>Licensing note:</strong> OpenFOAM is open-source software (GPL). This plugin invokes OpenFOAM through the bundled WSL2 compute image without modifying its source; please observe OpenFOAM&#x27;s own open-source license terms.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets <strong>digital rock physics</strong> and <strong>porous-media</strong> research, and is especially suited to workflows built on micro-CT data that need flow fields and transport properties from a segmented image rather than a physical flow experiment.</p>
+<ul>
+<li>Estimate the permeability of <strong>geological samples</strong> such as rocks, soils, and sandstones;</li>
+<li>Study the flow resistance and pore connectivity of <strong>membranes, filters, foams, and packed beds</strong>;</li>
+<li>Assess transport in porous functional materials such as <strong>battery electrodes, catalyst supports, and scaffolds</strong>;</li>
+<li>Analyse the through-flow of <strong>additively manufactured lattices</strong>;</li>
+<li>Any materials-science or geoscience task that needs velocity fields, pressure fields, and permeability straight from a segmented 3D image.</li>
+</ul>
+<p>The plugin solves <strong>laminar, incompressible, steady</strong> flow, appropriate for low-Reynolds-number (slow) pore-scale flow. It is not intended for turbulent, compressible, transient, or multiphase analysis.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin ships with the <strong>Prototype Labs Full Package</strong>. Installation has two parts: a one-time install of the Dragonfly plugin (the panel), and a one-time import of the OpenFOAM WSL2 compute image (see Chapter 4).</p>
+<h3 id="3-1-install-the-plugin-via-the-full-package">3.1 Install the plugin via the Full Package</h3>
+<p><strong>1. </strong>Unzip the Full Package into a <strong>short folder</strong> (e.g. C:\PL\) to avoid path-length errors.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick a core install mode (Fresh / Compatible) and <strong>tick &quot;OpenFOAM CFD&quot;</strong> in the Prototype Apps list. By default all plugins are <strong>unchecked</strong> and must be ticked to deploy.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>After the restart the plugin appears at <strong>Prototype Apps ▸ OpenFOAM CFD...</strong> (in the &quot;Simulation &amp; Meshing&quot; group). Clicking it opens a movable, resizable <strong>floating window</strong>.</p>
+<h3 id="3-2-change-your-choice-later-menu-item-manager">3.2 Change your choice later (Menu Item Manager)</h3>
+<p>To enable or disable the plugin later, the easiest way is from inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, tick/untick &quot;OpenFOAM CFD&quot; in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then restart Dragonfly to apply.</p>
+<p>Disabling the plugin <strong>never</strong> deletes the imported WSL compute environment; re-enabling is instant and requires no re-import.</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p>OpenFOAM runs on Linux. The plugin packages the whole OpenFOAM environment as a <strong>WSL2 appliance</strong> that you <strong>import once with a double-click</strong> — there is no conda environment to build and no download over the internet.</p>
+<h3 id="4-1-prerequisites">4.1 Prerequisites</h3>
+<ul>
+<li>Windows 10 / 11 (64-bit);</li>
+<li><strong>WSL2</strong> enabled and up to date (in an admin PowerShell: wsl --install then reboot, or wsl --update);</li>
+<li>Dragonfly 2025.1 / 2027.1, launched at least once;</li>
+<li>About <strong>8–10 GB</strong> of free disk for the WSL image (the compressed tarball itself is ~0.99 GB);</li>
+<li><strong>CPU only, no GPU</strong> needed; the import is a local file operation and requires <strong>no internet</strong> (assuming the tarball is provided with the package).</li>
+</ul>
+<h3 id="4-2-import-the-openfoam-wsl-compute-image">4.2 Import the OpenFOAM WSL compute image</h3>
+<p><strong>1. </strong>Open the bundled <strong>OpenFOAM-WSL-Package</strong> folder.</p>
+<p><strong>2. </strong>Double-click <strong>`install_openfoam_wsl.bat`</strong> (or run install_openfoam_wsl.ps1 in PowerShell).</p>
+<p><strong>3. </strong>The installer imports a WSL distro named <strong>OpenfoamCFD</strong> (default location %LOCALAPPDATA%\OpenfoamCFD\wsl), smoke-tests its Python environment, creates the Windows job folder C:\CFDJobs, and writes the config file %LOCALAPPDATA%\OpenfoamCfd\config.json.</p>
+<p><strong>4. </strong>Wait for <strong>&quot;Install complete&quot;</strong>.</p>
+<p>The image runs as a neutral user <strong>dragonfly</strong> and carries no personal account information. The OpenFOAM solver is invoked through this interpreter:</p>
+<p>/home/dragonfly/miniconda3/envs/openfoam/bin/python  openfoam_runner.py  config.json</p>
+<p>Common installer options (passed as parameters to install_openfoam_wsl.ps1):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Option</th><th>Description</th></tr><tr><td>-DistroName &lt;name&gt;</td><td>Install the WSL distro under a custom name (default OpenfoamCFD).</td></tr><tr><td>-InstallDir &lt;path&gt;</td><td>Where the distro&#x27;s disk file lives (default %LOCALAPPDATA%\OpenfoamCFD\wsl).</td></tr><tr><td>-Force</td><td>Replace an existing distro of the same name.</td></tr><tr><td>-Uninstall</td><td>Remove the distro and its config file.</td></tr></table></div>
+<h3 id="4-3-detecting-the-environment-in-the-panel-setup-detect-openfoam">4.3 Detecting the environment in the panel (Setup / Detect OpenFOAM)</h3>
+<p>On first run the plugin reads the config.json above and fills in the WSL distro name and interpreter path. If the &quot;OpenFOAM interpreter&quot; field is empty, click <strong>Setup / Detect OpenFOAM</strong>: it first reads the config file, and if nothing is found it probes WSL for a conda env named openfoam in common locations (e.g. $HOME/miniconda3/envs/openfoam/bin/python).</p>
+<p><strong>Fallback if it fails:</strong> if auto-detection still comes up empty, import the WSL image per 4.2 first, or <strong>paste the interpreter path manually</strong> into the &quot;OpenFOAM interpreter&quot; box: /home/dragonfly/miniconda3/envs/openfoam/bin/python. Once detected, the configuration is saved automatically for next time.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel has a short description at the top. A top-bar button <strong>◀ Hide demo / Show demo ▶</strong> collapses or expands the left-hand demo column. The window is split into <strong>two columns</strong>: the left is the beginner demo, the right is configuration + log.</p>
+<h3 id="5-1-left-column-beginner-demo">5.1 Left column: Beginner demo</h3>
+<p>This column lets you experience the full pipeline with no segmentation. It generates a synthetic porous solid, meshes its <strong>pore space</strong>, and pushes fluid through it.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>Phantom</td><td>dropdown</td><td>Parallel channels</td><td>Synthetic porous structure: Parallel channels (a solid block drilled with straight cylindrical pores along the flow axis), Sphere pack (a body-centred pack of solid spheres, like sand / a packed bed), and Tube bundle (a grid of solid rods across the flow — classic heat-exchanger cross-flow).</td></tr><tr><td>Resolution (voxels/axis)</td><td>spin box</td><td>40</td><td>Voxels per axis, range 16–96. Higher = finer detail but slower.</td></tr><tr><td>Generate phantom + Run demo</td><td>button</td><td>—</td><td>Generates the phantom and runs the demo immediately; results appear in the log and are imported as Channels.</td></tr></table></div>
+<p>The column also includes inline &quot;how to read the result&quot; and &quot;what to try changing&quot; guidance.</p>
+<h3 id="5-2-right-column-part-1-input-structure">5.2 Right column, part 1: Input structure</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>Input object</td><td>dropdown</td><td>(empty)</td><td>Select the ROI / MultiROI / Channel that represents the solid phase. Entries look like [ROI] name (Z,Y,X).</td></tr><tr><td>Refresh</td><td>button</td><td>—</td><td>Refresh the list of selectable objects in the scene.</td></tr><tr><td>Channel threshold</td><td>text field</td><td>(empty)</td><td>Channels only: voxels with a grayscale value above this threshold are treated as solid. ROI/MultiROI use &quot;nonzero = solid&quot; and need no threshold.</td></tr></table></div>
+<p>Rule: nonzero labels in a ROI/MultiROI are solid; Channel voxels above the threshold are solid. <strong>Everything else (the pore) is where flow is solved.</strong></p>
+<h3 id="5-3-right-column-part-2-wsl-openfoam-environment">5.3 Right column, part 2: WSL OpenFOAM environment</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>WSL distro</td><td>text field</td><td>value in config (else Ubuntu)</td><td>The WSL distro that hosts the OpenFOAM image, usually OpenfoamCFD.</td></tr><tr><td>OpenFOAM interpreter</td><td>text field</td><td>auto-detected</td><td>The Python path of the OpenFOAM env inside WSL, e.g. .../envs/openfoam/bin/python. Leave empty to auto-fill, or paste it manually.</td></tr><tr><td>Job root (Windows)</td><td>text field</td><td>C:\CFDJobs</td><td>The Windows parent folder that holds each run&#x27;s output.</td></tr><tr><td>Setup / Detect OpenFOAM</td><td>button</td><td>—</td><td>Detect/fill the OpenFOAM interpreter (see 4.3).</td></tr></table></div>
+<h3 id="5-4-right-column-part-3-flow-incompressible-laminar">5.4 Right column, part 3: Flow (incompressible, laminar)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>Flow axis</td><td>dropdown</td><td>z</td><td>The axis the fluid is pushed along (x / y / z). The inlet and outlet are the two faces perpendicular to it.</td></tr><tr><td>Inlet velocity [m/s]</td><td>text field</td><td>1e-3</td><td>The imposed inlet speed. It scales the flow; permeability (a material property) stays ~constant.</td></tr><tr><td>Kinematic viscosity nu [m2/s]</td><td>text field</td><td>1e-5</td><td>The fluid&#x27;s kinematic viscosity. Larger = thicker fluid, larger pressure drop.</td></tr></table></div>
+<p>A fixed note at the bottom states: <strong>the outlet pressure is fixed at 0 (reference).</strong></p>
+<h3 id="5-5-right-column-part-4-mesh-solver">5.5 Right column, part 4: Mesh + solver</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>Surface refinement level</td><td>spin box</td><td>1</td><td>snappyHexMesh refinement level near the solid surface, range 0–4. Higher = more accurate near walls, slower.</td></tr><tr><td>Base cell (voxels)</td><td>double spin box</td><td>2.0</td><td>Background cell size in voxels, range 0.5–8.0, step 0.5. Smaller = finer base mesh, slower.</td></tr><tr><td>Max SIMPLE iterations</td><td>spin box</td><td>400</td><td>Upper bound on SIMPLE iterations, range 50–20000; it stops early when residuals are small enough.</td></tr><tr><td>Convergence residual</td><td>text field</td><td>1e-4</td><td>Convergence criterion: iteration stops when the p and U residuals fall below this value.</td></tr><tr><td>Import result fields as Dragonfly Channels</td><td>checkbox</td><td>checked</td><td>Whether to import the result fields as Dragonfly Channels.</td></tr></table></div>
+<h3 id="5-6-bottom-run-log">5.6 Bottom: run + log</h3>
+<ul>
+<li><strong>Run CFD</strong> button (blue): runs the full CFD on the selected input object.</li>
+<li><strong>Open Output Folder</strong> button: opens the current (or default) job folder in Explorer.</li>
+<li><strong>Log area</strong>: a read-only text box showing live progress percentages, mesh/solve stage messages, the permeability, imported Channel names, and the output directory.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-workflow-a-beginner-demo-no-data-needed">6.1 Workflow A: Beginner demo (no data needed)</h3>
+<p><strong>1. </strong>Open the floating window via <strong>Prototype Apps ▸ OpenFOAM CFD...</strong>.</p>
+<p><strong>2. </strong>In the left demo column choose a <strong>Phantom</strong> (e.g. Parallel channels) and a <strong>Resolution</strong> (e.g. 40).</p>
+<p><strong>3. </strong>Make sure the &quot;OpenFOAM interpreter&quot; field on the right is filled (if empty, click <strong>Setup / Detect OpenFOAM</strong> first).</p>
+<p><strong>4. </strong>Click <strong>Generate phantom + Run demo</strong> and watch the progress in the log on the right.</p>
+<p><strong>5. </strong>When done, velocity/pressure Channels appear in Dragonfly and the permeability is printed in the log.</p>
+<h3 id="6-2-workflow-b-run-on-your-own-segmentation">6.2 Workflow B: Run on your own segmentation</h3>
+<p><strong>1. </strong>Prepare the <strong>input</strong>: segment the solid structure as a ROI / MultiROI (nonzero = solid), or prepare a grayscale Channel (used with a threshold).</p>
+<p><strong>2. </strong>Open the panel, click <strong>Refresh</strong> in the &quot;Input structure&quot; group, and pick your object from the dropdown.</p>
+<p><strong>3. </strong>If the input is a Channel, enter the grayscale threshold that separates &quot;solid&quot; in <strong>Channel threshold</strong>.</p>
+<p><strong>4. </strong>Set the flow axis, inlet velocity, and kinematic viscosity in <strong>Flow</strong>.</p>
+<p><strong>5. </strong>Adjust surface refinement level, base cell, max iterations, and convergence residual in <strong>Mesh + solver</strong> as needed; keep &quot;Import result fields...&quot; checked.</p>
+<p><strong>6. </strong>Confirm the three <strong>WSL OpenFOAM environment</strong> fields (distro, interpreter, job root) are correct.</p>
+<p><strong>7. </strong>Click <strong>Run CFD</strong>. The plugin reads the solid mask (and reports porosity in the log), exports the STL, meshes, solves the flow, then imports the results as Channels and prints the permeability.</p>
+<p>The OpenFOAM case itself runs under WSL-native /tmp for fast I/O; only the mask file mask.npy and the result files cross the /mnt boundary. Each run&#x27;s output is saved in a job folder such as C:\CFDJobs\cfd_&lt;timestamp&gt;\.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>The table below summarises every adjustable parameter and its default value for quick reference.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Phantom (demo)</td><td>Parallel channels</td><td>Synthetic demo structure: parallel channels / sphere pack / tube bundle.</td></tr><tr><td>Resolution (voxels/axis)</td><td>40</td><td>Demo resolution, range 16–96. Higher = finer but slower.</td></tr><tr><td>Channel threshold</td><td>empty</td><td>Channels only: voxels above this value are solid. ROI/MultiROI use nonzero = solid.</td></tr><tr><td>WSL distro</td><td>OpenfoamCFD / Ubuntu</td><td>The WSL distro that hosts the OpenFOAM image.</td></tr><tr><td>OpenFOAM interpreter</td><td>auto-detected</td><td>Python interpreter path of the OpenFOAM env inside WSL.</td></tr><tr><td>Job root</td><td>C:\CFDJobs</td><td>Parent folder for the Windows-side output.</td></tr><tr><td>Flow axis</td><td>z</td><td>The axis the fluid is pushed along (x/y/z); inlet/outlet are its perpendicular faces.</td></tr><tr><td>Inlet velocity</td><td>1e-3 m/s</td><td>The imposed flow speed. Scales the flow; permeability stays ~constant.</td></tr><tr><td>Kinematic viscosity nu</td><td>1e-5 m2/s</td><td>Fluid thickness. Larger nu = larger pressure drop.</td></tr><tr><td>Outlet pressure</td><td>0</td><td>Fixed at 0 as the reference (not editable in the panel).</td></tr><tr><td>Surface refinement level</td><td>1</td><td>snappyHexMesh near-wall refinement, range 0–4. Higher = more accurate, slower.</td></tr><tr><td>Base cell (voxels)</td><td>2.0</td><td>Background cell size in voxels, range 0.5–8.0. Smaller = finer, slower.</td></tr><tr><td>Max SIMPLE iterations</td><td>400</td><td>Upper bound on iterations, range 50–20000; stops early on convergence.</td></tr><tr><td>Convergence residual</td><td>1e-4</td><td>Convergence criterion on the p and U residuals.</td></tr><tr><td>Import result fields as Channels</td><td>checked</td><td>Whether to import result fields as Dragonfly Channels.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>When solving finishes and the import option is checked, the plugin imports the result fields — sampled back onto the voxel grid — as <strong>Dragonfly Channels</strong> aligned with the original object&#x27;s grid (preserving voxel spacing and origin).</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Imported Channel</th><th>Meaning</th><th>How to read it</th></tr><tr><td>Velocity_Magnitude</td><td>Velocity magnitude</td><td>Fast in narrow throats, ~0 at grain/solid walls.</td></tr><tr><td>Pressure</td><td>Pressure field</td><td>Drops steadily from inlet to outlet; a steeper drop means more resistance.</td></tr><tr><td>Velocity_Z</td><td>Z-component of velocity</td><td>The along-flow velocity component (clearest when the flow axis is z).</td></tr></table></div>
+<p>In the <strong>beginner demo</strong>, an extra Channel named Phantom_&lt;type&gt; (the synthetic solid itself) is also imported, and the result Channels carry a Demo_ prefix (e.g. Demo_Velocity_Magnitude).</p>
+<p><strong>Numeric results in the log</strong> include:</p>
+<ul>
+<li><strong>Permeability</strong> — computed from the inlet flow rate, the inlet-to-outlet pressure drop, and the kinematic viscosity via Darcy&#x27;s law, in (input length unit)^2; larger = more permeable;</li>
+<li><strong>Darcy velocity</strong> and <strong>dP (kinematic)</strong> (the kinematic pressure drop);</li>
+<li><strong>Mesh cells</strong> — the size of the pore mesh produced by snappyHexMesh.</li>
+</ul>
+<p>All raw OpenFOAM cases, logs (log.blockMesh, log.snappyHexMesh, log.simpleFoam, etc.) and result files (foam_result.json, field_*.npy) are kept in the Windows job folder; click <strong>Open Output Folder</strong> to inspect them.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Symptom</th><th>Fix</th></tr><tr><td>Log says &quot;OpenFOAM interpreter not set&quot;</td><td>Click Setup / Detect OpenFOAM. If still empty, import the WSL image per Chapter 4, or paste /home/dragonfly/miniconda3/envs/openfoam/bin/python into the interpreter box.</td></tr><tr><td>Log says &quot;&#x27;wsl&#x27; not found&quot; or import fails</td><td>WSL is missing or too old. In an admin PowerShell run wsl --install (then reboot) or wsl --update.</td></tr><tr><td>Empty mesh / 0 cells</td><td>The pore space may not connect the inlet to the outlet. Check the flow axis, make sure the segmented pores are connected, and try a different axis.</td></tr><tr><td>Very slow run</td><td>Lower the surface refinement level or the demo resolution, or reduce Max SIMPLE iterations for a first look; you can also increase Base cell for a coarser base mesh.</td></tr><tr><td>No Channels imported</td><td>Ensure Import result fields as Dragonfly Channels is checked; check the log for the job folder path and confirm the result files were written.</td></tr><tr><td>No objects in the dropdown</td><td>Click Refresh first; confirm the scene actually contains a non-empty ROI / MultiROI / Channel.</td></tr><tr><td>Not enough disk / import error</td><td>The WSL image needs ~8–10 GB free. Use -InstallDir D:\WSL\OpenfoamCFD to move it to another drive, or free up space and retry.</td></tr></table></div>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>Supported on <strong>Windows + WSL2</strong> only; the CFD runs entirely in the WSL Linux environment, never in Dragonfly&#x27;s own Python.</li>
+<li>The physics solved is <strong>steady, incompressible, laminar</strong> flow (simpleFoam); it is not for turbulent, compressible, transient, or multiphase flow.</li>
+<li>The <strong>outlet pressure is fixed at 0</strong> and cannot be edited in the panel; the inlet is a fixed-velocity boundary, the side walls are slip, and the solid surface is no-slip.</li>
+<li>Permeability results depend on mesh quality and pore connectivity, and are sensitive to resolution and refinement level; do a mesh-independence check for critical results.</li>
+<li>Compute time grows quickly with voxel count, refinement level, and iterations; use a small resolution / low refinement for a first estimate.</li>
+<li><strong>CPU only</strong>; no GPU is used or required.</li>
+<li>Menus are scanned only at Dragonfly startup, so any enable/disable change requires one restart to take effect.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>OpenFOAM (ESI build) home page: https://www.openfoam.com/</li>
+<li>OpenFOAM user guide (simpleFoam, snappyHexMesh, etc.): https://www.openfoam.com/documentation/</li>
+<li>scikit-image (marching cubes surface extraction): https://scikit-image.org/</li>
+<li>WSL (Windows Subsystem for Linux) documentation: https://learn.microsoft.com/windows/wsl/</li>
+<li>Darcy&#x27;s law: https://en.wikipedia.org/wiki/Darcy%27s_law</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>OpenFOAM-CFD-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

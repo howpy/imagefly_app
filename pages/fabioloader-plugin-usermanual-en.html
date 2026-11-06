@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load X-ray Images (fabio) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Load X-ray Images (fabio) - User Manual Dragonfly Prototype Apps · Load X-ray Images (fabio)... Version 1.0 · 2026-07-14 English Manual Contents 1. Introdu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Load X-ray Images (fabio)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Load X-ray Images (fabio)...</div>
+    <h1>Load X-ray Images (fabio)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-14</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#setup-tab">Setup tab</a></li><li class="t3"><a href="#load-tab-file-group">Load tab - File group</a></li><li class="t3"><a href="#load-tab-preview-area-split-view">Load tab - preview area (split view)</a></li><li class="t3"><a href="#load-tab-import-group">Load tab - Import group</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Load X-ray Images (fabio) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Load X-ray Images (fabio)...</p>
+<p>Version 1.0 · 2026-07-14</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Load X-ray Images (fabio)</strong> is a Dragonfly Prototype App that opens about 30 <strong>2D X-ray detector / synchrotron image formats</strong> and their multi-frame series inside Dragonfly, previews the image plus metadata, and imports the data with one click as a Dragonfly <strong>image Channel</strong>. Under the hood it wraps <strong>fabio</strong> (the open-source detector-image reader from silx / ESRF, <strong>MIT-licensed</strong>).</p>
+<p>Supported formats include <strong>EDF</strong> (ESRF Data Format), <strong>CBF</strong> (imgCIF), <strong>Pilatus / Dectris</strong>, <strong>MAR / MarCCD / MAR345</strong>, <strong>ADSC</strong>, <strong>Bruker</strong>, <strong>GE</strong>, <strong>TIFF</strong>, <strong>HDF5</strong>, and more; fabio.open() auto-detects the format from the file contents. Multi-frame files are read frame by frame and stacked into an (N, Y, X) volume.</p>
+<p>The input is a <strong>file on disk</strong> (not an existing Dragonfly object); the output is a new image <strong>Channel</strong>. When the header carries the detector pixel size (EDF PSize_1 / PSize_2, already in meters), it is written to the Channel&#x27;s X/Y voxel spacing.</p>
+<p>It is <strong>not</strong> a tomographic reconstruction tool: it only reads 2D detector frames and projection series, not reconstructed 3D volumes with true Z spacing. It also does <strong>not</strong> read Zeiss Xradia .txrm/.txm (fabio does not cover these; see DESIGN.md). DXchange was the original plan, but PyPI only carries a 0.0.1 stub (the real package is conda/GitHub-only) and does not fit the pip venv pattern, so fabio - same domain, pure wheels - was chosen instead.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Open single 2D images from synchrotron / diffraction / detector beamlines: <strong>ESRF EDF</strong>, <strong>Pilatus / Dectris</strong>, <strong>MarCCD</strong>, <strong>ADSC</strong>, <strong>Bruker</strong>, <strong>GE</strong> frames, etc.</li>
+<li>Import a <strong>multi-frame EDF/CBF projection series</strong> into Dragonfly as one (N, Y, X) stack for browsing or further processing.</li>
+<li>Read detector-specific formats that Dragonfly&#x27;s native loader does not open directly (imgCIF CBF, MAR345, SFRM, etc.).</li>
+<li>Preview a <strong>thumbnail and header metadata</strong> (format, frame count, size, data type, detector pixel size) before importing, to confirm the file is correct.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>This plugin ships in the <strong>Prototype Apps Full Package</strong> and is <strong>unchecked by default</strong>.</p>
+<p>1. Unzip the Full Package to a <strong>short directory</strong> (e.g. C:\PL) to avoid Windows long-path issues.</p>
+<p>2. Run Install_FullPackage.bat.</p>
+<p>3. In the installer dialog, <strong>check</strong> &quot;Load X-ray Images (fabio)&quot; (all plugins are unchecked by default).</p>
+<p>4. Click <strong>Install</strong>.</p>
+<p>5. <strong>Fully restart Dragonfly</strong> (the menu is scanned only at startup - it will not appear otherwise).</p>
+<p>After installation it appears under <strong>Prototype Apps ▸ Load X-ray Images (fabio)...</strong>, in the <strong>&quot;Reconstruction &amp; Imaging(重建与成像)&quot;</strong> section.</p>
+<p>You can later enable or disable it via <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>. It installs under %LOCALAPPDATA% with <strong>no admin rights required</strong>; restart Dragonfly after each toggle for it to take effect.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>This plugin uses the <strong>venv_in_code</strong> model: fabio runs only inside an <strong>isolated virtual environment / subprocess</strong> and <strong>never</strong> loads into Dragonfly&#x27;s own Python. Before first use, run the one-time setup by clicking <strong>Setup Environment (fabio)</strong> on the <strong>Setup</strong> tab.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>That button uses Dragonfly&#x27;s bundled Python (or a Base Python you specify) as the base, runs runner/setup_env.py to create a venv, and pip installs the dependencies listed in runner/requirements.txt: <strong>fabio, numpy, Pillow</strong>. All three are <strong>prebuilt wheels</strong> - <strong>no Java, no MSVC compiler, no GPU</strong> needed.</p>
+<ul>
+<li><strong>Internet</strong>: required only for the <strong>first setup</strong> (to download wheels); previewing and importing afterward run fully offline.</li>
+<li><strong>GPU</strong>: not required.</li>
+<li><strong>WSL / external tools</strong>: not required.</li>
+<li><strong>venv location</strong>: created under the installed code folder as venv\ (i.e. ...\GenericMenuItems\FabioLoader\venv); on success its python.exe path is written back to the <strong>Analysis venv python</strong> field and saved into fabio_config.json.</li>
+<li><strong>Base Python fallback field</strong>: leave blank to auto-detect Dragonfly / system Python, or use <strong>Browse...</strong> to point at a specific python.exe to base the venv on.</li>
+<li><strong>Job root</strong>: root folder where intermediate files (thumbnail PNG, .npy, status.json, results.json) are written; defaults to C:\FabioLoaderJobs.</li>
+</ul>
+<h2 id="5-interface">5. Interface</h2>
+<p>The panel has a title line at the top, two tabs - <strong>Setup</strong> and <strong>Load</strong> - and, at the bottom, a green <strong>status line</strong> and a read-only <strong>log box</strong> (about 130px tall).</p>
+<h3 id="setup-tab">Setup tab</h3>
+<ul>
+<li><strong>Analysis venv python</strong>: path to the analysis venv&#x27;s python.exe; filled automatically by Setup (placeholder &quot;set by Setup Environment&quot;).</li>
+<li><strong>Base Python</strong> (line edit + <strong>Browse...</strong>): the base interpreter for building the venv; blank = auto-detect.</li>
+<li><strong>Job root</strong>: the intermediate-output folder; defaults to C:\FabioLoaderJobs.</li>
+<li><strong>Setup Environment (fabio)</strong> button: creates the venv and installs fabio + numpy + Pillow.</li>
+</ul>
+<h3 id="load-tab-file-group">Load tab - File group</h3>
+<ul>
+<li><strong>Image file</strong> (line edit + <strong>Browse...</strong>): pick the file to open; the dialog offers common fabio extensions (*.edf *.cbf *.tif *.mccd *.mar3450 *.img *.h5 ...), but fabio <strong>auto-detects the format</strong> regardless of extension. Selecting a file auto-fills the output title (file name without extension) if it is empty.</li>
+<li><strong>Preview</strong> button: reads metadata and builds a middle-frame thumbnail.</li>
+</ul>
+<h3 id="load-tab-preview-area-split-view">Load tab - preview area (split view)</h3>
+<ul>
+<li>Left <strong>thumbnail</strong> label (min 260x260): shows an aspect-preserving thumbnail of the middle frame; &quot;No preview&quot; when empty.</li>
+<li>Right <strong>metadata table</strong> (two columns <strong>Property / Value</strong>): lists File, Format, Frames, Size X, Size Y, Data type, Pixel size X (m), Pixel size Y (m), plus the first 12 header keys (shown with an hdr: prefix).</li>
+</ul>
+<h3 id="load-tab-import-group">Load tab - Import group</h3>
+<ul>
+<li><strong>Output Channel title</strong>: title for the resulting Channel; defaults to the file name if blank.</li>
+<li><strong>Import → Publish as Channel</strong> (blue button): reads all frames, stacks them into (N,Y,X), and publishes as a Channel.</li>
+</ul>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. <strong>(First run)</strong> Go to the <strong>Setup</strong> tab, optionally set Base Python and Job root, click <strong>Setup Environment (fabio)</strong>, and wait for the status line to read &quot;Environment ready.&quot;.</p>
+<p>2. Switch to the <strong>Load</strong> tab and <strong>Browse...</strong> to an X-ray / detector image file in <strong>Image file</strong>.</p>
+<p>3. Click <strong>Preview</strong>: check the thumbnail on the left and verify format, frame count, size, data type, and detector pixel size on the right.</p>
+<p>4. (Optional) Edit <strong>Output Channel title</strong> to the name you want.</p>
+<p>5. Click <strong>Import → Publish as Channel</strong>: the plugin reads all frames in the venv subprocess, stacks them into (N,Y,X), and publishes a Channel in Dragonfly.</p>
+<p>6. Find the new Channel in Dragonfly&#x27;s object browser; the status line reports the number of frames imported and the Channel name.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<p>This plugin is a <strong>loader</strong> and has no numeric algorithm parameters; the table below lists its key configuration items and options (all taken from the panel code).</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter / option</th><th>Default</th><th>Range / values</th><th>Meaning</th></tr><tr><td>Base Python</td><td>blank (auto)</td><td>any python.exe path</td><td>base interpreter for the venv; blank = Dragonfly / system Python</td></tr><tr><td>Job root</td><td>C:\FabioLoaderJobs</td><td>any writable folder</td><td>root for thumbnails, .npy, status/results.json</td></tr><tr><td>Analysis venv python</td><td>(set by Setup)</td><td>python.exe in the venv</td><td>interpreter used by the preview/import subprocess</td></tr><tr><td>Image file</td><td>blank</td><td>any fabio-supported format</td><td>the file to open; format auto-detected by fabio</td></tr><tr><td>Output Channel title</td><td>blank → file name</td><td>any string</td><td>title of the resulting Channel</td></tr><tr><td>Thumbnail max size</td><td>512 px</td><td>(hard-coded)</td><td>max side of the preview thumbnail (preview(max_size=512))</td></tr><tr><td>Thumbnail contrast stretch</td><td>0.5% – 99.5% percentile</td><td>(hard-coded)</td><td>clip percentiles for 8-bit thumbnail normalization</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>Import creates <strong>one image Channel</strong> in Dragonfly. All frames are stacked into a 3D (N, Y, X) array (single-frame files become (1, Y, X)), first written as channel_C0.npy and then published via createChannelFromNumpyArray(ZAxis=True).</p>
+<ul>
+<li><strong>Naming</strong>: the Channel title comes from <strong>Output Channel title</strong>, or the file name (without extension) if left blank.</li>
+<li><strong>Spacing</strong>: if the header carries the detector pixel size (EDF PSize_1/PSize_2, in meters), it is written to X/Y spacing; otherwise defaults are kept. No true Z spacing is set (plain frame stack).</li>
+<li><strong>Origin</strong>: set to (0, 0, 0).</li>
+<li><strong>Data type</strong>: uint8/uint16/int8/int16/float32 are preserved; any other type is converted to float32.</li>
+<li><strong>Location</strong>: the new Channel appears in Dragonfly&#x27;s object browser / Data Properties and can be viewed directly in 2D/3D.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>&quot;Run Setup first, or set the analysis venv python.&quot;</strong> - the venv has not been built. Click <strong>Setup Environment (fabio)</strong> on the Setup tab, or fill in Analysis venv python manually.</li>
+<li><strong>Setup fails</strong> - usually no internet on first setup or pip cannot download wheels. Confirm PyPI is reachable, or point Base Python at an interpreter that already has pip, then retry; see the log box for the full error.</li>
+<li><strong>&quot;Select a valid image file first.&quot;</strong> - no file selected or the path is invalid. Use <strong>Browse...</strong> to pick an existing file.</li>
+<li><strong>Preview/import fails with an unrecognized-format error</strong> - the file may not be a fabio-supported format, or it is corrupt. Note that fabio decides by content, not extension; Zeiss Xradia .txrm/.txm is unsupported.</li>
+<li><strong>Out of memory on large multi-frame series</strong> - Import stacks all frames into memory at once before publishing; very large series can exhaust RAM. Try smaller series or process in batches.</li>
+<li><strong>Imported image looks too dark/bright</strong> - the thumbnail uses a 0.5-99.5 percentile contrast stretch for display, but the <strong>imported Channel holds the raw data</strong>; adjust the window/level (data range) in Dragonfly.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>2D detector frames and series only</strong>: reads and stacks 2D frames; it does not reconstruct tomography or produce a 3D volume with true Z spacing.</li>
+<li><strong>No Zeiss Xradia</strong> .txrm/.txm or facility-specific tomography layouts (a planned follow-up - would need an olefile-based reader or the real DXchange via conda/git).</li>
+<li><strong>No Z spacing</strong>: multi-frame stacks only get X/Y spacing from the detector pixel size.</li>
+<li><strong>Metadata depends on the header</strong>: physical pixel size is written only when the header provides EDF PSize; otherwise the Channel has no true calibration.</li>
+<li><strong>Validation status</strong>: verified by round-tripping EDF / CBF / TIFF (single- and multi-frame); end-to-end live verification inside a running Dragonfly session is still pending.</li>
+<li>fabio runs strictly in the isolated venv/subprocess and never pollutes Dragonfly&#x27;s own Python environment.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li><strong>fabio</strong> (silx / ESRF) - home &amp; docs: https://github.com/silx-kit/fabio and https://fabio.readthedocs.io ; license: <strong>MIT</strong>.</li>
+<li><strong>Pillow</strong>: https://python-pillow.org (used to render preview thumbnails); <strong>NumPy</strong>: https://numpy.org.</li>
+<li>Format background: ESRF <strong>EDF</strong>, imgCIF <strong>CBF</strong>, Dectris/<strong>Pilatus</strong> and other detector formats.</li>
+<li>In-plugin docs: DragonflyPlugins/FabioLoader-Plugin/README.md and DESIGN.md (rationale for fabio over DXchange and the follow-up plan).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>FabioLoader-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

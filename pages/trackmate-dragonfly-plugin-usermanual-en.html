@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrackMate-like Object Tracker · Dragonfly Prototype Apps</title>
+<meta name="description" content="TrackMate-like Object Tracker - User Manual Dragonfly Prototype Apps · TrackMate-like Object Tracker... Version 1.0 · 2026-07-04 English Manual Contents 1.…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">TrackMate-like Object Tracker</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · TrackMate-like Object Tracker...</div>
+    <h1>TrackMate-like Object Tracker</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-and-algorithm">Underlying engine and algorithm</a></li><li class="t3"><a href="#licensing-notes">Licensing notes</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t3"><a href="#changing-the-enabled-state-later">Changing the enabled state later</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-and-internet">Download size and internet</a></li><li class="t3"><a href="#no-gpu-fiji-wsl-external-app">No GPU / Fiji / WSL / external app</a></li><li class="t3"><a href="#base-python-and-the-fallback-if-setup-fails">Base Python and the fallback if setup fails</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t2"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t2"><a href="#5-2-frames-tab">5.2 Frames tab</a></li><li class="t2"><a href="#5-3-tracking-tab">5.3 Tracking tab</a></li><li class="t2"><a href="#5-4-summary-tab">5.4 Summary tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#8-1-the-tracks-csv-table">8.1 The tracks.csv table</a></li><li class="t2"><a href="#8-2-per-frame-track-id-multirois">8.2 Per-frame track-ID MultiROIs</a></li><li class="t2"><a href="#8-3-summary-statistics">8.3 Summary statistics</a></li><li class="t2"><a href="#8-4-intermediate-files">8.4 Intermediate files</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t3"><a href="#q1-setup-environment-fails-saying-it-cannot-create-the-venv-or-pip-is-missing">Q1. Setup Environment fails, saying it cannot create the venv or pip is missing</a></li><li class="t3"><a href="#q2-run-tracking-says-add-at-least-two-multiroi-frames-first">Q2. Run Tracking says &quot;Add at least two MultiROI frames first&quot;</a></li><li class="t3"><a href="#q3-objects-fail-to-link-one-physical-object-is-split-into-several-tracks">Q3. Objects fail to link / one physical object is split into several tracks</a></li><li class="t3"><a href="#q4-nearby-but-distinct-objects-were-wrongly-linked-together">Q4. Nearby but distinct objects were wrongly linked together</a></li><li class="t3"><a href="#q5-my-multiroi-does-not-appear-in-the-dropdown">Q5. My MultiROI does not appear in the dropdown</a></li><li class="t3"><a href="#q6-no-per-frame-multirois-were-created">Q6. No per-frame MultiROIs were created</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>TrackMate-like Object Tracker - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · TrackMate-like Object Tracker...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>TrackMate-like Object Tracker</strong> is a Dragonfly-native, object-level tracker. It treats an <strong>ordered sequence of Dragonfly MultiROIs</strong> as detection results: each nonzero label in each frame (each MultiROI) is one object (detection). The plugin computes each object&#x27;s <strong>centroid</strong> and <strong>volume</strong>, links objects across adjacent frames with a <strong>Linear Assignment Problem (LAP)</strong> solver into time-continuous <strong>tracks</strong>, and writes a tracks.csv table. It can also publish the result back into Dragonfly, one MultiROI per frame, with labels set to stable track IDs.</p>
+<p>Its design is inspired by the well-known <strong>TrackMate</strong> workflow in Fiji (detect objects, link detections, inspect tracks, publish track IDs), but it does <strong>not depend on Fiji, ImageJ, or Java</strong>. Instead it runs a small Python environment directly inside Dragonfly.</p>
+<h3 id="underlying-engine-and-algorithm">Underlying engine and algorithm</h3>
+<ul>
+<li><strong>Detection:</strong> every nonzero label in a frame&#x27;s MultiROI becomes one object; the plugin computes its centroid (voxel and physical coordinates), voxel volume, and bounding box.</li>
+<li><strong>Linking:</strong> uses <strong>SciPy</strong> scipy.optimize.linear_sum_assignment over a cost matrix. Cost = physical centroid distance plus an optional volume-change penalty.</li>
+<li><strong>Gap closing:</strong> allows an object to disappear for a few frames and still be linked, controlled by Max frame gap.</li>
+<li><strong>Dependencies:</strong> numpy and scipy, installed from PyPI. The tracking core (trackmate_core.py) is decoupled from Dragonfly and runs and tests standalone.</li>
+</ul>
+<h3 id="licensing-notes">Licensing notes</h3>
+<p>At runtime the plugin depends only on numpy and scipy, two widely used scientific libraries under permissive (BSD-style) licenses. It bundles no Fiji / ImageJ / Java, so there is no GPL entanglement. These two libraries are downloaded from PyPI into the plugin&#x27;s own isolated environment on first use.</p>
+<p>This is a pragmatic first version: it covers the most common MultiROI object-tracking need in Dragonfly but is not a full clone of Fiji TrackMate. The current version does not yet infer split/merge lineage - each detection is linked to at most one predecessor.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets objects that are <strong>already segmented</strong> and now need to be <strong>tracked as they move across time or process steps</strong>. Its input is existing MultiROIs, not raw images, so it fits after a segmentation step as an analysis stage. Typical applications:</p>
+<ul>
+<li>Track <strong>particles</strong> across a series of time points or process steps.</li>
+<li>Track <strong>cells</strong> migrating in a time-lapse sequence.</li>
+<li>Track <strong>pores, defects</strong>, or other material objects evolving across stages of an in-situ experiment.</li>
+<li>Any ordered set of <strong>2D or 3D labeled objects</strong> where the same physical object needs a stable ID across all frames.</li>
+</ul>
+<p>Once tracking succeeds you can analyze object displacement, volume change, and track length by track ID in tracks.csv, or inspect the per-frame MultiROIs colored by track ID directly in Dragonfly.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships in the <strong>Prototype Apps Full Package</strong>. Install and enable it as follows:</p>
+<p><strong>1. </strong>Unzip the Full Package into a <strong>short folder</strong> (e.g. C:\PL\) to avoid the path-too-long error (0x80010135).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (Fresh / Compatible) and <strong>tick</strong> TrackMate-like Object Tracker in the app list. <strong>Note: all plugins are OFF by default and must be ticked to be installed.</strong></p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p>After the restart the plugin appears under <strong>Prototype Apps ▸ TrackMate-like Object Tracker...</strong> (in the &quot;Measurements &amp; Analysis&quot; group). Clicking it opens a dockable PyQt panel titled &quot;TrackMate-like Object Tracker&quot; (floating by default, movable/dockable).</p>
+<h3 id="changing-the-enabled-state-later">Changing the enabled state later</h3>
+<p>To enable or disable the plugin later, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, tick/untick it in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then restart Dragonfly. Disabling <strong>never</strong> deletes the plugin&#x27;s environment; re-enabling is instant.</p>
+<p>Everything installs under the current user profile (%LOCALAPPDATA%); no admin rights are needed. Each enable/disable change requires one Dragonfly restart.</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and First-Run Setup</h2>
+<p>To avoid clashing with Dragonfly&#x27;s own Python, the plugin <strong>builds an isolated virtual environment (venv) on first use</strong> and installs numpy and scipy into it. This is done with the <strong>Setup Environment (numpy + scipy)</strong> button on the panel&#x27;s <strong>Setup</strong> tab.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p><strong>1. </strong>Creates a venv folder inside the installed plugin code directory (%LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\TrackMateDragonfly\venv).</p>
+<p><strong>2. </strong>Upgrades pip inside that venv.</p>
+<p><strong>3. </strong>Installs numpy and scipy from PyPI (per requirements.txt).</p>
+<p><strong>4. </strong>Writes the new venv&#x27;s python path back into the <strong>Analysis venv python</strong> field and saves it. <strong>Run Tracking</strong> then uses this python for the tracking computation.</p>
+<h3 id="download-size-and-internet">Download size and internet</h3>
+<p>numpy and scipy are moderate in size (typically tens to a bit over a hundred MB, depending on platform and version). <strong>Internet is required for this step only</strong>, to download from PyPI; the tracking computation itself is fully offline.</p>
+<h3 id="no-gpu-fiji-wsl-external-app">No GPU / Fiji / WSL / external app</h3>
+<p>The tracking computation is a pure-CPU linear-assignment operation. It needs <strong>no GPU</strong>, and <strong>no Fiji, ImageJ, Java, or WSL</strong>, no external software, and no tokens. This is the main advantage over Fiji TrackMate.</p>
+<h3 id="base-python-and-the-fallback-if-setup-fails">Base Python and the fallback if setup fails</h3>
+<p>The <strong>Base Python</strong> field chooses which interpreter builds the venv. Left blank, the plugin auto-detects (Dragonfly&#x27;s bundled or a system Python). If setup fails (e.g. the auto-detected interpreter lacks ensurepip or cannot create a venv), click <strong>Browse...</strong> to point at a working system CPython (3.10-3.12 recommended) and retry. The log area shows the failure reason.</p>
+<p>The <strong>Job root</strong> field is the output root for tracking jobs, default C:\TrackMateDragonflyJobs. Each run creates a timestamped subfolder under it (e.g. trackmate_df_20260704_153000) holding the exported labels, tracks.csv, and intermediate files.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel has a title bar at the top and, at the bottom, a green <strong>status label</strong> (current state) and a read-only <strong>log box</strong>. In the middle are four tabs: <strong>Setup / Frames / Tracking / Summary</strong>. Each control is described below.</p>
+<h2 id="5-1-setup-tab">5.1 Setup tab</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Description</th></tr><tr><td>Analysis venv python</td><td>Text field</td><td>Path to the venv python used for tracking; filled automatically by Setup Environment, rarely typed by hand.</td></tr><tr><td>Base Python</td><td>Text field + Browse...</td><td>Base Python used to create the venv; blank = auto-detect. Browse... lets you pick a python.exe.</td></tr><tr><td>Job root</td><td>Text field</td><td>Output root for tracking jobs; default C:\TrackMateDragonflyJobs.</td></tr><tr><td>Setup Environment (numpy + scipy)</td><td>Button</td><td>Creates the isolated venv and installs numpy and scipy (click this on first use).</td></tr></table></div>
+<p>A note at the bottom reminds you: no Fiji/ImageJ/Java is used; add MultiROI frames in temporal order before running.</p>
+<h2 id="5-2-frames-tab">5.2 Frames tab</h2>
+<p>This tab assembles the <strong>frame sequence</strong> - the set of MultiROIs to track, ordered in time.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Description</th></tr><tr><td>MultiROI</td><td>Dropdown</td><td>Lists all MultiROIs available in the current Dragonfly session (title and shape).</td></tr><tr><td>Refresh</td><td>Button</td><td>Re-scans the current session&#x27;s MultiROIs to update the dropdown.</td></tr><tr><td>Add Frame</td><td>Button</td><td>Appends the dropdown&#x27;s selected MultiROI to the end of the sequence.</td></tr><tr><td>Frame sequence table</td><td>Table</td><td>Four columns: Frame (index from 0), Title, Shape, Labels (label count).</td></tr><tr><td>Remove Selected</td><td>Button</td><td>Removes the currently selected row from the sequence.</td></tr><tr><td>Clear</td><td>Button</td><td>Empties the whole frame sequence.</td></tr></table></div>
+<p>Frame order is entirely determined by the order you add them. The plugin does not infer time points from file names or a Dragonfly time axis, so Add Frame in the correct order.</p>
+<h2 id="5-3-tracking-tab">5.3 Tracking tab</h2>
+<p>This tab sets the linking parameters and output options, and launches tracking.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type / Default</th><th>Description</th></tr><tr><td>Max link distance</td><td>Double / 20.000</td><td>Maximum physical centroid distance allowed for a link between frames; beyond it, no link. Step 5.0.</td></tr><tr><td>Max frame gap</td><td>Integer / 0</td><td>Number of frames an object may disappear; 0 = adjacent frames only, 1 = one missing frame allowed, etc.</td></tr><tr><td>Volume penalty weight</td><td>Double / 0.000</td><td>Weight of the volume-change penalty; 0 = distance only. Higher values discourage linking objects of very different size.</td></tr><tr><td>Min object volume</td><td>Integer / 1</td><td>Minimum object voxel volume; labels smaller than this are ignored during detection.</td></tr><tr><td>Output MultiROI prefix</td><td>Text / Tracked objects</td><td>Title prefix for the per-frame MultiROIs published back to Dragonfly.</td></tr><tr><td>Publish one tracked MultiROI per frame</td><td>Checkbox / checked</td><td>Whether to publish each frame&#x27;s track-ID labels back to Dragonfly.</td></tr><tr><td>Publish frame limit</td><td>Integer / 200</td><td>Maximum number of frames to publish (guards against too many objects when there are many frames).</td></tr><tr><td>Run Tracking</td><td>Button (blue)</td><td>Starts tracking. All buttons are disabled while it runs.</td></tr></table></div>
+<h2 id="5-4-summary-tab">5.4 Summary tab</h2>
+<p>When tracking finishes, the plugin switches here automatically and shows a two-column table (Metric / Value): number of frames, total detections, number of tracks, and min/max/mean track length.</p>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>This is the end-to-end flow from zero to tracking results. Prerequisite: you already have <strong>at least two MultiROIs</strong> in Dragonfly, each for one time point/step, with the same physical object segmented into labels in each frame.</p>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ TrackMate-like Object Tracker...</strong>.</p>
+<p><strong>2. </strong><strong>First use:</strong> go to the <strong>Setup</strong> tab, click <strong>Setup Environment (numpy + scipy)</strong>, and wait until the log shows &quot;Environment ready.&quot; (If it fails, set Base Python per Chapter 4 and retry.)</p>
+<p><strong>3. </strong>Go to the <strong>Frames</strong> tab and click <strong>Refresh</strong> to list MultiROIs.</p>
+<p><strong>4. </strong>Select the first time point&#x27;s MultiROI in the <strong>MultiROI</strong> dropdown and click <strong>Add Frame</strong>; then the second time point, <strong>Add Frame</strong>; and so on, adding all frames <strong>strictly in temporal order</strong>.</p>
+<p><strong>5. </strong>Check the frame sequence table: Frame should increment from 0; verify Title/Shape/Labels. Use <strong>Remove Selected</strong> / <strong>Clear</strong> to adjust.</p>
+<p><strong>6. </strong>Go to the <strong>Tracking</strong> tab and set <strong>Max link distance</strong> (most important: slightly larger than the object&#x27;s largest real displacement between adjacent frames), then adjust <strong>Max frame gap</strong>, <strong>Volume penalty weight</strong>, and <strong>Min object volume</strong> as needed.</p>
+<p><strong>7. </strong>Set output options: <strong>Output MultiROI prefix</strong>, whether to <strong>Publish one tracked MultiROI per frame</strong>, and <strong>Publish frame limit</strong>.</p>
+<p><strong>8. </strong>Click <strong>Run Tracking</strong>. The log scrolls through progress (exporting frames, linking detections, writing outputs).</p>
+<p><strong>9. </strong>When done, the panel switches to <strong>Summary</strong> with statistics; the status bar shows the full path to tracks.csv. If publishing was enabled, per-frame track-ID MultiROIs appear in Dragonfly&#x27;s object list.</p>
+<p>At least two frames are required. If Setup was not run (Analysis venv python is empty), clicking Run Tracking prompts you to run Setup first.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>The table below summarizes every tracking parameter and its meaning, as a tuning reference.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Max link distance</td><td>20.0</td><td>Maximum physical centroid distance allowed for a link between adjacent frames. If gaps are allowed, the threshold scales up proportionally with the number of frames spanned. Too small misses links; too large creates wrong ones.</td></tr><tr><td>Max frame gap</td><td>0</td><td>Number of frames an object may disappear. 0 = adjacent frames only; set to 1 to bridge one missing frame on the same track, to cope with occasional missed detections.</td></tr><tr><td>Volume penalty weight</td><td>0.0</td><td>Weight of relative volume change in the link cost. 0 = distance only; higher values make candidates of very different size less likely to link, helping to separate nearby objects of different sizes.</td></tr><tr><td>Min object volume</td><td>1</td><td>Detection ignores labels with fewer voxels than this, filtering segmentation noise/fragments.</td></tr><tr><td>Output MultiROI prefix</td><td>Tracked objects</td><td>Title prefix for per-frame results published to Dragonfly, e.g. Tracked objects t000.</td></tr><tr><td>Publish multirois</td><td>checked (True)</td><td>Whether to publish the track-ID label volumes back to Dragonfly as MultiROIs.</td></tr><tr><td>Publish frame limit</td><td>200</td><td>Maximum number of frames to publish, to avoid creating too many objects when there are very many frames.</td></tr></table></div>
+<p>Distance and volume are computed from the MultiROI&#x27;s physical spacing: centroids are multiplied by per-axis spacing to get physical coordinates before the Euclidean distance is taken. So Max link distance is in physical units, not voxel counts.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful run produces the following:</p>
+<h2 id="8-1-the-tracks-csv-table">8.1 The tracks.csv table</h2>
+<p>Written into the job folder (&lt;Job root&gt;\trackmate_df_&lt;timestamp&gt;\tracks.csv). Each row is one detection in one frame; columns include:</p>
+<ul>
+<li>frame, label, track_id - frame index, original label value, and the stable track ID that spans the whole sequence.</li>
+<li>centroid_z / centroid_y / centroid_x - centroid in voxel coordinates.</li>
+<li>physical_z / physical_y / physical_x - centroid in physical coordinates (already multiplied by spacing).</li>
+<li>volume_voxels - the object&#x27;s voxel volume.</li>
+<li>bbox_z0..bbox_x1 - bounding-box start/stop indices.</li>
+<li>link_cost - the cost at which this detection was linked (0 for a newly started track).</li>
+</ul>
+<h2 id="8-2-per-frame-track-id-multirois">8.2 Per-frame track-ID MultiROIs</h2>
+<p>If <strong>Publish one tracked MultiROI per frame</strong> is checked, the plugin publishes a new MultiROI for each frame (titles like Tracked objects t000, Tracked objects t001, ...) where <strong>each object&#x27;s label value is its stable track ID</strong>. The same physical object then has a consistent label across all frames, making it easy to inspect its trajectory in Dragonfly with a single color scheme. The number published is capped by <strong>Publish frame limit</strong>.</p>
+<h2 id="8-3-summary-statistics">8.3 Summary statistics</h2>
+<p>Metrics shown on the Summary tab: n_frames, n_detections, n_tracks, and min_track_length / max_track_length / mean_track_length.</p>
+<h2 id="8-4-intermediate-files">8.4 Intermediate files</h2>
+<p>The job folder also keeps the exported per-frame labels frame_###_labels.npy, the per-frame track-ID label volumes track_labels_t###.npy, export.json, and run status/result files for review or downstream analysis.</p>
+<p><strong>How to view results:</strong> open tracks.csv (Excel or any spreadsheet tool) to analyze displacement, volume, and track length; in Dragonfly&#x27;s object list, view the published per-frame MultiROIs and use a single color scheme to follow the same track across frames.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<h3 id="q1-setup-environment-fails-saying-it-cannot-create-the-venv-or-pip-is-missing">Q1. Setup Environment fails, saying it cannot create the venv or pip is missing</h3>
+<p>The auto-detected base Python may lack ensurepip or be unsuitable for building a venv. Click <strong>Browse...</strong> next to <strong>Base Python</strong> and select a normal system CPython (3.10-3.12 recommended), then retry. Also confirm the machine can reach PyPI over the internet for this step.</p>
+<h3 id="q2-run-tracking-says-add-at-least-two-multiroi-frames-first">Q2. Run Tracking says &quot;Add at least two MultiROI frames first&quot;</h3>
+<p>The frame sequence has fewer than two frames. Go back to the <strong>Frames</strong> tab and add at least two MultiROIs with <strong>Add Frame</strong>. If it says &quot;Run Setup first,&quot; the Analysis venv python is empty - complete the environment setup on the Setup tab first.</p>
+<h3 id="q3-objects-fail-to-link-one-physical-object-is-split-into-several-tracks">Q3. Objects fail to link / one physical object is split into several tracks</h3>
+<p>Usually <strong>Max link distance</strong> is too small, smaller than the object&#x27;s real displacement between adjacent frames. Increase it. If the object is missed in some frames, set <strong>Max frame gap</strong> to 1 or more to bridge the gap.</p>
+<h3 id="q4-nearby-but-distinct-objects-were-wrongly-linked-together">Q4. Nearby but distinct objects were wrongly linked together</h3>
+<p><strong>Max link distance</strong> may be too large. Lower the threshold; if those objects differ noticeably in size, increase <strong>Volume penalty weight</strong> (e.g. 0.1-0.5) to use the volume difference as a separator.</p>
+<h3 id="q5-my-multiroi-does-not-appear-in-the-dropdown">Q5. My MultiROI does not appear in the dropdown</h3>
+<p>Click <strong>Refresh</strong> to rescan; confirm the object is really a <strong>MultiROI</strong> and present in the current session (not only on disk). If there are many segmentation fragments, use <strong>Min object volume</strong> to filter tiny labels.</p>
+<h3 id="q6-no-per-frame-multirois-were-created">Q6. No per-frame MultiROIs were created</h3>
+<p>Confirm <strong>Publish one tracked MultiROI per frame</strong> is checked and <strong>Publish frame limit</strong> is at least your number of frames. tracks.csv is written regardless of whether publishing is enabled.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Input must be already-segmented MultiROIs</strong>; the plugin does no segmentation - it treats each nonzero label as one object.</li>
+<li><strong>Frame order is set by you:</strong> the plugin does not infer time points from file names or a time axis, so Add Frame in temporal order.</li>
+<li><strong>Split/merge lineage is not yet supported:</strong> each detection is linked to at most one predecessor, so a cell division into two is recorded as a new track.</li>
+<li><strong>Centroid/translation-based tracking:</strong> it uses centroid distance (with an optional volume penalty) only, not appearance features; it may not suit objects that rotate or deform strongly.</li>
+<li><strong>First-run Setup needs internet</strong> to download numpy/scipy; afterwards it works offline.</li>
+<li>Distance and volume are based on the MultiROI&#x27;s physical spacing; if frames have inconsistent spacing, be mindful of the units of Max link distance.</li>
+<li>With very many frames, use <strong>Publish frame limit</strong> to control how many are published and avoid overloading Dragonfly with objects.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Fiji TrackMate (inspiration; this plugin does not depend on it): https://imagej.net/plugins/trackmate/</li>
+<li>SciPy linear_sum_assignment (the LAP solver): https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linear_sum_assignment.html</li>
+<li>NumPy documentation: https://numpy.org/doc/</li>
+<li>Dragonfly MultiROI and object model: see Dragonfly&#x27;s built-in Help documentation.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>TrackMate-Dragonfly-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BigStitcher Lite · Dragonfly Prototype Apps</title>
+<meta name="description" content="BigStitcher Lite - User Manual Dragonfly Prototype Apps · BigStitcher Lite... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cases 3. …">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">BigStitcher Lite</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · BigStitcher Lite...</div>
+    <h1>BigStitcher Lite</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</a></li><li class="t3"><a href="#4-1-what-setup-environment-does">4.1 What Setup Environment does</a></li><li class="t3"><a href="#4-2-download-size-and-internet-hardware-requirements">4.2 Download size and internet / hardware requirements</a></li><li class="t3"><a href="#4-3-where-the-environment-is-installed">4.3 Where the environment is installed</a></li><li class="t3"><a href="#4-4-fallback-if-setup-fails">4.4 Fallback if setup fails</a></li><li class="t2"><a href="#5-interface-reference">5. Interface Reference</a></li><li class="t3"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t3"><a href="#5-2-tiles-tab">5.2 Tiles tab</a></li><li class="t3"><a href="#5-3-stitch-tab">5.3 Stitch tab</a></li><li class="t3"><a href="#5-4-summary-tab">5.4 Summary tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-one-time-preparation">6.1 One-time preparation</a></li><li class="t3"><a href="#6-2-build-the-tile-list">6.2 Build the tile list</a></li><li class="t3"><a href="#6-3-set-registration-blending-and-run">6.3 Set registration/blending and run</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t3"><a href="#q1-after-clicking-run-stitching-i-get-add-at-least-two-channel-tiles-first">Q1: After clicking Run Stitching I get &quot;Add at least two Channel tiles first.&quot;</a></li><li class="t3"><a href="#q2-it-says-run-setup-first-or-set-the-analysis-venv-python">Q2: It says &quot;Run Setup first, or set the analysis venv python.&quot;</a></li><li class="t3"><a href="#q3-setup-fails-with-no-base-python-or-no-usable-pip-in-the-log">Q3: Setup fails with no Base Python or no usable pip in the log</a></li><li class="t3"><a href="#q4-the-stitched-result-is-misaligned-what-can-i-do">Q4: The stitched result is misaligned - what can I do?</a></li><li class="t3"><a href="#q5-the-channel-dropdown-is-empty-i-can-t-find-my-tiles">Q5: The Channel dropdown is empty / I can&#x27;t find my tiles</a></li><li class="t3"><a href="#q6-i-can-t-see-bigstitcher-lite-in-the-menu-after-installing">Q6: I can&#x27;t see BigStitcher Lite in the menu after installing</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>BigStitcher Lite - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · BigStitcher Lite...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>BigStitcher Lite</strong> is a lightweight tile-stitching tool that runs inside Dragonfly. It takes multiple Dragonfly <strong>Channel</strong> tiles already loaded in your session, aligns them by translation, fuses them into one new stitched Channel, and also writes an offsets.csv listing the resolved offsets. The plugin is inspired by the BigStitcher use case but requires <strong>no Fiji, ImageJ, or Java</strong> - all stitching is done locally with Python scientific libraries.</p>
+<p><strong>Engine / algorithm.</strong> The stitching core is a pure-Python bigstitcher_core module built on three common libraries: numpy (array math and the fusion canvas), scipy, and scikit-image. When automatic offset estimation is chosen, translations are computed by scikit-image&#x27;s skimage.registration.phase_cross_correlation (phase correlation); blending is done on a numpy canvas as mean, maximum, first-tile-wins, or last-tile-wins.</p>
+<p><strong>&quot;Lite&quot; scope.</strong> As the name says, this is a deliberately minimal version that focuses on the most common capability - <strong>translational stitching</strong>. It supports integer-voxel translation offsets only: no rotation, affine, or deformable registration, and it does not reproduce the full BigStitcher ecosystem of metadata importers, interest-point registration, or large-scale distributed processing.</p>
+<p><strong>Licensing notes.</strong> The plugin is an internal Dragonfly Prototype Apps tool. Its third-party dependencies (NumPy, SciPy, scikit-image) are permissively licensed (BSD / 3-clause family) and are installed from PyPI into the plugin&#x27;s own isolated virtual environment during first-time setup - kept separate from Dragonfly&#x27;s bundled Python.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin fits when you have a tiled acquisition already loaded into Dragonfly as several Channels and want a quick, lightweight translational stitch or preview fusion done inside Dragonfly. Typical scenarios:</p>
+<ul>
+<li><strong>Microscopy</strong>: fluorescence, confocal, or widefield fields captured as multiple tiles with known or estimable X/Y translation offsets.</li>
+<li><strong>CT / tomography</strong>: a large sample scanned in sub-regions, producing several volume blocks to be joined along Z/Y/X.</li>
+<li><strong>Other tiled data</strong>: any 2D or 3D Channels already loaded in Dragonfly that differ only by translation.</li>
+<li><strong>Quick preview fusion</strong>: before doing a full, precise registration, use phase correlation to get a first alignment and judge whether tile order and overlap look reasonable.</li>
+</ul>
+<p>This plugin targets the &quot;just stitch it and take a look&quot; need. If your data requires rotation/affine registration, precise overlap-aware pairwise registration, or large-scale distributed processing, use a dedicated full stitching solution; BigStitcher Lite does not cover those advanced features.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>The plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong>. The recommended path is the installer, which deploys into every Dragonfly version on this PC at once.</p>
+<p><strong>1. </strong>Unzip the Full Package to a short folder (e.g. C:\PL\) to avoid path-too-long issues.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> / <strong>Compatible</strong>), then <strong>tick BigStitcher Lite</strong> in the Prototype Apps list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p><strong>Off by default - must be enabled.</strong> In the package, all plugins are OFF by default (lightweight menu items are ON). So BigStitcher Lite must be ticked at install time, or enabled later from within Dragonfly.</p>
+<p><strong>Menu location after restart.</strong> Once enabled and restarted, the plugin appears under Dragonfly&#x27;s <strong>Prototype Apps</strong> menu as <strong>BigStitcher Lite...</strong>, in the <strong>Reconstruction &amp; Imaging</strong> section. Click it to open the panel.</p>
+<p><strong>Changing your choice later.</strong> The easiest way is inside Dragonfly: open <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>, find BigStitcher Lite in the &quot;Prototype Apps (Full Package)&quot; list at the bottom - tick to deploy, untick to remove the menu entry, and restart Dragonfly to apply. Disabling <strong>never</strong> deletes the plugin&#x27;s built environment; re-enabling is instant.</p>
+<p>Every enable/disable change needs one Dragonfly restart to take effect, because menus are only scanned at startup.</p>
+<p><strong>Uninstall.</strong> Double-click Uninstall_FullPackage.bat to remove all Full-Package menu items and plugins. Uninstall keeps each plugin&#x27;s built environment (venv); the script lists those paths at the end so you can delete them manually to reclaim disk space.</p>
+<h2 id="4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</h2>
+<p>BigStitcher Lite isolates its dependencies in a <strong>dedicated virtual environment (venv)</strong>: the stitching computation runs in a separate Python subprocess and does not pollute Dragonfly&#x27;s own Python. Before first use you build this environment once from the <strong>Setup</strong> tab.</p>
+<h3 id="4-1-what-setup-environment-does">4.1 What Setup Environment does</h3>
+<p>Clicking <strong>Setup Environment (numpy + scipy + scikit-image)</strong> on the Setup tab makes the plugin:</p>
+<p><strong>1. </strong>Choose a <strong>Base Python</strong> to build the venv. If &quot;Base Python&quot; is blank, the plugin auto-detects: it prefers Dragonfly&#x27;s bundled Python, then the system py launcher / python, then common Miniconda / Anaconda locations. You can also point it at a python.exe manually with <strong>Browse...</strong>.</p>
+<p><strong>2. </strong>Create a venv subfolder inside the plugin&#x27;s code directory as the isolated environment.</p>
+<p><strong>3. </strong>Upgrade that environment&#x27;s pip, then install numpy, scipy, and scikit-image from PyPI over the internet.</p>
+<p><strong>4. </strong>On success, write the new venv python path back into the <strong>Analysis venv python</strong> field and save it to the configuration.</p>
+<h3 id="4-2-download-size-and-internet-hardware-requirements">4.2 Download size and internet / hardware requirements</h3>
+<ul>
+<li><strong>Internet required</strong>: only during the first Setup, to download numpy / scipy / scikit-image and their dependencies from PyPI. Everyday stitching afterwards needs <strong>no internet</strong>.</li>
+<li><strong>Download size</strong>: the three libraries and their dependencies total roughly a few hundred MB (exact size depends on network and pip resolution). Allow disk space and time.</li>
+<li><strong>No GPU required</strong>: stitching is CPU-only.</li>
+<li><strong>No Fiji / ImageJ / Java required</strong>: everything is done by Python libraries, with no external software.</li>
+<li><strong>No WSL required</strong>: the plugin runs natively on Windows.</li>
+</ul>
+<h3 id="4-3-where-the-environment-is-installed">4.3 Where the environment is installed</h3>
+<p>Once enabled, the plugin code is copied into the current user&#x27;s Dragonfly extensions directory (under %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions). The relevant writable paths are:</p>
+<ul>
+<li><strong>Virtual environment</strong>: a venv subdirectory created inside the installed code directory GenericMenuItems\BigStitcherLite, built by the panel&#x27;s Setup Environment button.</li>
+<li><strong>Job root</strong>: default C:\BigStitcherLiteJobs. Each run creates a timestamped subfolder (like bigstitcher_lite_YYYYMMDD_HHMMSS) to hold the exported tiles and stitched results. The Job root can be changed on the Setup tab.</li>
+</ul>
+<h3 id="4-4-fallback-if-setup-fails">4.4 Fallback if setup fails</h3>
+<p>If auto-detection finds no usable Base Python, or the chosen interpreter lacks a working pip, Setup reports an error in the status bar and log. In that case:</p>
+<ul>
+<li>Use <strong>Browse...</strong> to point at a python.exe that definitely has pip (e.g. a system Python or Miniconda&#x27;s python.exe), then retry Setup.</li>
+<li>Confirm your network can reach PyPI (a corporate proxy / firewall may block pip downloads).</li>
+<li>Read the log panel at the bottom; it prints the Base Python choice, the pip install commands, and exit codes to help diagnose the issue.</li>
+</ul>
+<h2 id="5-interface-reference">5. Interface Reference</h2>
+<p>The panel header reads &quot;BigStitcher Lite for Dragonfly - translational tile stitching for Channels&quot;. The body is four tabs: <strong>Setup, Tiles, Stitch, Summary</strong>. At the bottom are a green status line and a read-only log box that show the current status and run output.</p>
+<h3 id="5-1-setup-tab">5.1 Setup tab</h3>
+<ul>
+<li><strong>Analysis venv python</strong> (text field): the venv python path actually used for stitching. Usually filled in automatically by Setup Environment; you may also paste a ready venv python path.</li>
+<li><strong>Base Python</strong> (text field + <strong>Browse...</strong> button): the base interpreter used to create the venv. Blank means auto-detect Dragonfly / system Python.</li>
+<li><strong>Job root</strong> (text field): the job root directory, default C:\BigStitcherLiteJobs.</li>
+<li><strong>Setup Environment (numpy + scipy + scikit-image)</strong> (button): creates the venv and installs the dependencies.</li>
+<li>Note text: reminds you that no Fiji/ImageJ/Java is used and that manual offsets are in voxel Z/Y/X coordinates.</li>
+</ul>
+<h3 id="5-2-tiles-tab">5.2 Tiles tab</h3>
+<ul>
+<li><strong>Channel</strong> (dropdown): lists the Channels available in the current Dragonfly session (showing title and shape).</li>
+<li><strong>Refresh</strong> (button): re-scans and refreshes the available Channel list.</li>
+<li><strong>Add Tile</strong> (button): adds the currently selected Channel as a tile in the table below, with an initial offset of (0, 0, 0).</li>
+<li><strong>tile table</strong>: six columns - Tile (index), Title, Shape, Offset Z, Offset Y, Offset X. The three offset columns are editable in-cell; enter integer voxel offsets.</li>
+<li><strong>Remove Selected</strong> (button): removes the currently selected row (tile) from the table.</li>
+<li><strong>Clear</strong> (button): empties the whole tile list.</li>
+</ul>
+<h3 id="5-3-stitch-tab">5.3 Stitch tab</h3>
+<p>Split into a &quot;Registration and blending&quot; group and an &quot;Output&quot; group, with the run button at the bottom.</p>
+<ul>
+<li><strong>Offset mode</strong> (dropdown): the source of offsets. Options are Manual offsets (default), Estimate: phase correlation to previous tile, and Estimate: phase correlation to first tile.</li>
+<li><strong>Blend mode</strong> (dropdown): the fusion rule. Options are Mean blend (default), Max intensity, First tile wins, and Last tile wins.</li>
+<li><strong>Phase upsample</strong> (integer spinbox, range 1-100, default 1): the phase-correlation upsampling factor; higher gives finer sub-voxel alignment but is slower.</li>
+<li><strong>Fill value</strong> (double spinbox, default 0.0): the value used for canvas regions not covered by any tile.</li>
+<li><strong>Normalize each tile by percentiles before stitching</strong> (checkbox, default off): normalizes each tile by percentiles before stitching.</li>
+<li><strong>Percentile low</strong> (double spinbox, range 0-100, default 1.0) and <strong>Percentile high</strong> (range 0-100, default 99.0): the lower/upper normalization percentiles. Effective only when normalization is on.</li>
+<li><strong>Output Channel</strong> (text field, default BigStitcher Lite stitched): the title of the output stitched Channel.</li>
+<li><strong>Run Stitching</strong> (blue button): runs the stitch.</li>
+</ul>
+<h3 id="5-4-summary-tab">5.4 Summary tab</h3>
+<ul>
+<li><strong>Summary table</strong>: two columns Metric / Value, showing key metrics of the run after stitching completes (tile count, output shape, blend mode, offset mode, origin offset, etc.). On success, the panel automatically switches to this tab.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>Below is the full end-to-end flow from scratch. Prerequisite: you already have at least two Channel tiles loaded in Dragonfly that belong to the same dataset and differ only by translation.</p>
+<h3 id="6-1-one-time-preparation">6.1 One-time preparation</h3>
+<p><strong>1. </strong>Open <strong>Prototype Apps &gt; BigStitcher Lite...</strong>.</p>
+<p><strong>2. </strong>Go to the <strong>Setup</strong> tab; optionally fill in Base Python or change Job root - defaults are usually fine.</p>
+<p><strong>3. </strong>Click <strong>Setup Environment</strong>, wait for the log to report completion, the <strong>Analysis venv python</strong> field to be filled in, and the status bar to show &quot;Environment ready.&quot;.</p>
+<h3 id="6-2-build-the-tile-list">6.2 Build the tile list</h3>
+<p><strong>1. </strong>Go to the <strong>Tiles</strong> tab and click <strong>Refresh</strong> to scan the session&#x27;s Channels.</p>
+<p><strong>2. </strong>Select the first tile in the <strong>Channel</strong> dropdown and click <strong>Add Tile</strong>; repeat to add the remaining tiles in stitching order (at least two).</p>
+<p><strong>3. </strong>In the table&#x27;s Offset Z / Offset Y / Offset X columns, enter each tile&#x27;s integer voxel offset relative to the global coordinate system. If you intend to auto-estimate with phase correlation, you can leave them at 0.</p>
+<p><strong>4. </strong>Use <strong>Remove Selected</strong> to delete a wrong row, or <strong>Clear</strong> to start over.</p>
+<h3 id="6-3-set-registration-blending-and-run">6.3 Set registration/blending and run</h3>
+<p><strong>1. </strong>Go to the <strong>Stitch</strong> tab and choose an <strong>Offset mode</strong>: use Manual offsets if you typed offsets, or a phase-correlation mode (to previous or first tile) to auto-estimate translation.</p>
+<p><strong>2. </strong>Choose a <strong>Blend mode</strong> (default Mean blend), and adjust <strong>Phase upsample</strong>, <strong>Fill value</strong>, and whether to <strong>Normalize</strong> (and its percentiles) as needed.</p>
+<p><strong>3. </strong>Enter the output Channel title in <strong>Output Channel</strong> (default BigStitcher Lite stitched).</p>
+<p><strong>4. </strong>Click <strong>Run Stitching</strong>. The plugin exports each tile, resolves offsets and blends in the venv subprocess, with progress shown in the log.</p>
+<p><strong>5. </strong>On completion the panel switches to the <strong>Summary</strong> tab, the status bar shows a success message (including the offsets.csv path and output Channel name), and the stitched Channel appears in Dragonfly&#x27;s object list.</p>
+<p>Two conditions must hold before running: at least two tiles added; Setup completed (Analysis venv python is non-empty). Otherwise the status bar prompts &quot;Add at least two Channel tiles first.&quot; or &quot;Run Setup first...&quot;.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Base Python</td><td>(blank = auto-detect)</td><td>Base interpreter used to build the venv; auto-detects Dragonfly / system / Miniconda Python when blank.</td></tr><tr><td>Analysis venv python</td><td>(filled by Setup)</td><td>The venv python path actually used by the stitching subprocess.</td></tr><tr><td>Job root</td><td>C:\BigStitcherLiteJobs</td><td>Job root directory; each run creates a timestamped subfolder for intermediate and result files.</td></tr><tr><td>Offset mode</td><td>Manual offsets (manual)</td><td>Offset source: manual / phase correlation to previous tile / phase correlation to first tile.</td></tr><tr><td>Blend mode</td><td>Mean blend (mean)</td><td>Fusion rule for overlapping canvas regions: mean / max / first-tile-wins / last-tile-wins.</td></tr><tr><td>Phase upsample</td><td>1</td><td>Phase-correlation upsampling factor (1-100); higher = finer sub-voxel precision, slower. Only in phase-correlation modes.</td></tr><tr><td>Fill value</td><td>0.0</td><td>Value written to canvas regions not covered by any tile.</td></tr><tr><td>Normalize by percentiles</td><td>off (False)</td><td>Whether to percentile-clip and normalize each tile to 0-1 before stitching.</td></tr><tr><td>Percentile low</td><td>1.0</td><td>Lower normalization percentile (0-100); effective only when normalization is on.</td></tr><tr><td>Percentile high</td><td>99.0</td><td>Upper normalization percentile (0-100); effective only when normalization is on.</td></tr><tr><td>Output Channel</td><td>BigStitcher Lite stitched</td><td>Title of the generated stitched Channel.</td></tr><tr><td>Tile Offset Z/Y/X</td><td>0 / 0 / 0</td><td>Per-tile integer voxel translation offsets entered in the Tiles table.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful stitch produces the following:</p>
+<ul>
+<li><strong>Stitched Channel</strong>: a new Dragonfly Channel (titled as entered in Output Channel), published directly into the current scene. Its voxel spacing is copied from the first tile, and its origin is shifted by the minimum of all tile offsets so it stays in a consistent spatial coordinate system with the source data. It appears in Dragonfly&#x27;s object tree and can be viewed in 2D/3D like any Channel.</li>
+<li><strong>offsets.csv</strong>: an offsets listing containing each tile&#x27;s index, title, and final offset_z / offset_y / offset_x (global voxel coordinates). It sits in this run&#x27;s job subfolder.</li>
+<li><strong>Summary metrics</strong>: the metrics shown in the Summary tab table, including n_tiles, output_shape, blend_mode, offset_mode, and origin_offset_zyx.</li>
+<li><strong>Intermediate files</strong>: the job subfolder also keeps the exported per-tile data, export.json, config.json, status.json, results.json, and stitched.npy for troubleshooting and reuse.</li>
+</ul>
+<p><strong>How to view.</strong> After stitching, find the newly created Channel in Dragonfly&#x27;s object list and double-click it or drag it into a view to display it. To check whether alignment looks right, inspect the overlap boundaries in a 3D view, or open offsets.csv in the job folder to verify each tile&#x27;s final offset.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<h3 id="q1-after-clicking-run-stitching-i-get-add-at-least-two-channel-tiles-first">Q1: After clicking Run Stitching I get &quot;Add at least two Channel tiles first.&quot;</h3>
+<p>Stitching needs at least two tiles. Go to the <strong>Tiles</strong> tab, click <strong>Refresh</strong>, then <strong>Add Tile</strong> each Channel from the dropdown so the table has at least two rows, and run again from the Stitch tab.</p>
+<h3 id="q2-it-says-run-setup-first-or-set-the-analysis-venv-python">Q2: It says &quot;Run Setup first, or set the analysis venv python.&quot;</h3>
+<p>There is no usable analysis venv yet. Go to the <strong>Setup</strong> tab and click <strong>Setup Environment</strong> to build it once; on success the <strong>Analysis venv python</strong> field fills in automatically. If you already have a usable venv, you can paste its python path into that field.</p>
+<h3 id="q3-setup-fails-with-no-base-python-or-no-usable-pip-in-the-log">Q3: Setup fails with no Base Python or no usable pip in the log</h3>
+<p>Auto-detection did not find an interpreter with pip. Use <strong>Browse...</strong> on the Setup tab to point at a python.exe that definitely has pip (e.g. a system Python or Miniconda&#x27;s python.exe), confirm the network can reach PyPI (proxy / firewall may block it), then retry.</p>
+<h3 id="q4-the-stitched-result-is-misaligned-what-can-i-do">Q4: The stitched result is misaligned - what can I do?</h3>
+<p>The plugin only does integer-voxel translation, not rotation / scaling / affine. If manual offsets are off, try a phase-correlation mode to auto-estimate; if the data contains rotation or deformation, phase correlation cannot correct it either - that is a known &quot;Lite&quot; limitation. You can also raise <strong>Phase upsample</strong> for finer alignment, or enable <strong>Normalize</strong> so tiles with large brightness differences match more easily.</p>
+<h3 id="q5-the-channel-dropdown-is-empty-i-can-t-find-my-tiles">Q5: The Channel dropdown is empty / I can&#x27;t find my tiles</h3>
+<p>The plugin can only stitch Channels already loaded in the Dragonfly session. Load the tiles in Dragonfly first, then go to the Tiles tab and click <strong>Refresh</strong> to re-scan. The status bar shows &quot;Found N Channel(s).&quot;.</p>
+<h3 id="q6-i-can-t-see-bigstitcher-lite-in-the-menu-after-installing">Q6: I can&#x27;t see BigStitcher Lite in the menu after installing</h3>
+<p>Check three things: BigStitcher Lite was <strong>ticked</strong> at install (plugins are off by default); Dragonfly was <strong>fully restarted</strong> afterwards; the menu is at <strong>Prototype Apps &gt; BigStitcher Lite...</strong> (Reconstruction &amp; Imaging section). You can also confirm it is ticked in <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Translation only</strong>: handles integer voxel Z/Y/X offsets only - no rotation, affine, or deformable registration.</li>
+<li><strong>Manual metadata</strong>: tile order and offsets are organized manually in the table; this version does not import acquisition metadata / stage coordinates.</li>
+<li><strong>Phase correlation is a helper</strong>: estimated translations are not guaranteed equivalent to proper stage coordinates or overlap-aware pairwise registration - review results manually.</li>
+<li><strong>Memory footprint</strong>: the fusion canvas size depends on all tile shapes and offset range; more tiles and larger offsets mean a larger canvas and more memory.</li>
+<li><strong>Geometry consistency</strong>: the output Channel&#x27;s spacing is copied from the first tile; make sure all tiles use a consistent voxel spacing, or the stitched result&#x27;s spatial scale may be wrong.</li>
+<li><strong>Internet on first run only</strong>: only Setup needs internet to install dependencies; everyday stitching works offline.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>scikit-image phase-correlation registration: skimage.registration.phase_cross_correlation (https://scikit-image.org).</li>
+<li>NumPy (https://numpy.org) and SciPy (https://scipy.org): the underlying array and scientific computing libraries.</li>
+<li>BigStitcher (design inspiration; full stitching ecosystem): https://imagej.net/plugins/bigstitcher/.</li>
+<li>Full Package install / enable / uninstall guide: the bundled README.md (Prototype Labs &amp; Apps Full Package).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>BigStitcher-Lite-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

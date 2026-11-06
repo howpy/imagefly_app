@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-ROI Export · Dragonfly Prototype Apps</title>
+<meta name="description" content="Multi-ROI Export - User Manual Dragonfly Prototype Apps · Multi-ROI Export... Version 2.0 · 2026-09-23 English Manual Contents 1. Introduction 2. Use cases…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Multi-ROI Export</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Multi-ROI Export...</div>
+    <h1>Multi-ROI Export</h1>
+    <div class="meta"><span class="badge">Version 2.0 · 2026-09-23</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#above-the-tabs-shared-by-all-three">Above the tabs (shared by all three)</a></li><li class="t3"><a href="#tab-1-individual-stl-files">Tab 1 — Individual STL Files</a></li><li class="t3"><a href="#tab-2-nifti-nii">Tab 2 — NIfTI (.nii)</a></li><li class="t3"><a href="#tab-3-report">Tab 3 — Report</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t3"><a href="#export-stl-files">Export STL files</a></li><li class="t3"><a href="#export-a-nifti-label-map">Export a NIfTI label map</a></li><li class="t3"><a href="#generate-a-report">Generate a report</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t3"><a href="#individual-stl-files">Individual STL Files</a></li><li class="t3"><a href="#nifti-nii">NIfTI (.nii)</a></li><li class="t3"><a href="#report">Report</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t3"><a href="#individual-stl-files-2">Individual STL Files</a></li><li class="t3"><a href="#nifti-nii-2">NIfTI (.nii)</a></li><li class="t3"><a href="#report-2">Report</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Multi-ROI Export - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Multi-ROI Export...</p>
+<p>Version 2.0 · 2026-09-23</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Choose a Multi-ROI once</strong> (and its time step) at the top of the window, then export it three ways, one tab each: <strong>Individual STL Files</strong> (one STL file per label), <strong>NIfTI (.nii)</strong> (the ticked labels as one NIfTI label map) and <strong>Report</strong> (an Excel, PowerPoint, Word or PDF report of all its measurements). The three tabs are three outputs of one input, not steps in a sequence; only one of them runs at a time.</p>
+<p><strong>Nothing in the session is created or modified.</strong> The STL and NIfTI tabs use only temporary objects, deleted as they go; whatever the Report tab changes to take its screenshots — the view, visibility, colouring — is put back afterwards. <strong>No existing file is ever overwritten</strong>: a clash is renamed, and every report gets a new sub-folder.</p>
+<p>The <strong>Report</strong> tab IS the former plugin <strong>Create a Report from MultiROI</strong>, retired into this one: xlsx / pptx / docx / pdf, histograms, a 3-D screenshot per measurement, web sharing and the temporary link all survive, and it now hands the session back after its screenshots. Installing this version removes the old plugin automatically. The <strong>Full Workflow using Cellpose</strong> wizard&#x27;s step 4 embeds this same Report tab.</p>
+<p>The <strong>Individual STL Files</strong> tab is a simplified sibling of <strong>Multi-ROI to Multi-Mesh (Surface Determination)</strong>: no surface determination (no grey-level snap), only Dragonfly&#x27;s own ROI → mesh (marching cubes).</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li><strong>STL</strong>: exporting each phase, particle, pore, bone or tooth, organ or part of a segmentation as its own STL for CAD, a 3D-printing slicer, FEA or CFD pre-processing; exporting only some labels; printing separated parts one at a time (tick Centre each part at the origin).</li>
+<li><strong>NIfTI</strong>: handing a segmentation to nnU-Net, MONAI or another training pipeline as a label map (tick Renumber consecutively 1..K); opening it in ITK-SNAP or 3D Slicer over the original image (exported as NIfTI / NRRD / MetaImage by the Image Exporter); exchanging data with ITK- or nibabel-based analysis.</li>
+<li><strong>Report</strong>: turning a pore / particle / grain segmentation&#x27;s measurements (volume, sphericity, surface area, equivalent diameter, …) into a deliverable report; presenting per-measurement distributions and 3-D colour maps as a pptx; summarising the statistics in an xlsx for further analysis; sharing the report on the web with colleagues or customers.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Open <strong>Prototype Apps ▸ App Store</strong>, find <em>Multi-ROI Export</em> in the <strong>Generators &amp; Utilities</strong> group and enable it (or tick it in the Prototype Apps installer).</p>
+<p>2. <strong>Fully restart Dragonfly</strong> — plugins are discovered at startup only.</p>
+<p>3. The item appears as <strong>Prototype Apps ▸ Multi-ROI Export...</strong>, in the Import &amp; Export section.</p>
+<p>4. If “Create a Report from MultiROI” was installed before, the App Store, the installer and the uninstaller remove it automatically (only folders carrying our own marker); its menu entry is gone after a restart.</p>
+<p>5. Hide or restore the entry with the <strong>Menu Item Manager</strong> if needed.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>Nothing to set up.</strong> The plugin runs in-process in Dragonfly&#x27;s own Python (PyQt6 + the numpy, openpyxl and matplotlib Dragonfly ships): no virtual environment, no GPU, no admin rights. <strong>python-pptx 1.0.2</strong> (MIT), which PowerPoint output needs, <strong>ships with the plugin</strong> — there is no download on first use any more.</p>
+<p>Works in Dragonfly <strong>2025.1 and 2027.1</strong>. The STL and NIfTI files are written by the plugin&#x27;s own writers (pure numpy), so both versions write identical files.</p>
+<p>Only the Report tab&#x27;s “Share the report on the web” and “Temporary link” need internet, and neither uploads or downloads anything without a click and a confirmation. The temporary link needs Cloudflare&#x27;s cloudflared.exe (about 52 MB), which it downloads once, after asking, and keeps per user.</p>
+<h2 id="5-interface">5. Interface</h2>
+<h3 id="above-the-tabs-shared-by-all-three">Above the tabs (shared by all three)</h3>
+<ul>
+<li><strong>Multi-ROI to export</strong>: pick a published Multi-ROI. <strong>Refresh</strong> only lists the Multi-ROIs again and leaves the tabs alone; the labels are read again only when the chosen Multi-ROI changes. The list also follows the session by itself when objects are added or deleted.</li>
+<li><strong>Time step</strong>: enabled only for a multi-time-step (4-D) Multi-ROI; all three tabs use it.</li>
+<li><strong>Re-read labels</strong>: e.g. after renaming or deleting a label in Dragonfly; ticks and typed file names are kept.</li>
+<li>Below them a line gives the label count, the grid size and the voxel size; the bottom of the window holds the progress bar and the status line. <strong>The whole window runs one job at a time</strong>: while one tab exports, another tab&#x27;s start button says why instead of starting.</li>
+</ul>
+<h3 id="tab-1-individual-stl-files">Tab 1 — Individual STL Files</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Column</th><th>Meaning</th></tr><tr><td>Export</td><td>Tick the labels to export. An empty label (0 voxels) is greyed and cannot be ticked.</td></tr><tr><td>Label / Name / Voxels</td><td>The label&#x27;s index, its name in the Multi-ROI, and its voxel count at this time step.</td></tr><tr><td>File name</td><td>Editable (double-click or F2). Defaults to the label&#x27;s name, or its index when it has none. A trailing .stl is fine and is removed once.</td></tr><tr><td>Final file name</td><td>Exactly what will be written: suffix, character clean-up, reserved names and automatic renames included. Shown in a warning colour when it differs; hover for the reason.</td></tr></table></div>
+<ul>
+<li><strong>Select all / Select none / Reset file names</strong>; <strong>Meshing (marching cubes)</strong>: Sampling X / Y / Z, Fill inner voids first, Smoothing passes, Smoothing strength; <strong>Output</strong>: Folder (typed or Browse...), STL format, Unit, File name suffix, Centre each part at the origin; <strong>Export STL files</strong>, <strong>Cancel</strong> (stops after the current label), <strong>Open folder</strong>, with the summary and a per-file log below.</li>
+</ul>
+<h3 id="tab-2-nifti-nii">Tab 2 — NIfTI (.nii)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Column</th><th>Meaning</th></tr><tr><td>Export</td><td>Tick the labels to write into the label map. An empty label is greyed and cannot be ticked.</td></tr><tr><td>Label / Name / Voxels</td><td>The label&#x27;s index, its name, and its voxel count at this time step.</td></tr><tr><td>Value in file</td><td>The number the label&#x27;s voxels get in the file: Dragonfly&#x27;s own label number by default, 1, 2, 3 … with Renumber consecutively 1..K ticked. Unticked labels are background, 0.</td></tr></table></div>
+<ul>
+<li><strong>Select all / Select none</strong>; <strong>Renumber consecutively 1..K (for machine learning)</strong>.</li>
+<li><strong>Output</strong>: <strong>Folder</strong> (typed or Browse...); <strong>File name (empty = the Multi-ROI&#x27;s name)</strong> — the one name all four files share; <strong>NIfTI file</strong>: .nii (default) or .nii.gz (compressed). The line below lists the four file names that will be written.</li>
+<li><strong>Export NIfTI</strong>, <strong>Cancel</strong> (nothing is left in the folder), <strong>Open folder</strong>, with the summary and a log below.</li>
+</ul>
+<h3 id="tab-3-report">Tab 3 — Report</h3>
+<ul>
+<li>The top line says how many measurements will be included (hover for their names); a Multi-ROI with no measurements yet gets a note to compute some in Dragonfly first.</li>
+<li><strong>Format</strong>: Excel (.xlsx), PowerPoint (.pptx), Word (.docx), PDF (.pdf); <strong>Include a 3D screenshot per measurement (live 3D view; slower)</strong>, ticked by default; <strong>Folder</strong> (DragonflyReports in your user folder by default) and Browse....</li>
+<li><strong>Generate report</strong>, <strong>Cancel</strong> (stops at the next step, writes no report and puts the session back), <strong>Open folder</strong> (the last report&#x27;s folder), with a result line and a log below.</li>
+<li>Two folding sections share the last report: <strong>Share the report on the web (stays online until you take it down)</strong> — GitHub Pages / Netlify / Gitee, public, unlisted or password-protected, with the address and a QR code, and “Take it down” to delete it again; and <strong>Temporary link (no account; ends when you stop sharing or quit Dragonfly)</strong> — a Cloudflare quick tunnel serving the page from this computer. Neither can publish until there is a report.</li>
+</ul>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Prepare and publish a Multi-ROI in Dragonfly (e.g. a segmentation); for a report, compute its measurements in Dragonfly first.</p>
+<p>2. Open <strong>Prototype Apps ▸ Multi-ROI Export...</strong> and pick it at the top (and the time step, for a 4-D one); its labels are read in.</p>
+<p>3. Choose the tab you need and follow its steps below.</p>
+<h3 id="export-stl-files">Export STL files</h3>
+<p>1. Tick the labels to export; double-click a File name to change it.</p>
+<p>2. Set the sampling, void filling and smoothing as needed; choose the folder, format, unit, suffix and whether to centre each part.</p>
+<p>3. Check the Final file name column, then press <strong>Export STL files</strong>.</p>
+<h3 id="export-a-nifti-label-map">Export a NIfTI label map</h3>
+<p>1. Tick the labels to write; for machine learning tick <strong>Renumber consecutively 1..K (for machine learning)</strong> and check the numbers in the Value in file column.</p>
+<p>2. Choose the folder, type a file name if you want one, and pick .nii or .nii.gz.</p>
+<p>3. Press <strong>Export NIfTI</strong>. Then open the .nii in ITK-SNAP and use Segmentation ▸ Import Label Descriptions on the _itksnap.txt to get the names and colours.</p>
+<h3 id="generate-a-report">Generate a report</h3>
+<p>1. Choose the format and the folder; for screenshots make sure the layout has a 3D view.</p>
+<p>2. Press <strong>Generate report</strong>. Leave the views alone while the screenshots are taken; they are put back by themselves afterwards.</p>
+<p>3. Press <strong>Open folder</strong> to see the report; to share it, open “Share the report on the web” or “Temporary link”.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<h3 id="individual-stl-files">Individual STL Files</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Sampling X / Y / Z</td><td>1 / 1 / 1</td><td>1–16</td><td>Use every Nth voxel along the axis. 2 gives about a quarter of the triangles and a coarser surface. At least 3 samples are needed along every axis.</td></tr><tr><td>Fill inner voids first</td><td>off</td><td>on / off</td><td>Fill every cavity fully enclosed by the label before meshing, so the STL is one outer shell; off, each enclosed cavity becomes an inner shell.</td></tr><tr><td>Smoothing passes</td><td>1</td><td>0–100</td><td>Laplacian smoothing passes; 0 = none. Dragonfly&#x27;s own mesh tools apply 1 pass at 0.9. More passes round off the staircase and also shrink thin features.</td></tr><tr><td>Smoothing strength</td><td>0.9</td><td>0.01–1.0</td><td>How far a vertex moves towards the average of its neighbours per pass. Unused when the passes are 0.</td></tr><tr><td>STL format</td><td>Binary</td><td>Binary / ASCII</td><td>Binary is 50 bytes per triangle; ASCII is about five times larger and slower to write.</td></tr><tr><td>Unit</td><td>mm</td><td>µm / mm / m</td><td>STL carries no unit; the reader assumes one. Most CAD, slicer and FEA tools assume millimetres.</td></tr><tr><td>File name suffix</td><td>No suffix</td><td>No suffix / Label index</td><td>The index is zero-padded to the same width for every file: at least 3 digits, more when there are more labels (1000 labels → 4).</td></tr><tr><td>Centre each part at the origin</td><td>off</td><td>on / off</td><td>On, each part&#x27;s bounding-box centre is moved to (0, 0, 0) and the log says by how much.</td></tr></table></div>
+<h3 id="nifti-nii">NIfTI (.nii)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Renumber consecutively 1..K (for machine learning)</td><td>off</td><td>on / off</td><td>Off: every label keeps Dragonfly&#x27;s number, so the file matches the Multi-ROI and its names. On: the ticked labels are numbered 1, 2, 3 … in label order — nnU-Net requires consecutive labels.</td></tr><tr><td>NIfTI file</td><td>.nii</td><td>.nii / .nii.gz</td><td>.nii is uncompressed, the form Dragonfly&#x27;s own NIfTI importer lists; .nii.gz is gzip-compressed (level 6): a label map usually shrinks 60 to 125 times, and it is the usual form for nnU-Net.</td></tr><tr><td>File name</td><td>(empty)</td><td>any</td><td>The name the four files share; empty means the Multi-ROI&#x27;s name, cleaned by the same rules as the STL names.</td></tr></table></div>
+<h3 id="report">Report</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Format</td><td>Excel (.xlsx)</td><td>xlsx / pptx / docx / pdf</td><td>Excel has one sheet per measurement, PowerPoint one slide, Word and PDF one page, each with its statistics, histogram and screenshot; Word, PDF and the web page also list the labels&#x27; values (label index + name; up to 200 labels per measurement in Word and PDF, all of them on the web page).</td></tr><tr><td>Include a 3D screenshot per measurement</td><td>on</td><td>on / off</td><td>Off, the report holds the statistics and histograms only, is faster, and leaves the views alone.</td></tr><tr><td>Folder</td><td>your user folder\DragonflyReports</td><td>a full path</td><td>Every report gets a new sub-folder here, &lt;Multi-ROI name&gt;_report_&lt;date_time&gt;, with _1, _2 when taken; nothing is overwritten.</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<h3 id="individual-stl-files-2">Individual STL Files</h3>
+<ul>
+<li>One .stl file per ticked label in the chosen folder, named as the Final file name column shows. The binary header names the source and the unit (e.g. unit=mm) and deliberately does not start with solid, so no reader mistakes it for ASCII.</li>
+<li>Coordinates are Dragonfly&#x27;s world coordinates (the real position) in the chosen unit; triangles face outward (right-hand rule), so a closed surface is a solid in a slicer. Every file is <strong>read back</strong> to confirm its triangle count.</li>
+</ul>
+<h3 id="nifti-nii-2">NIfTI (.nii)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>File</th><th>Contents</th></tr><tr><td>&lt;name&gt;.nii or &lt;name&gt;.nii.gz</td><td>The NIfTI-1 label map: each voxel holds its label&#x27;s value, 0 is background.</td></tr><tr><td>&lt;name&gt;_itksnap.txt</td><td>An ITK-SNAP label description file (Segmentation ▸ Import Label Descriptions): value, colour, opacity, visibility and name.</td></tr><tr><td>&lt;name&gt;_slicer.csv</td><td>A 3D Slicer colour table in its CSV form (columns LabelValue, Name, Color_R, Color_G, Color_B, Color_A; names may contain spaces).</td></tr><tr><td>&lt;name&gt;.json</td><td>Everything: for each value its Dragonfly label, name, RGBA, opacity, visibility and voxel count, the geometry used, and an nnU-Net style labels block ({&quot;background&quot;: 0, name: value}, duplicate names made unique).</td></tr></table></div>
+<ul>
+<li><strong>Header</strong>: intent NIFTI_INTENT_LABEL (1002), intent_name Labels; the data type is the smallest integer type holding the largest value (uint8 up to 255, uint16 up to 65535, int32 beyond), never floating point; scl_slope exactly 1 and scl_inter exactly 0; cal_min 0 and cal_max the largest value written; qform and sform codes 1; millimetres. aux_file names the ITK-SNAP file when that name fits in 23 ASCII characters.</li>
+<li><strong>Geometry</strong>: the file is placed where Dragonfly places the Multi-ROI, rotation included (oblique grids too), in millimetres. Dragonfly&#x27;s world is read as DICOM LPS and NIfTI is RAS, so x and y are written negated — exactly as ITK / SimpleITK write it. Voxel 0 of the file is Dragonfly&#x27;s grid corner, as in every format of the Image Exporter and in Dragonfly&#x27;s own DICOM import.</li>
+<li>Before any file gets its final name it is <strong>read back and checked</strong> (header, length and a checksum of the voxels), and every label&#x27;s voxel count is compared with the Multi-ROI&#x27;s own; if anything disagrees, no file is left behind.</li>
+</ul>
+<h3 id="report-2">Report</h3>
+<ul>
+<li>A new sub-folder &lt;Multi-ROI name&gt;_report_&lt;date_time&gt; in the chosen folder, holding the report file (same name, the chosen format&#x27;s extension) and its histogram and screenshot pictures.</li>
+<li><strong>Overview</strong>: one row per measurement — mean, median, min, max, <strong>Std Dev (population)</strong>, unit, N (the number of labels). In Excel the statistics are <strong>numbers</strong>, ready to sort and calculate with. Then one page (sheet / slide / page) per measurement with its histogram and 3-D screenshot; a multi-time-step Multi-ROI&#x27;s report states its time step.</li>
+<li>Sharing builds an extra self-contained .html (every picture embedded). The visibility and the password are baked into that file, so it is rebuilt for every publish.</li>
+</ul>
+<p>No new object appears in the session. The layout, visibility, colouring, legends, camera and current view the screenshots change are put back on success, on an error, on Cancel and when the window closes, and any legend the report created for them is deleted.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>A button says why instead of starting</strong>: it stays clickable and tells you what is missing — no Multi-ROI, no label ticked, an unwritable folder, another tab still running, a Multi-ROI with no measurements.</li>
+<li><strong>Export refused: “the Multi-ROI&#x27;s labels changed since they were read”</strong>: after the table read them, a label was deleted in Dragonfly (the labels after it are renumbered), renamed, or the grid changed. Rather than write one label&#x27;s data under another label&#x27;s name, neither the STL nor the NIfTI tab writes anything. Press <strong>Re-read labels</strong>, check the table, and export again.</li>
+<li><strong>My NIfTI looks rotated 180°, or does not overlay the image — which convention is this?</strong> The ITK one: Dragonfly&#x27;s world is read as LPS (as in DICOM) and NIfTI is RAS, so x and y are negated, and ITK-SNAP, 3D Slicer, nibabel and SimpleITK all put it back in the right place. Compare it with an image written the SAME way: the Image Exporter&#x27;s NIfTI, NRRD and MetaImage since 2026-09-23 overlay this label map exactly; <strong>a NIfTI that plugin wrote before that date was written without negating x and y</strong> (rotated 180° about Z) — export the image again. A tool that reads only the voxel array, ignoring the header, does no such conversion.</li>
+<li><strong>Why half a voxel?</strong> The NIfTI standard places a voxel by its centre; this plugin — like every format of the Image Exporter and Dragonfly&#x27;s own DICOM import — puts voxel 0 at the grid corner. Images and label maps from this family of plugins therefore overlay each other exactly; against data from elsewhere there can be half a voxel between them.</li>
+<li><strong>nnU-Net complains the labels are not consecutive</strong>: tick <strong>Renumber consecutively 1..K (for machine learning)</strong> and export again, and use the JSON&#x27;s labels block as the labels of your dataset.json.</li>
+<li><strong>A warning about more than 65535 labels</strong>: the file is written as 32-bit integers; ITK-SNAP shows label values up to 65535 only, other tools are not affected. <strong>An axis longer than 32767 voxels</strong>: NIfTI-1 cannot store it, so the export is refused (this plugin does not write NIfTI-2).</li>
+<li><strong>Why does the report change my view, and then restore it?</strong> A 3-D screenshot needs the layout&#x27;s 3-D view maximised, the other objects hidden and the Multi-ROI coloured by each measurement in turn (in Dragonfly&#x27;s own colour map for that measurement — <strong>the label colours are never changed</strong>). Afterwards — on success, on an error, on Cancel or when the window closes — the layout, the 2-D and 3-D visibility of every object it touched, the colouring, the legends, the camera and the current view are put back, and any legend the report created is deleted; should anything not come back, the log says what. To leave the views alone entirely, untick Include a 3D screenshot per measurement.</li>
+<li><strong>The report has no screenshots</strong>: there is no 3-D view in the layout, no current view, or the chosen time step is not 0 (Dragonfly colours a Multi-ROI by time step 0 only); the report states the reason. The statistics and histograms still use the chosen time step.</li>
+<li><strong>The report says there are no measurements</strong>: measurements are computed in Dragonfly (its measurement tools add them to the Multi-ROI); this tab only reports them. Switch back to the Report tab after computing them and the count updates.</li>
+<li><strong>Where did “Create a Report from MultiROI” go?</strong> Into this plugin&#x27;s <strong>Report</strong> tab, with everything it did; installing this version removes the old plugin. Its saved settings are not carried over, so hosting account details are entered once more.</li>
+<li><strong>A file got _1 appended</strong>: the folder already has that name (or another label uses it). Nothing is ever overwritten; the four NIfTI files are always renamed together.</li>
+<li><strong>The part is 1000× too big in CAD</strong>: check the STL Unit. STL carries none — a file written in µm is 1000× too big in a program that assumes mm.</li>
+<li><strong>The table and the options are greyed out during a job</strong>: on purpose — while a job runs, every input that decides what is written is locked; they come back when it ends. The log stays readable, and Cancel stops the job.</li>
+<li><strong>The menu entry is missing</strong>: make sure the plugin is ticked in the installer / App Store and Dragonfly was fully restarted.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>Multi-ROI only (not 2027.1&#x27;s DenseMultiROI).</li>
+<li>STL: a single-slice (2-D) Multi-ROI cannot be meshed, nor can a sampling that leaves fewer than 3 samples along an axis. The surface follows the voxel boundary, with no sub-voxel grey-level snap (use Multi-ROI to Multi-Mesh (Surface Determination) for that). Windows&#x27; 260-character path limit applies.</li>
+<li>NIfTI: one time step per file — no 4-D files, and no NIfTI-2; at most 32767 voxels per axis. Names and colours live only in the three side files (NIfTI itself has no label table); no header extension is written. Voxel 0 at the grid corner is the convention of every other export in this product, but it has not yet been checked by a round trip through Dragonfly&#x27;s own NIfTI importer.</li>
+<li>Report: screenshots only at time step 0; leave the views alone while they are taken. A temporary link lives until Stop sharing or until Dragonfly quits (closing this window only hides it).</li>
+<li>A multi-time-step (4-D) Multi-ROI can be exported at a chosen time step, but this has not yet been verified with real 4-D data in a running Dragonfly. Do not delete the Multi-ROI during an export; the plugin checks that it still exists and stops with a reason if it does not.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>The STL format: 3D Systems, StereoLithography Interface Specification (binary and ASCII forms). W. E. Lorensen, H. E. Cline, “Marching Cubes: A High Resolution 3D Surface Construction Algorithm”, SIGGRAPH 1987.</li>
+<li>The NIfTI-1 data format: NIfTI Data Format Working Group, nifti1.h (nifti.nimh.nih.gov); ITK / SimpleITK NIfTI I/O (the RAS / LPS conversion).</li>
+<li>The ITK-SNAP label description format; 3D Slicer colour tables (Colors module, CSV form); the nnU-Net dataset format (dataset.json labels).</li>
+<li>python-pptx 1.0.2 (MIT); openpyxl; matplotlib. Dragonfly Help: exporting an ROI as a mesh (Export as Sampled Mesh), measurements, view layouts.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MultiROIExport-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

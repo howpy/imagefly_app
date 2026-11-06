@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grain Size &amp; Stereology (GrainSizeTools) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Grain Size &amp; Stereology (GrainSizeTools) - User Manual Dragonfly Prototype Apps · Grain Size &amp; Stereology (GrainSizeTools)... Version 1.0 · 2026-07-09 Engl…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Grain Size &amp; Stereology (GrainSizeTools)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Grain Size &amp; Stereology (GrainSizeTools)...</div>
+    <h1>Grain Size &amp; Stereology (GrainSizeTools)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#base-python-field-and-fallback-on-failure">Base Python field and fallback on failure</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#input-grain-labels-multiroi">Input grain labels (MultiROI)</a></li><li class="t3"><a href="#analysis-parameters">Analysis parameters</a></li><li class="t3"><a href="#environment-grainsizetools-venv">Environment (GrainSizeTools venv)</a></li><li class="t3"><a href="#action-buttons-and-output-area">Action buttons and output area</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#workflow-a-2d-descriptive-statistics">Workflow A: 2D descriptive statistics</a></li><li class="t3"><a href="#workflow-b-saltykov-2d-3d-unfolding">Workflow B: Saltykov 2D-&gt;3D unfolding</a></li><li class="t3"><a href="#workflow-c-two-step-lognormal-fit">Workflow C: Two-step lognormal fit</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Grain Size &amp; Stereology (GrainSizeTools) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Grain Size &amp; Stereology (GrainSizeTools)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Grain Size &amp; Stereology (GrainSizeTools)</strong> is a Dragonfly plugin that computes grain-size statistics from a <strong>2D grain (or particle) segmentation</strong> and can estimate a <strong>3D grain-size distribution</strong> by unfolding the 2D section. Inside Dragonfly you pick a <strong>MultiROI</strong> of grain labels (one label per grain); the plugin measures each label&#x27;s area, converts it to an <strong>equivalent circular diameter (ECD)</strong>, then reports descriptive statistics and stereology-unfolding results.</p>
+<p>The equivalent circular diameter is defined as ECD = 2 * sqrt(area / pi), i.e. the diameter of a circle with the same projected area as the grain; areas are first scaled to physical units by the pixel size.</p>
+<p><strong>Underlying engine and algorithms:</strong></p>
+<ul>
+<li><strong>GrainSizeTools</strong> (author Marco A. Lopez-Sanchez, Apache-2.0) provides the stereology methods (Saltykov unfolding and the two-step method). The project is not published on PyPI, so its grain_size_tools module is <strong>vendored</strong> with the plugin (Apache-2.0).</li>
+<li><strong>Saltykov (1967)</strong>: unfolds the 2D ECD histogram into a 3D grain-size (frequency-vs-diameter) distribution using the Scheil-Schwartz-Saltykov / Wicksell geometric probabilities.</li>
+<li><strong>Two-step method (Lopez-Sanchez &amp; Llana-Funez 2016)</strong>: fits a lognormal to the Saltykov 3D distribution to obtain the shape (multiplicative std dev) and the MSD (median / geometric center).</li>
+<li>Numerical work uses <strong>numpy / scipy / pandas / matplotlib</strong> (all BSD / PSF-style open source). If the vendored GrainSizeTools module is unavailable, the plugin falls back to an equivalent self-contained numpy Saltykov / two-step implementation.</li>
+</ul>
+<p><strong>License notes:</strong> the plugin code follows this repository&#x27;s license terms; the engine GrainSizeTools is <strong>Apache-2.0</strong> (vendored with its LICENSE); numpy / scipy / pandas are BSD and matplotlib is PSF/BSD-style.</p>
+<p>This plugin is a <strong>measurement / report</strong> tool: it does <strong>not</strong> publish any new object back into the Dragonfly scene. It only produces a statistics table, a CSV, and a plot PNG.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets grain-size characterization that needs a <strong>3D grain-size distribution estimated from 2D sections</strong>. Typical domains include:</p>
+<ul>
+<li><strong>Petrology / structural geology</strong>: recrystallized grain size in metamorphic rocks, deformation grain-size palaeopiezometry, etc.</li>
+<li><strong>Metallography / materials science</strong>: alloy grain size, ceramics and polycrystalline grain-size analysis.</li>
+<li>Any case where a 3D grain / particle size distribution must be inferred from a 2D image.</li>
+</ul>
+<p>Before using, <strong>segment the image and split touching grains</strong> first (e.g. watershed) so that each grain becomes a single MultiROI label. Otherwise several connected grains are counted as one and the statistics will be biased toward larger sizes.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin ships as one of the Prototype Apps in the <strong>Full Package</strong> installer. To install:</p>
+<p><strong>1. </strong>Unzip the Full Package to any location (a short path such as C:\PL\ is recommended to avoid long-path issues).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the installer dialog, choose the core install mode (Fresh / Compatible), and in the app list <strong>tick Grain Size &amp; Stereology (GrainSizeTools)</strong>.</p>
+<p><strong>4. </strong>Click <strong>Install</strong>, wait for the console to finish, then <strong>fully quit and restart Dragonfly</strong>.</p>
+<p>This plugin is <strong>unchecked by default</strong> in the installer (all plugins default to OFF); you must tick it explicitly.</p>
+<p>After the restart, the menu item appears at: <strong>Prototype Apps ▸ Grain Size &amp; Stereology (GrainSizeTools)...</strong> (under the &quot;Measurements &amp; Analysis&quot; section).</p>
+<p><strong>Changing the enabled state later:</strong> the easiest way is inside Dragonfly, via <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> — tick / untick this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom and restart Dragonfly. Disabling <strong>never</strong> deletes a plugin&#x27;s environment; re-enabling is instant.</p>
+<p>Alternatively, re-run the installer at any time (your previous choices become the new defaults). Even if the zip is deleted, run %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat.</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p>The heavy computation runs as a subprocess in a <strong>dedicated Python virtual environment (venv)</strong>, so it never pollutes Dragonfly&#x27;s own Python. On first use you build this environment once.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>When you click the <strong>Setup Environment</strong> button in the panel, the plugin:</p>
+<p><strong>1. </strong>Creates a venv inside the plugin&#x27;s code directory, using a base Python (default: the current Dragonfly&#x27;s Python_env\python.exe);</p>
+<p><strong>2. </strong>Upgrades pip / setuptools / wheel;</p>
+<p><strong>3. </strong>Installs <strong>numpy + scipy + pandas + matplotlib</strong> from PyPI (all pure wheels on CPython 3.10 — no compilation, no CUDA);</p>
+<p><strong>4. </strong>Runs a one-time smoke check verifying the four packages import, and records the venv&#x27;s Python path.</p>
+<p>GrainSizeTools itself is not on PyPI; its grain_size_tools module is vendored with the plugin, so <strong>nothing extra is downloaded</strong> for it.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Item</th><th>Detail</th></tr><tr><td>Internet required</td><td>Yes, once (the first Setup Environment downloads the four packages from PyPI); no internet is needed afterwards for computing.</td></tr><tr><td>GPU required</td><td>No. All computation is CPU-only.</td></tr><tr><td>WSL / external app</td><td>Not required.</td></tr><tr><td>Download size</td><td>Only the numpy / scipy / pandas / matplotlib wheels and their dependencies (tens of MB).</td></tr><tr><td>Install location</td><td>The venv is created inside the installed code dir &lt;version&gt;\pythonUserExtensions\GenericMenuItems\GrainSizeTools\venv.</td></tr></table></div>
+<h3 id="base-python-field-and-fallback-on-failure">Base Python field and fallback on failure</h3>
+<p>The <strong>Base Python</strong> field selects the base interpreter for the venv: blank means use the current Dragonfly&#x27;s Python; you may also enter a path to an executable or a launcher command like py -3.11.</p>
+<p>If Setup fails (common causes: the base Python lacks the stdlib venv module, or numpy/scipy/pandas/matplotlib have no wheel for that Python version), enter the path of another <strong>CPython 3.10–3.12</strong> (with stdlib venv + pip) in <strong>Base Python</strong> — e.g. C:\Python312\python.exe — and retry.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel is organized into several groups from top to bottom. Each control is described below (matching the code).</p>
+<h3 id="input-grain-labels-multiroi">Input grain labels (MultiROI)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Description</th></tr><tr><td>MultiROI</td><td>Combo box</td><td>Selects the grain-label MultiROI to analyze. Each entry shows the title, shape (e.g. X x Y x Z) and label count. If none exist, it shows &quot;(no MultiROIs - segment grains in Dragonfly first)&quot;.</td></tr><tr><td>Refresh</td><td>Button</td><td>Re-enumerates all current MultiROIs from Dragonfly.</td></tr></table></div>
+<p>When you pick a MultiROI, the plugin reads its in-plane grid spacing and auto-fills the <strong>Pixel size</strong> control below.</p>
+<h3 id="analysis-parameters">Analysis parameters</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>Method</td><td>Combo box</td><td>Descriptive statistics</td><td>Analysis method. One of: Descriptive statistics (2D stats only), Saltykov (2D-&gt;3D stereology), Two-step (lognormal fit). Higher methods include the outputs of the lower ones.</td></tr><tr><td>Stereology bins</td><td>Spin box</td><td>10</td><td>Number of Saltykov size classes; range 2–50, typically 10–15.</td></tr><tr><td>Pixel size</td><td>Double spin box</td><td>1.0 (or auto-filled from grid spacing)</td><td>Physical edge length of one pixel (6 decimals, range 1e-6 to 1e6). Diameters are reported in this unit.</td></tr><tr><td>Unit</td><td>Text field</td><td>px</td><td>Length-unit label for the pixel size / diameters (e.g. um, mm); display only.</td></tr></table></div>
+<h3 id="environment-grainsizetools-venv">Environment (GrainSizeTools venv)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Description</th></tr><tr><td>Base Python</td><td>Text field</td><td>Base interpreter for the venv. Blank = this Dragonfly&#x27;s python; or a path / py -3.11 command.</td></tr><tr><td>Status</td><td>Text label</td><td>Environment status: shows &quot;Ready: &lt;venv python path&gt;&quot; when built, otherwise &quot;Not set up - click &#x27;Setup Environment&#x27;&quot;.</td></tr></table></div>
+<h3 id="action-buttons-and-output-area">Action buttons and output area</h3>
+<ul>
+<li><strong>Setup Environment</strong> (button): builds the venv and installs the dependencies (one time).</li>
+<li><strong>Compute Grain Size</strong> (button): runs the analysis on the selected MultiROI.</li>
+<li><strong>Summary line</strong>: shows the grain count, mean ECD, median, geometric mean; for Saltykov / two-step it appends a 3D-result summary.</li>
+<li><strong>Plot area</strong>: shows the generated distribution PNG (2D ECD histogram, plus a Saltykov 3D distribution bar chart for Saltykov / two-step).</li>
+<li><strong>Log area</strong> (read-only): progress, the full statistics table, and the file paths of the CSV and PNG.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p><strong>Prerequisite:</strong> in Dragonfly, segment the image and split touching grains so that each grain is one MultiROI label.</p>
+<h3 id="workflow-a-2d-descriptive-statistics">Workflow A: 2D descriptive statistics</h3>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Grain Size &amp; Stereology (GrainSizeTools)...</strong>.</p>
+<p><strong>2. </strong>On first use, click <strong>Setup Environment</strong> and wait until Status shows &quot;Ready: ...&quot;.</p>
+<p><strong>3. </strong>Select the target grain-label MultiROI in the <strong>MultiROI</strong> combo box (if the list is empty, segment in Dragonfly first, then click Refresh).</p>
+<p><strong>4. </strong>Set <strong>Method</strong> to Descriptive statistics; adjust <strong>Pixel size</strong> and <strong>Unit</strong> (e.g. um) as needed.</p>
+<p><strong>5. </strong>Click <strong>Compute Grain Size</strong> and wait for completion.</p>
+<p><strong>6. </strong>Read the results in the summary line, the log&#x27;s statistics table, and the plot area; the log prints the CSV and PNG paths.</p>
+<h3 id="workflow-b-saltykov-2d-3d-unfolding">Workflow B: Saltykov 2D-&gt;3D unfolding</h3>
+<p><strong>1. </strong>Follow steps 1–4 of Workflow A.</p>
+<p><strong>2. </strong>Set <strong>Method</strong> to <strong>Saltykov (2D-&gt;3D stereology)</strong>.</p>
+<p><strong>3. </strong>Set <strong>Stereology bins</strong> (10–15 recommended): more bins give finer resolution but fewer samples per bin and more noise.</p>
+<p><strong>4. </strong>Click <strong>Compute Grain Size</strong>; besides the 2D statistics, the plot gains a <strong>Saltykov 3D distribution</strong> bar chart on the right, and the summary line reports the number of 3D distribution classes.</p>
+<h3 id="workflow-c-two-step-lognormal-fit">Workflow C: Two-step lognormal fit</h3>
+<p><strong>1. </strong>Follow steps 1–4 of Workflow A.</p>
+<p><strong>2. </strong>Set <strong>Method</strong> to <strong>Two-step (lognormal fit)</strong> and set Stereology bins.</p>
+<p><strong>3. </strong>Click <strong>Compute Grain Size</strong>; besides the 2D statistics and the Saltykov 3D distribution, you also obtain the 3D distribution&#x27;s <strong>MSD</strong> (median) and <strong>shape</strong> (multiplicative std dev), shown in the summary line and the statistics table.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>The table below summarizes all adjustable parameters and their defaults (matching the panel code).</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Method</td><td>Descriptive statistics</td><td>One of descriptive / saltykov / two-step. descriptive = 2D stats only; saltykov also unfolds the 3D distribution; two-step additionally fits a lognormal to the 3D distribution.</td></tr><tr><td>Stereology bins</td><td>10</td><td>Number of equal-width Saltykov size classes, range 2–50, typically 10–15. Affects saltykov / two-step only.</td></tr><tr><td>Pixel size</td><td>1.0</td><td>Physical edge length of one pixel. Area = pixel count × pixel_size², ECD = 2×sqrt(area/pi). Auto-filled from the MultiROI grid spacing when a MultiROI is selected.</td></tr><tr><td>Unit</td><td>px</td><td>Length-unit label (e.g. um, mm); affects display and plot labels only.</td></tr><tr><td>Base Python</td><td>(blank)</td><td>Base interpreter for building the venv; blank uses the current Dragonfly&#x27;s Python.</td></tr><tr><td>Background</td><td>0</td><td>The label value treated as background and excluded from statistics (fixed to 0).</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>This plugin is a measurement / report tool and <strong>does not publish any new object into the Dragonfly scene</strong>. The results are:</p>
+<ul>
+<li><strong>Statistics table</strong> (shown as text in the log): grain count, mean ECD, median, std dev, min/max, geometric mean, log std dev, RMS mean, area-weighted mean, volume-weighted mean, mode (KDE peak); for two-step it also includes the 3D MSD and shape.</li>
+<li><strong>CSV file</strong> grain_stats.csv: a metric,value table of the statistics above (full path printed in the log).</li>
+<li><strong>Plot PNG</strong> grain_plot.png: a 2D ECD frequency histogram; for Saltykov / two-step it adds a Saltykov 3D distribution bar chart.</li>
+<li><strong>Saltykov 3D distribution</strong> (saltykov / two-step only): bin centers, 3D frequencies, bin width and bin count.</li>
+</ul>
+<p><strong>How to view:</strong> the summary line and plot are shown directly in the panel; the full statistics table is in the log. The CSV and PNG are saved in a temporary job directory (the log prints the full paths) and can be copied elsewhere to keep.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q1: The plugin&#x27;s menu item is missing.</strong></p>
+<p>A: Confirm you <strong>ticked</strong> this plugin during installation (all plugins are OFF by default) and that you <strong>fully quit and restarted Dragonfly</strong> (menus are scanned only at startup). If still missing, verify it is enabled in Developer ▸ Prototype Labs... ▸ Menu Item Manager, then restart.</p>
+<p><strong>Q2: Compute says &quot;environment not set up&quot;.</strong></p>
+<p>A: Click <strong>Setup Environment</strong> first. If it fails, the usual cause is a base Python lacking the stdlib venv module or with no usable wheels; enter a CPython 3.10–3.12 path in <strong>Base Python</strong> and retry.</p>
+<p><strong>Q3: The grain count is clearly too low / sizes too large.</strong></p>
+<p>A: The most common cause is touching grains not being split — several grains share one label and are counted as one. In Dragonfly, split grains first (e.g. watershed) so each grain has its own label.</p>
+<p><strong>Q4: Diameter values look wrong / the unit is off.</strong></p>
+<p>A: Check that <strong>Pixel size</strong> (physical edge length of one pixel) and <strong>Unit</strong> are correct. Selecting a MultiROI auto-fills the pixel size from the grid spacing, but the unit label must be set manually (default px). With pixel size 1 and unit px, diameters are in pixels.</p>
+<p><strong>Q5: The Saltykov 3D distribution looks noisy / jagged.</strong></p>
+<p>A: Lower <strong>Stereology bins</strong> (e.g. from 15 to 10): more bins mean fewer samples per bin and more unfolding noise. Also ensure you have enough grains (statistics are unstable with too few samples).</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>The plugin <strong>does not publish</strong> new scene objects; it only produces a statistics table, CSV and PNG. Copy the files named in the log if you need to keep them.</li>
+<li>The input must be a <strong>grain-label MultiROI</strong> (one label per grain); segmentation quality directly determines accuracy, so split touching grains first.</li>
+<li>Saltykov / two-step assume grains are approximately <strong>equant (near-spherical)</strong> and sections are <strong>random</strong>; results for strongly elongated / textured grains are only indicative.</li>
+<li>The first Setup Environment needs internet once; afterwards computing is offline. No GPU / WSL / external application is required.</li>
+<li>If the vendored GrainSizeTools module is unavailable, the plugin automatically falls back to an equivalent pure-numpy implementation and still produces results.</li>
+<li>Disabling the plugin does not delete the built venv; to reclaim disk space, manually delete the venv folder inside the plugin&#x27;s code directory.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>GrainSizeTools upstream project (Marco A. Lopez-Sanchez, Apache-2.0): https://github.com/marcoalopez/GrainSizeTools</li>
+<li>Lopez-Sanchez M.A. &amp; Llana-Funez S. (2016): the two-step method for estimating 3D grain-size distributions.</li>
+<li>Saltykov S.A. (1967): the classic stereology method (Scheil-Schwartz-Saltykov) for unfolding a 3D size distribution from 2D sections.</li>
+<li>Dependencies: numpy / scipy / pandas (BSD), matplotlib (PSF/BSD-style).</li>
+<li>Full install / enable / uninstall details: see the overview UserManual_用户手册.docx in the Full Package root.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>GrainSizeTools-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

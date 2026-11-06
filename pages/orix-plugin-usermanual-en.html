@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EBSD Analysis (orix) · Dragonfly Prototype Apps</title>
+<meta name="description" content="EBSD Analysis (orix) - User Manual Dragonfly Prototype Apps · EBSD Analysis (orix)... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use C…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">EBSD Analysis (orix)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · EBSD Analysis (orix)...</div>
+    <h1>EBSD Analysis (orix)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#5-1-input-ebsd-map">5.1 Input EBSD map</a></li><li class="t3"><a href="#5-2-options">5.2 Options</a></li><li class="t3"><a href="#5-3-publish-channels">5.3 Publish channels</a></li><li class="t3"><a href="#5-4-environment-orix-venv">5.4 Environment (orix venv)</a></li><li class="t3"><a href="#5-5-action-buttons-result-display">5.5 Action buttons &amp; result display</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-2d-orientation-map-analysis">6.1 2D orientation-map analysis</a></li><li class="t3"><a href="#6-2-3d-serial-section-stacking">6.2 3D serial-section stacking</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>EBSD Analysis (orix) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · EBSD Analysis (orix)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>EBSD Analysis (orix)</strong> is a Dragonfly Prototype Apps plugin for analysing <strong>already-indexed</strong> Electron Backscatter Diffraction (EBSD) orientation data. EBSD measures the <strong>crystal orientation</strong> at every point of a scanned surface, producing a per-pixel orientation map. The plugin reads an orientation-map file exported by your acquisition software and turns it into images and Channels you can explore and compare inside Dragonfly.</p>
+<p>From a loaded map, the plugin can produce an <strong>Inverse-Pole-Figure (IPF)-coloured orientation map</strong>, the <strong>Euler angles</strong>, the <strong>phase map</strong>, and any <strong>indexing-quality metrics</strong> carried in the file, each published back as a Dragonfly scalar Channel. The panel also shows an IPF map preview and a summary. Both 2D single maps and stacked 3D volumes (from serial-section slice files) are supported.</p>
+<p><strong>Underlying engine:</strong> the computation is performed by the open-source library <strong>orix 0.14.3</strong> (the pyxem project), together with <strong>numpy</strong> and <strong>matplotlib</strong>. orix is licensed under <strong>GPL-3.0</strong>, so it runs <strong>only in a subprocess inside the plugin&#x27;s own isolated Python environment (venv)</strong>, exchanging data via files, and is <strong>never imported into the Dragonfly process</strong> — keeping it arm&#x27;s-length. numpy is BSD-licensed; matplotlib is PSF/BSD-like.</p>
+<p>A plain grayscale image is <strong>not</strong> EBSD data. Crystal orientations come from the diffraction indexing done at acquisition; you must use an already-indexed orientation-map file (.ang / .ctf / .h5, etc.).</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets <strong>crystal-orientation and texture analysis</strong> in materials science. Typical uses:</p>
+<ul>
+<li>Visualising grain orientations in metals and alloys as standard IPF orientation maps.</li>
+<li>Phase distribution and orientation analysis of multi-phase materials such as geological minerals.</li>
+<li><strong>Jointly analysing</strong> an EBSD orientation map with the same sample&#x27;s 3D structure (e.g. a CT volume) inside Dragonfly, slice by slice.</li>
+<li>Stacking serial-section EBSD maps into a 3D volume to observe how orientation evolves with depth.</li>
+</ul>
+<p>Once EBSD results are published back into Dragonfly, you can use Dragonfly&#x27;s multi-modal visualisation to overlay and compare orientation, phase and quality information with other imaging modalities.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip to any short path (e.g. C:\PL\) — avoid deep download folders or a OneDrive-redirected Desktop, to stay under the Windows 260-character path limit.</p>
+<p><strong>2. </strong>Double-click Install_FullPackage.bat.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode: <strong>Fresh</strong> (wipe &amp; reset blocks/recipes after backing them up) or <strong>Compatible</strong> (keep your own blocks and recipes). This affects only the Prototype Labs core, never a plugin&#x27;s environment or settings.</p>
+<p><strong>4. </strong>In the Prototype Apps list, <strong>tick</strong> &quot;EBSD Analysis (orix)...&quot;. <strong>Note: all plugins are unticked by default</strong> and must be ticked to be deployed. Use Select All / Select None as needed.</p>
+<p><strong>5. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>6. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p>After restarting, the menu entry appears under <strong>Prototype Apps ▸ EBSD Analysis (orix)...</strong> (in the &quot;EBSD &amp; Crystallography&quot; group). Clicking it opens a dockable panel.</p>
+<p><strong>Changing your choices later:</strong> the easiest way is inside Dragonfly — open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>; the &quot;Prototype Apps (Full Package)&quot; list at the bottom has a checkbox per app (tick = deploy, untick = remove the menu entry). Restart Dragonfly to apply. Disabling <strong>never</strong> deletes a plugin&#x27;s environment; re-enabling is instant.</p>
+<p><strong>Uninstall:</strong> double-click Uninstall_FullPackage.bat. It removes all Full-Package menu items and plugins but keeps each plugin&#x27;s built environment (venv), listing its path at the end so you can delete it manually if you want the disk space back.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</h2>
+<p><strong>Nothing heavy is downloaded at install time.</strong> The plugin builds its runtime environment on <strong>first use</strong>. Open the panel and, in the &quot;Environment (orix venv)&quot; section, click <strong>Setup Environment</strong>:</p>
+<ul>
+<li><strong>What it does:</strong> builds a small isolated Python virtual environment (venv) and pip-installs orix + numpy + matplotlib from PyPI.</li>
+<li><strong>Which Python:</strong> by default it uses <strong>Dragonfly&#x27;s own Python</strong> (which bundles a full CPython 3.10 with working venv + pip), so you need no separate Python install.</li>
+<li>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12 or 3.13) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</li>
+<li><strong>Download size &amp; time:</strong> the dependencies are pure wheels on CPython 3.10, roughly tens of MB, about a minute.</li>
+<li><strong>Internet:</strong> requires internet <strong>once</strong> (to download from PyPI); it then works offline.</li>
+<li><strong>GPU / WSL / external apps:</strong> <strong>none required</strong>. No GPU, no WSL, no other external software.</li>
+</ul>
+<p><strong>Where it installs:</strong> the venv is created in a venv subfolder inside the installed plugin code directory, i.e. %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\OrixEBSD\venv. <strong>Nothing</strong> is installed into Dragonfly&#x27;s own Python.</p>
+<p><strong>Fallback on failure:</strong> the panel provides a <strong>Base Python</strong> field (in &quot;Environment (orix venv)&quot;). Leave it blank to use the current Dragonfly&#x27;s Python, or enter the full path to any <strong>CPython 3.10+</strong> interpreter that has stdlib venv + pip (e.g. C:\Python312\python.exe) as the venv base. If the default Python lacks the venv module, or orix/numpy has no wheel for the platform, point this field at a 3.10–3.12 CPython and retry.</p>
+<p>orix is GPL-3.0. Building this separate environment and running orix as a subprocess is what keeps it arm&#x27;s-length from Dragonfly — orix is never imported into the Dragonfly process.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel title is <strong>EBSD Analysis (orix)</strong> with an About &quot;?&quot; help button beside it. Almost every control has a round <strong>&quot;?&quot; help button</strong> that pops up an explanation window. Controls are described top to bottom below.</p>
+<h3 id="5-1-input-ebsd-map">5.1 Input EBSD map</h3>
+<ul>
+<li><strong>2D (single map file)</strong> radio — 2D mode, loads a single orientation-map file (<strong>selected by default</strong>).</li>
+<li><strong>3D (stack slice files)</strong> radio — 3D mode, add several serial-section files in order to stack into a volume (all slices must share the same width×height grid).</li>
+<li><strong>File list</strong> — shows the currently added file names.</li>
+<li><strong>Add file(s)...</strong> button — opens a file dialog to add orientation maps; in 2D mode only the first selected file is kept, in 3D mode all selected files are appended. File filter: *.ang *.ctf *.h5 *.oh5 *.hdf5 *.dream3d.</li>
+<li><strong>Clear</strong> button — empties the file list.</li>
+</ul>
+<h3 id="5-2-options">5.2 Options</h3>
+<ul>
+<li><strong>IPF direction</strong> (dropdown) — the sample reference direction used for IPF colouring: Z (out of surface) (<strong>default</strong>), X, Y.</li>
+<li><strong>In-plane spacing</strong> (spinbox) — in-plane voxel spacing (scan step); range 0.0001–100000, 4 decimals, <strong>default 1.0</strong>.</li>
+<li><strong>Slice spacing (3D)</strong> (spinbox) — Z spacing between serial sections (section thickness); range 0.0001–100000, 4 decimals, <strong>default 1.0</strong>; editable only in 3D mode, disabled in 2D.</li>
+</ul>
+<h3 id="5-3-publish-channels">5.3 Publish channels</h3>
+<ul>
+<li><strong>IPF colour (R, G, B)</strong> checkbox — publishes the three colour components of the IPF map (<strong>checked by default</strong>).</li>
+<li><strong>Phase ID</strong> checkbox — publishes the per-pixel phase ID (integer, <strong>checked by default</strong>).</li>
+<li><strong>Euler angles (phi1, Phi, phi2)</strong> checkbox — publishes the three Bunge Euler-angle channels (degrees, <strong>unchecked by default</strong>).</li>
+<li><strong>Quality metrics (IQ / CI / Fit)</strong> checkbox — publishes indexing-quality metrics carried in the file (<strong>checked by default</strong>).</li>
+</ul>
+<h3 id="5-4-environment-orix-venv">5.4 Environment (orix venv)</h3>
+<ul>
+<li><strong>Base Python</strong> (line edit) — the base Python used to build the venv; blank = current Dragonfly&#x27;s Python, or enter a CPython 3.10+ path.</li>
+<li><strong>Status</strong> (label) — shows the environment state: Ready or Not set up - click &#x27;Setup Environment&#x27;., with a &quot;?&quot; help button beside it.</li>
+</ul>
+<h3 id="5-5-action-buttons-result-display">5.5 Action buttons &amp; result display</h3>
+<ul>
+<li><strong>Setup Environment</strong> button — one-time build of the orix environment (see Section 4).</li>
+<li><strong>Compute + Publish</strong> button — runs the computation and publishes the selected result channels back into Dragonfly.</li>
+<li><strong>IPF preview area</strong> — shows the IPF orientation map of the first slice after compute.</li>
+<li><strong>Summary line</strong> — shows map size, phase info, IPF direction and step.</li>
+<li><strong>Log box</strong> — shows setup/compute progress and messages (read-only).</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-2d-orientation-map-analysis">6.1 2D orientation-map analysis</h3>
+<p><strong>1. </strong>In Dragonfly, open <strong>Prototype Apps ▸ EBSD Analysis (orix)...</strong>.</p>
+<p><strong>2. </strong>On first use, click <strong>Setup Environment</strong> and wait until Status shows Ready (needs internet once).</p>
+<p><strong>3. </strong>Confirm the input mode is <strong>2D (single map file)</strong> (default).</p>
+<p><strong>4. </strong>Click <strong>Add file(s)...</strong> and select an already-indexed orientation-map file (.ang / .ctf / .h5, etc.).</p>
+<p><strong>5. </strong>In <strong>Options</strong>, choose the <strong>IPF direction</strong> (default Z) and set <strong>In-plane spacing</strong> (scan step) as needed.</p>
+<p><strong>6. </strong>In <strong>Publish channels</strong>, tick the outputs you want (IPF colour / Phase ID / Quality are ticked by default; tick Euler angles if needed).</p>
+<p><strong>7. </strong>Click <strong>Compute + Publish</strong>. When done, the panel shows the IPF preview and summary, and the selected channels are published as Dragonfly Channels.</p>
+<h3 id="6-2-3d-serial-section-stacking">6.2 3D serial-section stacking</h3>
+<p><strong>1. </strong>Switch to <strong>3D (stack slice files)</strong> mode.</p>
+<p><strong>2. </strong>Click <strong>Add file(s)...</strong> and add each serial-section map file <strong>in order</strong> (all slices must share the same width×height grid).</p>
+<p><strong>3. </strong>Set <strong>In-plane spacing</strong> (in-plane step) and <strong>Slice spacing (3D)</strong> (section thickness along Z). The section thickness must be set by you — the EBSD files don&#x27;t contain it.</p>
+<p><strong>4. </strong>Tick the output channels you want.</p>
+<p><strong>5. </strong>Click <strong>Compute + Publish</strong>. Each output is published back as a 3D volume; the IPF preview shows only the first slice.</p>
+<p><strong>Input requirement → action → result:</strong> the input is an already-indexed orientation map; the action is choosing the direction/outputs and computing; the result is a set of scalar Channels published back into Dragonfly (IPF R/G/B, Phase ID, Euler angles, quality metrics) plus the in-panel IPF preview.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Input mode</td><td>2D (single map file)</td><td>2D single map, or 3D multi-slice stack.</td></tr><tr><td>IPF direction</td><td>Z (out of surface)</td><td>Sample reference direction for IPF colouring: Z (out of surface) / X / Y.</td></tr><tr><td>In-plane spacing</td><td>1.0</td><td>In-plane voxel spacing (scan step); range 0.0001–100000, 4 decimals.</td></tr><tr><td>Slice spacing (3D)</td><td>1.0</td><td>Z spacing between slices (section thickness); editable only in 3D mode.</td></tr><tr><td>IPF colour (R, G, B)</td><td>Checked</td><td>Publish the three colour components of the IPF map (0–255 scalar).</td></tr><tr><td>Phase ID</td><td>Checked</td><td>Publish the per-pixel phase ID (integer).</td></tr><tr><td>Euler angles (phi1, Phi, phi2)</td><td>Unchecked</td><td>Publish the three Bunge Euler-angle channels (degrees).</td></tr><tr><td>Quality metrics (IQ / CI / Fit)</td><td>Checked</td><td>Publish Image Quality / Confidence Index / Fit carried in the file (if present).</td></tr><tr><td>Base Python</td><td>Blank (= Dragonfly&#x27;s Python)</td><td>Base interpreter for building the venv; enter a CPython 3.10+ path to override.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>After compute, the selected results are published back into Dragonfly one Channel at a time, prefixed with the input file name. The produced objects are <strong>Channels (scalar)</strong>:</p>
+<ul>
+<li><strong>IPF R / G / B</strong> — the three colour components of the IPF map, each a 0–255 scalar Channel. View them together as RGB or individually.</li>
+<li><strong>Phase ID</strong> — which crystal phase each pixel was indexed as (integer). Colour it with a categorical LUT to get a phase map.</li>
+<li><strong>Euler phi1 / Phi / phi2</strong> — the Bunge Euler angles (degrees) describing the orientation at each pixel.</li>
+<li><strong>Image Quality / Confidence Index / Fit</strong> — indexing-quality metrics carried in the file (if present).</li>
+</ul>
+<p>In 2D mode each item publishes as a single slice; in 3D mode it publishes as a volume using the slice spacing you set. All channels are aligned to the grid using your in-plane / slice spacing. Published channels appear in Dragonfly&#x27;s data manager and can be visualised with views, LUTs and other tools.</p>
+<p>The panel also shows an <strong>IPF map preview</strong> (first slice) and an <strong>IPF colour key</strong>, plus a one-line summary (map size, phase names and point groups, IPF direction, step).</p>
+<p>Phase / quality maps are currently published as <strong>scalar Channels</strong> (coloured via LUT); native MultiROI export is a planned enhancement.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: I can&#x27;t find &quot;EBSD Analysis (orix)...&quot; in the menu.</strong></p>
+<p>A: Make sure you <strong>ticked</strong> the plugin in the Full Package (all plugins are unticked by default) and <strong>fully restarted</strong> Dragonfly (menus are scanned only at startup). You can also confirm the tick state in Developer ▸ Prototype Labs... ▸ Menu Item Manager.</p>
+<p><strong>Q: Compute + Publish says the environment isn&#x27;t set up.</strong></p>
+<p>A: Click <strong>Setup Environment</strong> first and wait for Status to show Ready before computing. The log will say &quot;environment not set up. Click &#x27;Setup Environment&#x27; first.&quot;</p>
+<p><strong>Q: Setup Environment fails (venv creation or dependency install failed).</strong></p>
+<p>A: Usually the chosen base Python lacks venv/pip, or the platform has no wheel for orix/numpy. Enter the path to a CPython 3.10–3.12 interpreter that has stdlib venv + pip in the <strong>Base Python</strong> field and retry; also make sure you have internet access (a one-time PyPI download).</p>
+<p><strong>Q: The published map looks mirrored or rotated.</strong></p>
+<p>A: EBSD scan axes and vendor conventions (EDAX vs Oxford) may differ from Dragonfly&#x27;s grid. If a published map looks mirrored/rotated relative to another dataset, flip/rotate it with Dragonfly&#x27;s transform tools.</p>
+<p><strong>Q: I loaded a plain image but got no orientation results.</strong></p>
+<p>A: A plain grayscale image is not EBSD data. You must use an <strong>already-indexed</strong> orientation-map file (.ang / .ctf / .h5, etc.) that contains the crystal orientation at every scan point.</p>
+<p><strong>Q: Do I need grain segmentation or KAM?</strong></p>
+<p>A: Grain segmentation / KAM are not orix&#x27;s job. Use the <strong>EBSD Grains (DefDAP)</strong> plugin for those.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>The input must be an <strong>already-indexed</strong> EBSD orientation-map file; plain images cannot be used.</li>
+<li>In 3D mode all slices must share the <strong>same width×height grid</strong>; you must set the slice spacing (section thickness) yourself.</li>
+<li><strong>Grain segmentation / KAM are out of scope</strong> — use the EBSD Grains (DefDAP) plugin.</li>
+<li>EBSD scan axes / vendor conventions may differ from Dragonfly&#x27;s grid; correct orientation with Dragonfly&#x27;s transform tools if needed.</li>
+<li>Phase / quality maps are currently published as <strong>scalar Channels</strong> (coloured via LUT); native MultiROI export is planned.</li>
+<li>The plugin needs <strong>no GPU</strong>; the first Setup Environment needs internet <strong>once</strong>.</li>
+<li>orix is GPL-3.0 and runs only in the isolated venv subprocess — never imported into the Dragonfly process.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>orix documentation: https://orix.readthedocs.io</li>
+<li>orix / pyxem project (GPL-3.0).</li>
+<li>Companion plugin: EBSD Grains (DefDAP) — for grain and phase segmentation.</li>
+<li>Full Package install / enable / uninstall instructions: see the Full Package README (shipped with the package).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>orix-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

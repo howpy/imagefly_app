@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vessel Centerlines (vmtk) Plugin · Dragonfly Prototype Apps</title>
+<meta name="description" content="Vessel Centerlines (vmtk) Plugin - User Manual Dragonfly Prototype Apps · Vessel Centerlines (vmtk) Version 1.1 · 2026-07-11 English Manual Contents 1. Ove…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Vessel Centerlines (vmtk) Plugin</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Vessel Centerlines (vmtk)</div>
+    <h1>Vessel Centerlines (vmtk) Plugin</h1>
+    <div class="meta"><span class="badge">Version 1.1 · 2026-07-11</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-and-algorithms">Underlying engine and algorithms</a></li><li class="t3"><a href="#license-note">License note</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-internet-gpu-wsl-external-apps">Download size, internet, GPU, WSL, external apps</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#if-setup-fails">If setup fails</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t2"><a href="#5-1-setup-tab-build-the-environment">5.1 Setup tab (build the environment)</a></li><li class="t2"><a href="#5-2-centerlines-tab-extract-centerlines">5.2 Centerlines tab (extract centerlines)</a></li><li class="t2"><a href="#6-usage-steps">6. Usage Steps</a></li><li class="t2"><a href="#6-1-first-time-environment-build">6.1 First-time environment build</a></li><li class="t2"><a href="#6-2-auto-endpoint-mode-most-common">6.2 Auto endpoint mode (most common)</a></li><li class="t2"><a href="#6-3-manual-point-id-mode">6.3 Manual point-id mode</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t3"><a href="#how-to-view-it">How to view it</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Vessel Centerlines (vmtk) Plugin - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Vessel Centerlines (vmtk)</p>
+<p>Version 1.1 · 2026-07-11</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p>Vessel Centerlines (vmtk) is a Dragonfly plugin that extracts a centerline network from a closed tubular surface mesh (a vessel, airway, or other tubular structure) in your scene. Pick a surface, choose how endpoints/seeds are selected (auto, or type surface point ids), optionally flip normals, extract branch labels, and append a vesselness scalar, then click Run.</p>
+<p>The result is published back into Dragonfly as a new centerline-network Graph: vertices are sample points along the centerline, each carrying a MaximumInscribedSphereRadius (local inscribed-sphere radius) scalar; edges are the centerline segments; plus an optional branch (group) id and an optional vesselness scalar.</p>
+<h3 id="underlying-engine-and-algorithms">Underlying engine and algorithms</h3>
+<ul>
+<li>vmtk (the VTK-based Vascular Modeling Toolkit) is the compute core. It is installed from PyPI as wheels and pulls in VTK and ITK as dependencies.</li>
+<li>Centerlines are computed from the Voronoi diagram (vmtkCenterlines), recording each point&#x27;s maximum inscribed-sphere radius.</li>
+<li>Branch extraction (vmtkBranchExtractor) splits the network into branches and attaches a per-point branch (group) id.</li>
+<li>Vesselness is an optional Frangi/Sato filter (vmtkImageVesselEnhancement), computed on a voxelized image of the surface and sampled back onto the centerline vertices.</li>
+</ul>
+<h3 id="license-note">License note</h3>
+<p>vmtk&#x27;s centerline (vmtkCenterlines, Voronoi diagram) and vesselness (vmtkImageVesselEnhancement, Frangi/Sato) paths are pure BSD-3-Clause. This plugin&#x27;s backend uses only those paths and deliberately avoids vmtk&#x27;s TetGen tetrahedral-meshing path (vmtkTetGen, etc.), because the underlying TetGen dependency ships under a Modified-MIT license that restricts commercial use. Your centerline/vesselness results therefore never exercise any non-commercial-restricted code.</p>
+<p>vmtk runs entirely inside a dedicated Python environment (venv), talking to Dragonfly only through a subprocess + JSON files. The plugin never imports vmtk/vtk into Dragonfly&#x27;s own Python and uses no network ports.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is useful for quantifying the geometry of vessels / airways / tubular networks:</p>
+<ul>
+<li>Read the local inscribed-sphere radius (MaximumInscribedSphereRadius) along the centerline to locate stenoses (narrowings) or aneurysms;</li>
+<li>Split the network by branch (group id) for per-segment measurement;</li>
+<li>Feed the centerline into downstream flow, skeleton, or topology analysis;</li>
+<li>Extract a skeleton and radius field for any closed triangulated tubular surface (not only medical images — e.g. connected pore networks in porous materials).</li>
+</ul>
+<p>A typical input is produced by segmenting an ROI from a CT/microscopy image in Dragonfly, generating a surface mesh (Mesh / FaceVertexMesh) from it, and then handing it to this plugin.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships with the Full Package. Install and enable it as follows:</p>
+<p>1. Unzip the Full Package anywhere (use a short path such as C:\PL\).</p>
+<p>2. Double-click Install_FullPackage.bat.</p>
+<p>3. In the dialog, pick a core install mode (Fresh / Compatible) and tick Vessel Centerlines (vmtk) in the plugin list. Note: all plugins are unticked by default — you must tick this one to enable it.</p>
+<p>4. Click Install and wait for the console to finish.</p>
+<p>5. Quit and restart Dragonfly (the menu list is built only at startup).</p>
+<p>After the restart the menu entry appears at: Prototype Apps ▸ Vessel Centerlines (vmtk)... (group *Measurements &amp; Analysis*). Clicking it opens a dockable floating panel.</p>
+<p>Change the enable state later: in Dragonfly open Developer ▸ Prototype Labs... ▸ Menu Item Manager; the &quot;Prototype Apps (Full Package)&quot; list has a checkbox per app — tick to deploy, untick to remove the menu entry. Restart Dragonfly to apply. Disabling never deletes a plugin&#x27;s built environment; re-enabling is instant.</p>
+<p>Nothing is downloaded at install time. The vmtk environment is built on first use by clicking Setup Environment on the Setup tab (see Chapter 4).</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and First-Run Setup</h2>
+<p>vmtk (VTK-based) is heavy and must never touch Dragonfly&#x27;s bundled Python. The plugin therefore uses a venv-in-code approach: it builds a dedicated Python environment for vmtk the first time you use it.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>When you click <strong>Setup Environment</strong> on the Setup tab:</p>
+<p><strong>1. </strong><strong>Locate conda / mamba</strong> (Miniconda/Anaconda/Miniforge): it checks the --conda value, the CONDA_EXE env var, PATH, then common install dirs; you can also type the full conda.exe path into the panel&#x27;s <strong>Conda</strong> field.</p>
+<p><strong>2. </strong>Create an isolated conda env at a <strong>short central path</strong> (%LOCALAPPDATA%\DragonflyPrototypeLabs\vmtk_env) and install <strong>vmtk 1.5 + numpy</strong> via conda create -c conda-forge (which pulls VTK + ITK; the win-64/py310 builds match Dragonfly&#x27;s Python 3.10).</p>
+<p><strong>3. </strong>Run an import smoke test (numpy / vtk / vmtk). Before importing vtk/vmtk the runner adds the env&#x27;s Library\bin dirs via os.add_dll_directory, so the VTK/ITK DLLs load <strong>without `conda activate`</strong>.</p>
+<p><strong>4. </strong>On success, fill the conda env&#x27;s python path into <strong>vmtk env python</strong>.</p>
+<p><strong>Why a short central path</strong>: conda + VTK/ITK have very deep internal paths; an env buried in the deep plugin dir overflows Windows&#x27; 260-char MAX_PATH and vtk DLLs fail to load (&#x27;the filename or extension is too long&#x27;). A short central path avoids this and is reused across Dragonfly versions (both Python 3.10), so Setup is one-time.</p>
+<h3 id="download-size-internet-gpu-wsl-external-apps">Download size, internet, GPU, WSL, external apps</h3>
+<p>The first conda create needs <strong>internet</strong> to download vmtk + VTK + ITK (tens to a few hundred MB depending on cache; usually a few minutes). <strong>CPU only</strong>, no GPU. The runner is a separate subprocess, isolated from Dragonfly; no WSL or other external apps are involved.</p>
+<p><strong>conda is required</strong>: vmtk is not pip-installable (its PyPI project ships zero files) -- it is distributed only via conda. Install Miniconda/Anaconda/Miniforge first.</p>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<ul>
+<li>conda env: %LOCALAPPDATA%\DragonflyPrototypeLabs\vmtk_env (short path to avoid MAX_PATH; reused across Dragonfly versions).</li>
+<li>Job root: C:\VmtkJobs by default (temp PLY/JSON IPC job folders; changeable on the Setup tab).</li>
+</ul>
+<h3 id="if-setup-fails">If setup fails</h3>
+<ul>
+<li><strong>conda not found</strong>: install Miniconda (docs.conda.io/en/latest/miniconda.html), or type the full conda.exe path into the <strong>Conda</strong> field (e.g. C:\Users\&lt;you&gt;\miniconda3\Scripts\conda.exe) and retry.</li>
+<li><strong>conda create fails</strong>: make sure conda can reach conda-forge (internet); the log shows the exact error. Click Setup again to retry.</li>
+<li><strong>vtk import says &#x27;filename or extension is too long&#x27;</strong>: the env path is too deep for MAX_PATH; the plugin already uses a short central path, so this should not occur.</li>
+</ul>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The top of the panel shows a short blue note describing the plugin. The body has two tabs: Setup and Centerlines. Below them are a result label and a read-only Log area.</p>
+<h2 id="5-1-setup-tab-build-the-environment">5.1 Setup tab (build the environment)</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>vmtk venv python</td><td>text field</td><td>(empty)</td><td>Path to the venv interpreter; filled automatically by Setup Environment. Normally left untouched.</td></tr><tr><td>Base Python (build)</td><td>text field</td><td>(empty)</td><td>Base interpreter used to build the venv. Empty = this Dragonfly&#x27;s own python.exe (recommended); or a path / py -3.10.</td></tr><tr><td>Run mode</td><td>dropdown</td><td>windows</td><td>Run mode, windows / wsl. Keep windows for normal use.</td></tr><tr><td>Job root</td><td>text field</td><td>C:\VmtkJobs</td><td>Root folder for the per-run PLY/JSON job folders.</td></tr><tr><td>Setup Environment</td><td>button</td><td>—</td><td>Builds the venv and pip installs vmtk + numpy (a few minutes the first time; needs internet).</td></tr></table></div>
+<h2 id="5-2-centerlines-tab-extract-centerlines">5.2 Centerlines tab (extract centerlines)</h2>
+<p>This tab has four groups — input surface, endpoint/seed selection, options, output — with Run and Open Output Folder buttons at the bottom.</p>
+<ul>
+<li>Surface (dropdown + Refresh): pick the input closed tubular surface mesh. The list shows scene Mesh / FaceVertexMesh objects with vertex count V, face count F, and class. Click Refresh to rescan the scene.</li>
+<li>Mode (dropdown): endpoint/seed selection mode, auto (default) or point_ids.</li>
+<li>Source point ids (text field): surface point ids used as centerline sources (comma/space separated). Only active in point_ids mode.</li>
+<li>Target point ids (text field): surface point ids used as centerline targets; blank = let vmtk auto-pick. Only active in point_ids mode.</li>
+<li>Flip surface normals (checkbox): default off. Tick when the surface is inside-out and centerlines fail or hug the wall.</li>
+<li>Extract branches (labels) (checkbox): default on. Runs vmtkbranchextractor to split the network into branches and attach a per-point branch (group) id.</li>
+<li>Append vesselness (checkbox): default off. Also computes a vesselness scalar and carries it onto the centerline vertices.</li>
+<li>Vesselness method (dropdown): frangi (default) or sato; only active when Append vesselness is ticked.</li>
+<li>Result Graph title (text field): title for the output Graph; blank auto-names it (e.g. Centerlines of Aorta).</li>
+<li>Run (button): starts the centerline extraction.</li>
+<li>Open Output Folder (button): opens the last job&#x27;s folder.</li>
+</ul>
+<p>When Mode = auto, the Source/Target point-id fields are greyed out (disabled); only point_ids mode enables them. Likewise, Vesselness method is only enabled when Append vesselness is ticked.</p>
+<h2 id="6-usage-steps">6. Usage Steps</h2>
+<h2 id="6-1-first-time-environment-build">6.1 First-time environment build</h2>
+<p>1. Open Prototype Apps ▸ Vessel Centerlines (vmtk)... and go to the Setup tab.</p>
+<p>2. (Optional) If you do not want to use Dragonfly&#x27;s own Python, type a CPython 3.9+ path into Base Python (build).</p>
+<p>3. Click Setup Environment and wait for the log to show Environment ready. venv python: ... (a few minutes the first time; needs internet).</p>
+<h2 id="6-2-auto-endpoint-mode-most-common">6.2 Auto endpoint mode (most common)</h2>
+<p>1. Make sure the scene has a closed, triangulated tubular surface mesh.</p>
+<p>2. Go to the Centerlines tab, click Refresh, and pick the mesh in the Surface dropdown.</p>
+<p>3. Leave Mode on auto (vmtk auto-extracts endpoints).</p>
+<p>4. Tick Extract branches as needed (on by default); if centerlines hug the wall, try ticking Flip surface normals.</p>
+<p>5. (Optional) Enter a name in Result Graph title.</p>
+<p>6. Click Run; when finished, the result label shows Done. Published centerline Graph: V=... E=... Scalars: ....</p>
+<h2 id="6-3-manual-point-id-mode">6.3 Manual point-id mode</h2>
+<p>1. First determine, in Dragonfly, the surface point ids you want as sources/targets (e.g. vertices at the tube&#x27;s open ends).</p>
+<p>2. Switch Mode to point_ids; the two point-id fields become editable.</p>
+<p>3. Enter at least one source id in Source point ids (comma/space separated, e.g. 0, 128); optionally enter targets in Target point ids (blank = auto).</p>
+<p>4. Click Run. (If point_ids mode has no source id, the panel raises an error asking you to fill it in or switch back to auto.)</p>
+<p>Overall data flow: the panel exports the selected mesh to a temporary PLY → launches the runner subprocess inside the venv (with a config.json) → polls status.json → reads results.json → publishes the centerline network as a Graph.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>seed_mode (Mode)</td><td>auto</td><td>Endpoint/seed selection. auto = vmtk picks the two most distant surface points as source/target; point_ids = use the ids you type below.</td></tr><tr><td>source_point_ids</td><td>(empty)</td><td>Surface point ids used as centerline sources (comma/space separated). point_ids mode only. Blank = let vmtk auto-pick.</td></tr><tr><td>target_point_ids</td><td>(empty)</td><td>Surface point ids used as centerline targets (comma/space separated). point_ids mode only. Blank = let vmtk auto-pick.</td></tr><tr><td>flip_normals</td><td>false</td><td>Flip surface normals before computing centerlines. Use when the surface is inside-out and centerlines fail or hug the wall.</td></tr><tr><td>extract_branches</td><td>true</td><td>Run vmtkbranchextractor to split the network into branches and attach a per-point branch (group) id.</td></tr><tr><td>append_vesselness</td><td>false</td><td>Also compute a Frangi/Sato vesselness scalar and carry it onto the centerline vertices.</td></tr><tr><td>vesselness_method</td><td>frangi</td><td>Vesselness filter family, frangi or sato. Only used when append_vesselness is on.</td></tr></table></div>
+<p>Environment-related parameters (on the Setup tab):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>run_mode (Run mode)</td><td>windows</td><td>Run mode, windows / wsl.</td></tr><tr><td>job_root (Job root)</td><td>C:\VmtkJobs</td><td>Root folder for job folders.</td></tr><tr><td>base_python (Base Python)</td><td>(empty)</td><td>Empty = this Dragonfly&#x27;s own python.exe.</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>On success, the plugin publishes a new Graph object in Dragonfly representing the centerline network:</p>
+<ul>
+<li>Vertices: sample points along the centerline.</li>
+<li>Edges: the centerline segments (polyline connectivity).</li>
+<li>Per-vertex scalar slot 0 = MaximumInscribedSphereRadius (unit: length) — the local maximum inscribed-sphere radius. The Graph colours by this scalar by default.</li>
+<li>Optional BranchId: present when Extract branches is ticked — a per-vertex branch (group) id.</li>
+<li>Optional Vesselness: present when Append vesselness is ticked — a per-vertex Frangi/Sato vesselness value.</li>
+</ul>
+<h3 id="how-to-view-it">How to view it</h3>
+<ul>
+<li>The new Graph appears in Dragonfly&#x27;s object list, titled with your name or the auto name (e.g. Centerlines of Aorta).</li>
+<li>It can be displayed directly in a 3D view; because the current vertex scalar slot is set to radius, the Graph is automatically coloured by radius, making stenoses and dilations easy to spot.</li>
+<li>Switch the current scalar slot to colour by BranchId or Vesselness instead.</li>
+</ul>
+<p>Intermediate files (surface.ply, config.json, status.json, results.json) are kept in the job folder (default C:\VmtkJobs\vmtk_&lt;timestamp&gt;) and can be opened with the Open Output Folder button.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p>Q1: Run says “vmtk venv not set” — what do I do?</p>
+<p>A: The environment is not built yet. Go to the Setup tab, click Setup Environment, wait until the log shows Environment ready and the vmtk venv python field is auto-filled, then Run from the Centerlines tab.</p>
+<p>Q2: It says the selected mesh has “no faces” or that it needs a closed triangulated surface?</p>
+<p>A: Centerlines need a closed, faced triangle mesh. If your object is a point cloud or has no faces, first generate/repair a closed surface mesh in Dragonfly and retry.</p>
+<p>Q3: The result is empty or reports “no centerline points”?</p>
+<p>A: A common cause is wrong-facing surface normals (inside-out) or incomplete topology. Try ticking Flip surface normals and rerun; if it still fails, switch to point_ids mode and manually specify the surface point ids at the tube&#x27;s open ends as sources/targets.</p>
+<p>Q4: Setup Environment fails (e.g. pip tries to build vmtk from source)?</p>
+<p>A: vmtk only ships wheels for certain CPython versions (typically 3.7–3.10, Windows x86-64). If it tries to build from source, the current Python is unsupported; type a wheel-supported version into Base Python (build) (e.g. C:\Python310\python.exe) and retry. Also make sure PyPI is reachable.</p>
+<p>Q5: Why is Vesselness missing from my result?</p>
+<p>A: First confirm Append vesselness is ticked. That step is best-effort: it must voxelize the surface and run a Frangi/Sato filter, and if any intermediate step fails the log reports “vesselness skipped/failed” and the run continues to finish the centerlines (just without the vesselness scalar).</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li>The input must be a closed, triangulated surface mesh; point clouds or open surfaces with holes may not yield correct centerlines.</li>
+<li>This plugin uses only vmtk&#x27;s pure-BSD-3 centerline and vesselness paths; it does not use TetGen tetrahedral meshing (non-commercial restriction).</li>
+<li>Vesselness is a best-effort step; on failure it is skipped without aborting the centerline extraction.</li>
+<li>CPU only; the first Setup Environment needs internet to download wheels.</li>
+<li>Menus are discovered only at Dragonfly startup; every enable/disable change needs one restart.</li>
+<li>Multiple centerlines (multiple cells) are merged into one Graph; edges are generated from each polyline&#x27;s consecutive point pairs.</li>
+<li>In point_ids mode at least one source is required; point ids must be non-negative integers and are automatically de-duplicated and sorted.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>vmtk (Vascular Modeling Toolkit) website: http://www.vmtk.org/</li>
+<li>vmtk source repository: https://github.com/vmtk/vmtk</li>
+<li>VTK (Visualization Toolkit): https://vtk.org/</li>
+<li>Full Package overview manual: UserManual_用户手册.docx in the zip root, covering both Prototype Labs and all Prototype Apps.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>vmtk-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

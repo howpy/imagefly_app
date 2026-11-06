@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LocateAnything · Dragonfly Prototype Apps</title>
+<meta name="description" content="LocateAnything - User Manual Dragonfly Prototype Apps · LocateAnything... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Typical Use Cases…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">LocateAnything</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · LocateAnything...</div>
+    <h1>LocateAnything</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-typical-use-cases">2. Typical Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-time-setup">4. Runtime Environment &amp; First-Time Setup</a></li><li class="t3"><a href="#4-1-what-setup-environment-does">4.1 What &quot;Setup Environment&quot; does</a></li><li class="t3"><a href="#4-2-downloading-the-model-weights-one-time">4.2 Downloading the model weights (one-time)</a></li><li class="t3"><a href="#4-3-where-things-live">4.3 Where things live</a></li><li class="t3"><a href="#4-4-if-something-fails">4.4 If something fails</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#5-1-environment-model">5.1 Environment &amp; Model</a></li><li class="t3"><a href="#5-2-input-slice-rgb-composite-from-3-grayscale-channels">5.2 Input Slice (RGB composite from 3 grayscale channels)</a></li><li class="t3"><a href="#5-3-prompt">5.3 Prompt</a></li><li class="t3"><a href="#5-4-output">5.4 Output</a></li><li class="t3"><a href="#5-5-right-column-run-log">5.5 Right column: run &amp; log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>LocateAnything - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · LocateAnything...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p>LocateAnything is an object-localization (visual grounding) plugin in Dragonfly&#x27;s <strong>Prototype Apps</strong> menu. You simply type what you are looking for (e.g. &quot;pores&quot;, &quot;cracks&quot;, &quot;cells&quot;) and the plugin locates all matching objects on a chosen 2D slice of your image. The detections come back into Dragonfly as a <strong>MultiROI</strong> — one labeled rectangular region per detected object — plus best-effort text annotation labels, and an overlay.png with the detection boxes drawn on the input is saved in the job folder for a quick visual check.</p>
+<p>The underlying engine is the NVIDIA <strong>LocateAnything-3B</strong> vision-language grounding model, loaded through the Hugging Face transformers library (pinned to <strong>4.57.1</strong>) with CUDA PyTorch running on your local NVIDIA GPU. Inference runs entirely in the plugin&#x27;s own dedicated Python virtual environment (venv) as a subprocess, exchanging data with Dragonfly via JSON files — <strong>nothing is ever installed into Dragonfly&#x27;s own Python</strong>.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>Note that LocateAnything is a *localization* model, not a segmentation model: it returns candidate regions (boxes) or points, not per-pixel masks. The resulting MultiROI is intended as a starting point for further segmentation, measurement, or annotation.</p>
+<p>Licensing: the plugin code ships with the Prototype Apps Full Package. The LocateAnything-3B weights are published by NVIDIA on Hugging Face (nvidia/LocateAnything-3B) under an NVIDIA <strong>non-commercial license</strong>; the download requires no account or token, but please read and respect the license terms, especially for commercial use. Dependencies (transformers, PyTorch, ...) carry their own open-source licenses.</p>
+<p>The model was trained on natural photographs (scenes, documents, GUIs, ...). Grounding on grayscale CT/microscopy data is experimental — results may be weak or empty. Always check the overlay.png.</p>
+<h2 id="2-typical-use-cases">2. Typical Use Cases</h2>
+<p>LocateAnything is useful whenever you want to quickly locate candidate features <strong>without training any model</strong>: if you can name the target with a noun, you can get candidate regions immediately. Typical scenarios:</p>
+<ul>
+<li>Materials science and industrial CT: finding pores, cracks, or inclusions in slices as defect candidates.</li>
+<li>Life-science microscopy: spotting cells or stained structures; up to three grayscale channels can be composited into one false-color image for the model (e.g. multi-channel fluorescence data).</li>
+<li>Pre-selection before detailed segmentation: outline regions of interest from a text prompt, then segment, measure, or annotate those regions precisely.</li>
+<li>Quick surveys: on an unfamiliar dataset, try a few candidate nouns to get a rough idea of where targets are.</li>
+</ul>
+<p>Because the training data are natural photographs, the model&#x27;s performance on grayscale scientific images is exactly what this plugin lets you evaluate: weak or empty results are themselves useful information, not necessarily a usage error.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin installs via the <strong>Prototype Apps Full Package</strong>:</p>
+<p><strong>1. </strong>Unzip the Full Package anywhere (prefer a short path such as C:\PL\) and double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>2. </strong>In the installer dialog, tick <strong>LocateAnything</strong> (all plugins are <strong>unticked by default</strong>). Either core mode (Fresh or Compatible) is fine — it only affects the Prototype Labs core blocks &amp; recipes, never any plugin&#x27;s environment or settings.</p>
+<p><strong>3. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>4. </strong>Quit Dragonfly completely and <strong>restart</strong> it.</p>
+<p><strong>5. </strong>After the restart, <strong>Prototype Apps ▸ LocateAnything...</strong> appears in the menu bar (in the Detection group). Clicking it opens a dockable floating panel.</p>
+<p>To enable/disable later: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> inside Dragonfly — the &quot;Prototype Apps (Full Package)&quot; list at the bottom has a checkbox per app; tick = deploy, untick = remove the menu entry, then restart Dragonfly. Disabling <strong>never</strong> deletes the plugin&#x27;s built venv — re-enabling is instant. You can also re-run the installer anytime (even after deleting the zip: %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat); your previous choices are the new defaults.</p>
+<p>Updating: when re-running the installer, keep &quot;Update already-installed plugin code&quot; ticked (the default) — the plugin&#x27;s code is refreshed while its venv, saved settings, and job folders are preserved. Uninstalling: double-click Uninstall_FullPackage.bat; it removes all Full-Package menu items and plugins but keeps every plugin environment (the paths are listed at the end so you can delete them manually to reclaim disk space).</p>
+<p>Dragonfly scans its menus only at startup — every enable/disable/install/uninstall change needs one Dragonfly restart.</p>
+<h2 id="4-runtime-environment-first-time-setup">4. Runtime Environment &amp; First-Time Setup</h2>
+<p>Requirements:</p>
+<ul>
+<li>An NVIDIA GPU with a recent driver (RTX 3080 / Ampere or newer recommended; <strong>8 GB+ VRAM</strong> recommended).</li>
+<li>Internet access: the one-time environment setup downloads packages from the PyTorch and PyPI indexes, and the model weights are downloaded from Hugging Face. Inference itself runs locally and offline.</li>
+<li>Disk space: a few GB for the venv, plus about 6 GB for the model weights.</li>
+<li><strong>No separate Python install needed</strong>: the environment is built from Dragonfly&#x27;s own bundled Python by default.</li>
+</ul>
+<h3 id="4-1-what-setup-environment-does">4.1 What &quot;Setup Environment&quot; does</h3>
+<p>On first use, click <strong>Setup Environment (build venv + install)</strong> on the left side of the panel (one-time, roughly 5-15 minutes and a few GB of downloads). It performs, in order:</p>
+<p><strong>1. </strong>Creates the virtual environment venv inside the plugin&#x27;s code folder (%LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\LocateAnything\venv). The base interpreter defaults to <strong>this Dragonfly&#x27;s own python.exe</strong>, so versions always match; the &quot;Base Python (build)&quot; field overrides this.</p>
+<p><strong>2. </strong>Upgrades pip / setuptools / wheel inside the venv.</p>
+<p><strong>3. </strong>Installs CUDA torch + torchvision from the &quot;Torch CUDA wheel index&quot; (default https://download.pytorch.org/whl/cu124).</p>
+<p><strong>4. </strong>Installs the remaining stack: transformers==4.57.1, accelerate, safetensors, einops, sentencepiece, pillow, opencv-python-headless, timm, peft, lmdb, decord, numpy, etc.</p>
+<p><strong>5. </strong>Runs a smoke test: imports torch and transformers in the venv and reports CUDA availability and the GPU name in the log (SMOKE=... line).</p>
+<p><strong>6. </strong>On success, the &quot;Inference venv python&quot; field is filled in automatically and saved — you never need to repeat this step.</p>
+<h3 id="4-2-downloading-the-model-weights-one-time">4.2 Downloading the model weights (one-time)</h3>
+<p>The weights are not shipped with the plugin; download them once (about 6 GB, no login or token needed). In a <strong>normal command prompt</strong> (not inside Dragonfly), use the venv&#x27;s own tool:</p>
+<p>&lt;venv&gt;\Scripts\huggingface-cli download nvidia/LocateAnything-3B --local-dir C:\models\LocateAnything-3B</p>
+<p>Here &lt;venv&gt; is the environment created in the previous step (%LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\LocateAnything\venv). When the download finishes, point the panel&#x27;s <strong>Model folder</strong> at the folder that <strong>directly contains `config.json`</strong> (e.g. C:\models\LocateAnything-3B).</p>
+<p>Keep the weights <strong>outside</strong> the Dragonfly folders (e.g. C:\models\LocateAnything-3B): a path containing the word &quot;Dragonfly&quot; can confuse transformers&#x27; model-type guesser if the config file is ever unreadable, and files stored inside the plugin folder would be deleted together with the plugin on uninstall.</p>
+<h3 id="4-3-where-things-live">4.3 Where things live</h3>
+<ul>
+<li>Inference venv: venv\ inside the plugin&#x27;s code folder (see 4.1).</li>
+<li>Job output: C:\LocateJobs by default (configurable via Job root); each run creates a loc_&lt;date_time&gt; subfolder.</li>
+<li>Saved settings: locateanything_config.json next to the plugin code, plus %LOCALAPPDATA%\LocateAnything\config.json (the latter wins and survives plugin re-installs).</li>
+</ul>
+<h3 id="4-4-if-something-fails">4.4 If something fails</h3>
+<ul>
+<li>torch install fails: check your internet connection, and make sure the CUDA wheel index (default cu124) matches your GPU driver; switch the index URL to another CUDA build (e.g. cu121) and retry.</li>
+<li>venv creation fails: point &quot;Base Python (build)&quot; at any CPython 3.9+ on your machine (e.g. C:\Python312\python.exe, or a command like py -3.12) and retry. Re-running Setup automatically detects a half-built venv (python present but pip broken) and rebuilds it.</li>
+<li>The model will not load on Windows: switch <strong>Run mode</strong> to wsl (an experimental fallback for advanced users; you must provide a WSL distro with a Linux-side Python environment yourself).</li>
+</ul>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel has a two-column layout with a draggable splitter. The <strong>left column</strong> holds all configuration (with its own scrollbar), grouped top-to-bottom into Environment &amp; Model, Input Slice, Prompt, and Output. The <strong>right column</strong> holds the run buttons, the result line, and the log. A blue note at the top reminds you of the model&#x27;s experimental nature on scientific images.</p>
+<h3 id="5-1-environment-model">5.1 Environment &amp; Model</h3>
+<ul>
+<li><strong>Model folder</strong>: the local LocateAnything-3B weights folder (must directly contain config.json). The &quot;…&quot; button opens a folder picker; the choice is saved immediately and remembered across restarts.</li>
+<li><strong>Inference venv python</strong>: path to the inference venv&#x27;s python.exe. Filled in automatically by a successful Setup Environment; normally never edited by hand.</li>
+<li><strong>Base Python (build)</strong>: the base interpreter used only for *building* the venv. Blank = this Dragonfly&#x27;s own python.exe (recommended); or a full path to a python.exe, or a command like py -3.12.</li>
+<li><strong>Run mode</strong>: windows (default) or wsl (experimental fallback, see 4.4).</li>
+<li><strong>Torch CUDA wheel index</strong>: pip index used to install torch, default https://download.pytorch.org/whl/cu124.</li>
+<li><strong>Job root</strong>: root folder for job output, default C:\LocateJobs.</li>
+<li><strong>Setup Environment (build venv + install)</strong> button: one-time environment build (see 4.1).</li>
+</ul>
+<h3 id="5-2-input-slice-rgb-composite-from-3-grayscale-channels">5.2 Input Slice (RGB composite from 3 grayscale channels)</h3>
+<ul>
+<li><strong>Red channel</strong> + <strong>Refresh</strong> button: Red is the <strong>primary</strong> channel — it drives the geometry and slice range, and the results are published on its grid. Refresh re-scans all Channels in the current project.</li>
+<li>After picking Red, the panel auto-fills Green/Blue with same-named sibling channels (e.g. &quot;Red Ab_06&quot; auto-fills &quot;Green Ab_06&quot; / &quot;Blue Ab_06&quot;; &quot;food_R&quot; matches &quot;food_G&quot;; &quot;ch_red&quot; matches &quot;ch_green&quot;).</li>
+<li><strong>Green channel / Blue channel</strong>: editable; choose &quot;(none)&quot; to fill that color plane with zeros. The three grayscale channels are composited into one false-color RGB image for the model; for plain grayscale data simply select the same channel in all three (or leave the auto-fill).</li>
+<li><strong>Orientation</strong>: slice plane, XY / XZ / YZ, default XY.</li>
+<li><strong>Slice index</strong>: slice number. The range follows the Red channel&#x27;s shape and the orientation; on first populate it jumps to the middle slice.</li>
+<li><strong>Intensity window</strong>: gray-window lo / hi. Leave blank (&quot;auto&quot;) for automatic windowing; manual values only take effect when both are filled and hi &gt; lo.</li>
+<li><strong>Max image size (px)</strong>: cap on the exported image&#x27;s longest side, range 256-4096, step 128, default <strong>1024</strong>. Larger slices are downscaled proportionally before being sent to the model.</li>
+</ul>
+<h3 id="5-3-prompt">5.3 Prompt</h3>
+<ul>
+<li><strong>Task</strong>: detect / ground / ground_multi / point / detect_text, default detect. The task selects the prompt template sent to the model (e.g. detect maps to &quot;Locate all instances matching: &lt;prompt&gt;&quot;); point returns points instead of boxes; detect_text detects text in the image and needs no prompt.</li>
+<li><strong>Prompt</strong>: the object/category to find. Use a <strong>noun</strong> (e.g. pores, cracks, cells), not a command — the templates already contain the &quot;Locate all ...&quot; verb, so typing &quot;locate all pores&quot; produces a doubled-verb sentence. The code default is pores; the panel remembers your last saved value.</li>
+<li><strong>Max new tokens</strong>: generation cap for the model, range 64-8192, step 64, default <strong>1024</strong>. Increase it when many objects are expected.</li>
+</ul>
+<h3 id="5-4-output">5.4 Output</h3>
+<ul>
+<li><strong>Create MultiROI (one labeled ROI per detection)</strong>: checked by default. Imports each detection as one labeled region in a MultiROI.</li>
+<li><strong>Add annotation labels (best-effort)</strong>: checked by default. Adds a text annotation per detection when the running Dragonfly version provides the annotation interface; otherwise it is skipped with a log message, without affecting the MultiROI.</li>
+<li><strong>Save overlay.png (boxes drawn on the input)</strong>: checked by default. Saves the overlay image into the job folder.</li>
+</ul>
+<h3 id="5-5-right-column-run-log">5.5 Right column: run &amp; log</h3>
+<ul>
+<li><strong>Run LocateAnything</strong> (blue button): starts a run. All current settings are saved before the run.</li>
+<li><strong>Open Output Folder</strong>: opens the most recent job folder in Explorer (or the Job root if nothing has run yet).</li>
+<li>Result line: after completion shows &quot;Done. N detection(s)...&quot; with the MultiROI label count, annotation count, and overlay file name; on failure it shows the error.</li>
+<li><strong>Log</strong>: the full progress log (slice export, venv build output, inference progress, warnings and errors).</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>Prerequisites: the plugin is installed and enabled (Chapter 3), and Setup Environment plus the one-time weights download are done (Chapter 4).</p>
+<p><strong>1. </strong>Load your image data (a Channel) in Dragonfly.</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ LocateAnything...</strong>.</p>
+<p><strong>3. </strong>Confirm that <strong>Model folder</strong> (pointing at the folder containing config.json) and <strong>Inference venv python</strong> (auto-filled by Setup) are both set.</p>
+<p><strong>4. </strong>Click <strong>Refresh</strong> and pick the <strong>Red channel</strong> to analyze. Plain grayscale data: Green/Blue follow automatically, or select the same channel / &quot;(none)&quot; manually; multi-channel color data: pick the three channels to composite a false-color image.</p>
+<p><strong>5. </strong>Choose the <strong>Orientation</strong> (XY/XZ/YZ) and the <strong>Slice index</strong> (it defaults to the middle slice). Optionally set the Intensity window, or leave it on auto.</p>
+<p><strong>6. </strong>Pick a <strong>Task</strong> (usually detect) and type a noun-style <strong>Prompt</strong>, e.g. pores.</p>
+<p><strong>7. </strong>Tick the output options you want, then click <strong>Run LocateAnything</strong>.</p>
+<p><strong>8. </strong>Watch the log on the right: slice export, then the inference subprocess starts (loading the model takes a while, especially the first time), then the number of detections is reported.</p>
+<p><strong>9. </strong>When it finishes: the result line shows &quot;Done. N detection(s)...&quot;. Find the new MultiROI (named LocateAnything: &lt;prompt&gt;) in Dragonfly&#x27;s object list and overlay it on the view; click <strong>Open Output Folder</strong> to inspect overlay.png.</p>
+<p><strong>10. </strong>If you get 0 detections or only whole-image boxes: try a shorter noun prompt, the point task, a slice with clearer structures, or a manual intensity window, then run again (the log prints the same tips).</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Model folder</td><td>(empty)</td><td>Local LocateAnything-3B weights folder; must directly contain config.json; saved as soon as picked</td></tr><tr><td>Inference venv python</td><td>(empty; filled by Setup)</td><td>Path to the inference venv&#x27;s python.exe; runs are refused while unset</td></tr><tr><td>Base Python (build)</td><td>(empty = Dragonfly&#x27;s own python)</td><td>Used only when building the venv; a python.exe path or a command such as py -3.12</td></tr><tr><td>Run mode</td><td>windows</td><td>windows / wsl; wsl is an experimental fallback for advanced users</td></tr><tr><td>Torch CUDA wheel index</td><td>https://download.pytorch.org/whl/cu124</td><td>pip index for the torch install; must match your GPU driver&#x27;s CUDA level</td></tr><tr><td>Job root</td><td>C:\LocateJobs</td><td>Root output folder; each run creates a loc_&lt;date_time&gt; subfolder</td></tr><tr><td>Red channel</td><td>(pick on first use)</td><td>Primary channel: drives geometry, slice range, and where results are published</td></tr><tr><td>Green / Blue channel</td><td>auto-matched by name</td><td>Editable; (none) = that color plane is zero</td></tr><tr><td>Orientation</td><td>XY</td><td>Slice plane: XY / XZ / YZ</td></tr><tr><td>Slice index</td><td>middle slice</td><td>0 to N-1; range follows the channel shape and orientation</td></tr><tr><td>Intensity window (lo/hi)</td><td>auto (blank)</td><td>Gray window; effective only when both values are set and hi &gt; lo</td></tr><tr><td>Max image size (px)</td><td>1024</td><td>Cap on the exported image&#x27;s longest side; range 256-4096, step 128</td></tr><tr><td>Task</td><td>detect</td><td>detect / ground / ground_multi / point / detect_text; detect_text needs no prompt</td></tr><tr><td>Prompt</td><td>pores</td><td>Object/category to find; a noun, not a command; last saved value is remembered</td></tr><tr><td>Max new tokens</td><td>1024</td><td>Generation cap; range 64-8192, step 64</td></tr><tr><td>Create MultiROI</td><td>checked</td><td>Import each detection as one labeled ROI</td></tr><tr><td>Add annotation labels</td><td>checked</td><td>Best-effort text annotations; skipped if the interface is unavailable</td></tr><tr><td>Save overlay.png</td><td>checked</td><td>Save the boxed overlay image into the job folder</td></tr></table></div>
+<p>All settings are saved automatically on every run, on every environment setup, when the model folder is picked, and when the panel closes — they are restored after a Dragonfly restart.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful run produces the following, inside Dragonfly and in the job folder:</p>
+<ul>
+<li><strong>MultiROI</strong>: named LocateAnything: &lt;first 40 chars of the prompt&gt;, published on the Red channel&#x27;s grid; one label per detected object, drawn as a rectangular region on the chosen slice. Tick it in the object list to overlay it, and use it directly for further segmentation, measurement, or statistics.</li>
+<li><strong>Annotation labels</strong>: one per detection, titled &lt;MultiROI name&gt; (det); created only when the running Dragonfly version provides the annotation interface (otherwise skipped with a log message).</li>
+<li><strong>Job folder</strong> C:\LocateJobs\loc_&lt;date_time&gt;\: input.npy (the exported slice), export.json (geometry / inverse-transform record for traceability), config.json (the full config sent to the runner), results.json (detection details: box/point type, label, normalized + pixel coordinates, the raw model answer, timing and VRAM usage), status.json (run state), and overlay.png (the boxed overlay image).</li>
+</ul>
+<p>To view the results: click <strong>Open Output Folder</strong> and double-click overlay.png for a quick sanity check of the box positions; the MultiROI is viewed and edited in Dragonfly like any other ROI object.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: &quot;LocateAnything...&quot; does not appear in the menu?</strong></p>
+<p>A: The plugin was not ticked during the Full Package install (plugins are unticked by default), or Dragonfly was not restarted after a change. Tick it in Developer ▸ Prototype Labs... ▸ Menu Item Manager and restart.</p>
+<p><strong>Q: Setup Environment fails (torch install error)?</strong></p>
+<p>A: Check your internet connection first; then make sure the &quot;Torch CUDA wheel index&quot; (default cu124) matches your GPU driver, switching to another CUDA build (e.g. cu121) if needed. If the venv creation itself fails, point &quot;Base Python (build)&quot; at another CPython 3.9+ and retry. Re-running Setup detects a half-built venv (python present, pip broken) and rebuilds it automatically.</p>
+<p><strong>Q: Run says &quot;Inference venv not set. Click &#x27;Setup Environment&#x27; first.&quot;?</strong></p>
+<p>A: The inference environment has not been built yet. Click <strong>Setup Environment</strong> once; on success the &quot;Inference venv python&quot; field is filled automatically.</p>
+<p><strong>Q: Error &quot;Model folder ... has no config.json&quot;?</strong></p>
+<p>A: The Model folder points at the wrong level, or the weights download is incomplete. It must point at the folder that <strong>directly contains `config.json`</strong> (e.g. C:\models\LocateAnything-3B), not its parent.</p>
+<p><strong>Q: The run fails with CUDA unavailable or out of memory (no_cuda / cuda_oom)?</strong></p>
+<p>A: Verify you have an NVIDIA GPU with a recent driver; close other VRAM-hungry applications; reduce <strong>Max image size</strong> and retry. 8 GB+ VRAM is recommended.</p>
+<p><strong>Q: Zero detections, or only one or two boxes covering the whole image?</strong></p>
+<p>A: The model did not actually localize anything (the log prints a corresponding note). Use a <strong>short noun</strong> as the prompt (e.g. pores, not a command like &quot;locate all pores&quot;); try the point task; pick a slice with clearer structures; or set a manual intensity window. Grayscale CT/microscopy is outside the model&#x27;s training distribution, so weak results are expected behavior, not necessarily a fault.</p>
+<p><strong>Q: Every run has a long wait before results appear?</strong></p>
+<p>A: Each run launches a fresh inference subprocess and loads the ~6 GB model into GPU memory, so the loading phase dominates — this is normal; the log shows live progress.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>The model was trained on natural images; use on grayscale CT/microscopy is <strong>experimental</strong>. Judge quality from overlay.png; empty results are valid data, not necessarily a bug.</li>
+<li>Localization is not segmentation: outputs are boxes or points, not per-pixel masks; each MultiROI label is a rectangle painted on the chosen slice.</li>
+<li>Only <strong>one 2D slice</strong> is processed per run; there is no 3D whole-volume sweep yet.</li>
+<li>The confidence field of a detection may be empty (the model does not always output one).</li>
+<li>The model weights carry an NVIDIA <strong>non-commercial license</strong>; verify the licensing yourself before commercial use.</li>
+<li>Internet is needed only for the environment build and the weights download; inference runs locally and offline.</li>
+<li>The wsl run mode is an experimental fallback for advanced users and requires a self-prepared WSL distro with a Linux-side environment.</li>
+<li>Do not place the weights folder under a path containing the word &quot;Dragonfly&quot;, and do not place it inside the plugin folder (see 4.2).</li>
+<li>Disabling the plugin in the Menu Item Manager never deletes its environment; the Full Package uninstaller also keeps plugin environments (venv, downloads) and lists their paths for manual cleanup.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Model weights and model card: nvidia/LocateAnything-3B on Hugging Face (includes the license and recommended usage).</li>
+<li>The NVIDIA &quot;LocateAnything&quot; project page (the model&#x27;s official description).</li>
+<li>Inference stack: Hugging Face Transformers (pinned to 4.57.1 by this plugin) and PyTorch (CUDA build, default cu124 wheel index).</li>
+<li>The Prototype Apps Full Package README: complete instructions for installing, enabling/disabling (Menu Item Manager), uninstalling, and the &quot;path too long&quot; issue.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>LocateAnything-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

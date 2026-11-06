@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Train/Infer Cellpose on Cloud Server · Dragonfly Prototype Apps</title>
+<meta name="description" content="Train/Infer Cellpose on Cloud Server - User Manual Dragonfly Prototype Apps · Train/Infer Cellpose on Cloud Server... Version 1.4 · 2026-07-19 English Manu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Train/Infer Cellpose on Cloud Server</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Train/Infer Cellpose on Cloud Server...</div>
+    <h1>Train/Infer Cellpose on Cloud Server</h1>
+    <div class="meta"><span class="badge">Version 1.4 · 2026-07-19</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-cloud-servers-modes">2. Cloud servers &amp; modes</a></li><li class="t2"><a href="#3-accounts-credentials-setup-required-for-auto">3. Accounts &amp; credentials setup (required for Auto)</a></li><li class="t3"><a href="#google-colab-auto-oauth-setup">Google Colab (Auto) — OAuth setup</a></li><li class="t3"><a href="#kaggle-auto-api-token-setup">Kaggle (Auto) — API token setup</a></li><li class="t3"><a href="#baidu-ai-studio-alibaba-modelscope-manual-only">Baidu AI Studio / Alibaba ModelScope (Manual only)</a></li><li class="t3"><a href="#one-time-environment-setup-cloud-transfer">One-time environment (Setup Cloud Transfer)</a></li><li class="t2"><a href="#4-remote-dragonfly-server-the-5th-option">4. Remote Dragonfly Server (the 5th option)</a></li><li class="t3"><a href="#step-1-start-the-tcp-server-on-the-server-machine">Step 1 — start the TCP server on the SERVER machine</a></li><li class="t3"><a href="#step-2-connect-and-run-from-this-plugin">Step 2 — connect and run from this plugin</a></li><li class="t2"><a href="#5-installation">5. Installation</a></li><li class="t2"><a href="#6-usage-train-left-column">6. Usage: Train (left column)</a></li><li class="t2"><a href="#7-usage-infer-right-column">7. Usage: Infer (right column)</a></li><li class="t2"><a href="#8-troubleshooting">8. Troubleshooting</a></li><li class="t2"><a href="#9-requirements-notes">9. Requirements &amp; notes</a></li></ul></nav>
+  <main class="manual"><p><strong>Train/Infer Cellpose on Cloud Server - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Train/Infer Cellpose on Cloud Server...</p>
+<p>Version 1.4 · 2026-07-19</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>This plugin runs both Cellpose <strong>training</strong> and <strong>inference</strong> on a <strong>cloud server&#x27;s free GPU</strong>, with the same <strong>Train (left) | Infer (right)</strong> two-column layout as the built-in Cellpose plugin plus a <strong>Cloud server</strong> dropdown. Use it when the PC has no discrete GPU (or one too small for Cellpose-SAM): the PC only reads data and publishes results while the GPU-heavy compute runs in the cloud.</p>
+<p>Why there is a browser step: free cloud notebooks have no public headless &quot;run&quot; API, so the GPU work always runs in a browser tab where you click Run all. The plugin generates that notebook and automates everything around it.</p>
+<h2 id="2-cloud-servers-modes">2. Cloud servers &amp; modes</h2>
+<p>The top dropdown picks one of five hosts; a <strong>Mode</strong> toggle chooses <strong>Auto</strong> or <strong>Manual</strong>:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Host</th><th>Auto</th><th>Manual</th><th>Credentials</th></tr><tr><td>Google Colab</td><td>Yes</td><td>Yes</td><td>OAuth client_secret.json or service_account.json</td></tr><tr><td>Kaggle</td><td>Yes</td><td>Yes</td><td>kaggle.json file, or a KGAT_ token + username</td></tr><tr><td>Baidu AI Studio</td><td>-</td><td>Yes</td><td>none (Manual)</td></tr><tr><td>Alibaba ModelScope</td><td>-</td><td>Yes</td><td>none (Manual)</td></tr><tr><td>Remote Dragonfly Server (via Prototype Apps)</td><td>Yes</td><td>-</td><td>server IP + port (+ token)</td></tr></table></div>
+<ul>
+<li><strong>Manual (the four notebook hosts):</strong> the plugin exports input.zip + a host-tailored notebook; you upload/run/download output.zip in the browser and load it back. <strong>No account API or setup.</strong></li>
+<li><strong>Auto (Colab, Kaggle and Remote Dragonfly Server):</strong> the plugin uploads the data, runs the compute and downloads the result. Colab/Kaggle need a one-time account/credentials setup (next section); the Remote Dragonfly Server only needs a server IP/port/token (see its section).</li>
+<li><strong>Remote Dragonfly Server:</strong> connect to another machine (or this one) running the Prototype Labs TCP server and run training/inference on <strong>that machine&#x27;s GPU</strong>. It uses the server&#x27;s own Dragonfly Python (cellpose + torch already bundled), so there is <strong>no notebook, no venv, no pip install</strong> and <strong>no Google/Kaggle account or VPN</strong>. Auto-only.</li>
+</ul>
+<h2 id="3-accounts-credentials-setup-required-for-auto">3. Accounts &amp; credentials setup (required for Auto)</h2>
+<p><strong>Manual mode needs no credentials — skip this section.</strong> Auto mode (Colab / Kaggle) needs the accounts, API tokens and permissions set up once, as below.</p>
+<h3 id="google-colab-auto-oauth-setup">Google Colab (Auto) — OAuth setup</h3>
+<p>You need a Google account. An OAuth client lets the plugin use <strong>your own</strong> Google Drive as the transfer bus.</p>
+<p>1. Open the <strong>Google Cloud Console</strong> (console.cloud.google.com) and create/select a project.</p>
+<p>2. Enable the <strong>Google Drive API</strong> under <strong>APIs &amp; Services ▸ Library</strong>.</p>
+<p>3. Configure the <strong>OAuth consent screen</strong> (newer console: <strong>Google Auth Platform ▸ Audience</strong>): User type = <strong>External</strong>; fill in the app name and support email.</p>
+<p>4. Under <strong>Test users</strong>, <strong>add your own Gmail</strong> — this step is mandatory, otherwise sign-in is blocked with Access blocked … / Error 403: access_denied.</p>
+<p>5. Under <strong>Credentials ▸ Create credentials ▸ OAuth client ID</strong>, choose application type <strong>Desktop app</strong>, then <strong>download client_secret.json</strong>.</p>
+<p>6. In the plugin&#x27;s <strong>Google credentials</strong> field, click … and select that client_secret.json (it should show detected: Google OAuth client).</p>
+<p>7. The first <strong>Train/Infer on Google Colab</strong> opens a browser sign-in: sign in with your (test-user) account → Google hasn&#x27;t verified this app → click <strong>Advanced ▸ Go to &lt;app&gt; (unsafe)</strong> → <strong>Allow</strong> Google Drive access. The token is cached, so you only do this once.</p>
+<p><strong>Share with (email)</strong> is unused in OAuth mode — leave it blank (it&#x27;s only for the service-account path). A <strong>service_account.json</strong> also works, but is NOT recommended for a personal Gmail: service accounts have no personal Drive storage quota, so uploads fail unless you use a Google Workspace Shared Drive.</p>
+<h3 id="kaggle-auto-api-token-setup">Kaggle (Auto) — API token setup</h3>
+<p>1. You need a Kaggle account with <strong>Phone Verification</strong> done (kaggle.com ▸ Settings ▸ Phone Verification) — otherwise you cannot enable GPU or Internet.</p>
+<p>2. Get credentials (either): <strong>(1) kaggle.json (recommended)</strong> — Settings ▸ API ▸ <strong>Create New Token / Create Legacy API Key</strong>, download kaggle.json (username+key), and select it in the plugin&#x27;s <strong>Kaggle token</strong> field via …; <strong>(2) the new KGAT token</strong> — Settings ▸ API ▸ Generate new token, copy the KGAT_… string into <strong>Kaggle token</strong>, and put your Kaggle username in <strong>Kaggle username</strong>.</p>
+<p><strong>Important GPU note:</strong> the kernel the plugin auto-pushes via the Kaggle API defaults to a <strong>P100</strong> (the API can&#x27;t request T4), and current PyTorch no longer supports the P100, so the notebook <strong>falls back to CPU (slow)</strong>. For GPU speed, open the pushed kernel → <strong>Session options ▸ Accelerator = GPU T4 x2 → Save Version</strong>; or just use <strong>Google Colab</strong> (always a T4, the smoothest option).</p>
+<h3 id="baidu-ai-studio-alibaba-modelscope-manual-only">Baidu AI Studio / Alibaba ModelScope (Manual only)</h3>
+<p>Only an account is needed — <strong>no API token</strong>. These two are Manual-only: the plugin exports input.zip + a notebook; you upload input.zip into their web notebook&#x27;s working dir, run it, download output.zip, then load it back with the Load… buttons. Both are reachable in mainland China where Colab may be blocked/slow.</p>
+<h3 id="one-time-environment-setup-cloud-transfer">One-time environment (Setup Cloud Transfer)</h3>
+<p>Auto mode (Colab/Kaggle) needs a one-time <strong>Setup Cloud Transfer</strong>: it builds a tiny venv from Dragonfly&#x27;s own Python holding only the Google Drive + Kaggle clients (no torch, a few MB). Manual mode and the Remote Dragonfly Server need no venv.</p>
+<h2 id="4-remote-dragonfly-server-the-5th-option">4. Remote Dragonfly Server (the 5th option)</h2>
+<p>With <strong>Remote Dragonfly Server (via Prototype Apps)</strong> selected, the plugin connects over <strong>TCP</strong> to another machine (or this one) that is running the Prototype Labs server inside Dragonfly, and runs Cellpose training/inference <strong>on that machine</strong>: your data (images + labels) is uploaded to the server → training/inference runs on the server&#x27;s own Dragonfly Python (cellpose + torch already bundled, using its GPU) → the trained model / result MultiROI is downloaded back and published locally. <strong>No notebook, no venv, no pip install, and no cloud account or VPN.</strong> Ideal for a team with one GPU box to share.</p>
+<h3 id="step-1-start-the-tcp-server-on-the-server-machine">Step 1 — start the TCP server on the SERVER machine</h3>
+<p>1. On the machine that will act as the server, open Dragonfly (it must have Prototype Apps / Prototype Labs installed).</p>
+<p>2. Open <strong>Prototype Apps ▸ Server Management...</strong> and click <strong>Start</strong> on the <strong>TCP server</strong> row. By default it binds 127.0.0.1:54321 (this machine only).</p>
+<p>3. <strong>To connect from another machine (LAN / VPN / Tailscale):</strong> in Server Management set the <strong>TCP server bind</strong> dropdown to that machine&#x27;s IP — it auto-lists this machine&#x27;s Tailscale 100.64.x and LAN IPs (or pick 0.0.0.0 for all interfaces) — then click <strong>Start</strong>. No environment variable or restart needed (if a server is already running, Stop then Start to re-bind). A non-loopback bind <strong>requires</strong> a token: click <strong>Manage Access Tokens…</strong> and Generate one first (or set DF_SERVER_TOKEN). Allow inbound TCP 54321 through the firewall. Note the IP, port (default 54321) and token.</p>
+<p>4. <strong>Per-user tokens (recommended):</strong> besides the shared DF_SERVER_TOKEN master token, you can give each person / terminal its own token in <strong>Server Management ▸ Access Tokens</strong> (only a hash is stored; the full token is shown once), and enable / disable / delete each independently. Each user puts their own token in the plugin&#x27;s <strong>Token</strong> field.</p>
+<p>5. Make sure that port is allowed through the server machine&#x27;s firewall.</p>
+<h3 id="step-2-connect-and-run-from-this-plugin">Step 2 — connect and run from this plugin</h3>
+<p>1. Set <strong>Cloud server</strong> to <strong>Remote Dragonfly Server (via Prototype Apps)</strong> (the mode locks to Auto).</p>
+<p>2. In the <strong>Remote server</strong> row, enter the server&#x27;s <strong>IP</strong> and <strong>Port</strong>; if the server was started with a token, put the same secret in <strong>Token</strong> (leave blank for localhost).</p>
+<p>3. Click <strong>Test connection</strong> to verify (it reports the server pid / whether it is inside Dragonfly / the port).</p>
+<p>4. Then use the Train (left) / Infer (right) columns as usual and click <strong>Train on the remote server</strong> / <strong>Infer on the remote server → publish</strong>; upload, execution and download are all automatic.</p>
+<p>Key points: (1) the server <strong>must be started inside Dragonfly</strong> (so cellpose is available) — Test connection shows in_gui; (2) <strong>multiple users can connect at once, each with their own token</strong>, but heavy jobs (train/infer) still run one at a time on the single GPU — a second user&#x27;s job automatically <strong>queues</strong>; (3) while a job runs on the server there is <strong>no step-by-step progress</strong> streamed back, so the progress bar just spins until it finishes — be patient; (4) <strong>Cancel</strong> only takes effect between steps (upload/download) — a training already running on the server finishes its current run; (5) the token is just an access secret — do not expose the server to the public internet.</p>
+<h2 id="5-installation">5. Installation</h2>
+<p>1. Run the installer (any Python 3): python install_cloud_cellpose_plugin.py</p>
+<p>2. <strong>Fully restart</strong> Dragonfly.</p>
+<p>3. Open it at <strong>Prototype Apps ▸ Cloud GPU ▸ Train/Infer Cellpose on Cloud Server...</strong></p>
+<h2 id="6-usage-train-left-column">6. Usage: Train (left column)</h2>
+<p>1. Pick a <strong>Cloud server</strong> and <strong>Mode</strong> at the top (for Auto, set up credentials + Setup Cloud Transfer per the section above).</p>
+<p>2. Choose an image <strong>Channel</strong> + a <strong>MultiROI</strong> (one label per object), an orientation and slice, then <strong>Add pair</strong> (slice 0 = every labeled slice).</p>
+<p>3. Set the base model, epochs, learning rate and model name, then <strong>Train on &lt;host&gt;</strong>.</p>
+<p>4. Auto: the plugin uploads → opens the notebook → you Run all → it downloads the model and <strong>imports it into the Models folder</strong>, auto-refreshing and selecting it in the Infer column.</p>
+<p>5. Manual: click <strong>Export</strong>, run the notebook on the host, download output.zip, then <strong>Load trained model</strong>.</p>
+<h2 id="7-usage-infer-right-column">7. Usage: Infer (right column)</h2>
+<p>1. Click <strong>Refresh</strong>, pick a local <strong>model</strong> and an image <strong>Channel</strong>.</p>
+<p>2. Set the stitch, flow and cellprob thresholds, the diameter and whether to use true 3D (do_3D).</p>
+<p>3. Click <strong>Infer on &lt;host&gt;</strong>; Auto downloads the result and <strong>publishes</strong> the MultiROI back into Dragonfly. Manual: run the notebook, download output.zip, keep the same Channel selected, then <strong>Load result &amp; publish</strong>.</p>
+<h2 id="8-troubleshooting">8. Troubleshooting</h2>
+<ul>
+<li>Access blocked / Error 403: access_denied (Colab sign-in)<strong>: the OAuth consent screen is in Testing and your account isn&#x27;t a Test user. Add your Gmail as a test user, retry, and click </strong>Advanced ▸ proceed ▸ Allow<strong> on the &quot;unverified app&quot; page.</strong></li>
+<li>input.zip not found under /kaggle/input<strong>: the dataset isn&#x27;t attached. Click </strong>+ Add Input<strong> (top-right) and attach the dataset with input.zip (Manual: first upload input.zip as a Kaggle Dataset). Kaggle auto-extracts zips; the notebook handles both cases.</strong></li>
+<li><strong>pip keeps retrying / </strong>Temporary failure in name resolution<strong>: internet is off. Settings ▸ </strong>Internet = On<strong> (needs a phone-verified account).</strong></li>
+<li>cannot import name &#x27;_center&#x27; from numpy._core.umath<strong>: pip changed the host numpy, splitting its .py/.so. The plugin now installs cellpose without touching numpy/scipy; re-run in a </strong>fresh kernel<strong> (Kaggle: Factory reset, or a new session).</strong></li>
+<li>CUDA error: no kernel image is available / sm_60<strong>: you got a P100, unsupported by current PyTorch. Switch to </strong>T4<strong> (see Kaggle setup) or let it fall back to CPU; or use Colab (T4).</strong></li>
+<li><strong>Kaggle stuck on </strong>queued, never downloads<strong>: an old build had a status-reading bug (now fixed) — reinstall the latest plugin; or download output.zip and use </strong>Load…<strong>.</strong></li>
+<li><strong>Trained model not in the Infer list</strong>: click <strong>Refresh channels / MultiROIs / models</strong>; newer builds auto-refresh and select it after training.</li>
+</ul>
+<h2 id="9-requirements-notes">9. Requirements &amp; notes</h2>
+<ul>
+<li>The notebook hosts need the matching account and internet; <strong>no discrete GPU is required locally</strong> (the cloud host / remote server provides it).</li>
+<li>Auto mode (Colab/Kaggle) needs the matching credentials file; Manual mode (the four notebook hosts) needs no API or environment setup; <strong>the Remote Dragonfly Server only needs the server IP/port/token — no cloud account or VPN</strong>.</li>
+<li>Free tiers cap usage and change (e.g. Kaggle ~30 GPU-hours/week, Colab session limits, AI Studio daily points); very large jobs may need a paid tier. Credentials stay on your machine and are git-ignored.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CloudCellpose-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

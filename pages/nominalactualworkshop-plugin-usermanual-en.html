@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nominal-Actual Comparison (Hands-on Workshop) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Nominal-Actual Comparison (Hands-on Workshop) - User Manual Dragonfly Prototype Apps · Nominal-Actual Comparison... Version 1.0 · 2026-07-26 English Manual…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Nominal-Actual Comparison (Hands-on Workshop)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Nominal-Actual Comparison...</div>
+    <h1>Nominal-Actual Comparison (Hands-on Workshop)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-the-seven-tabs">2. The seven tabs</a></li><li class="t2"><a href="#3-segmentation-vs-surface-determination-key">3. Segmentation vs Surface Determination (key)</a></li><li class="t2"><a href="#4-how-to-use">4. How to use</a></li><li class="t2"><a href="#5-requirements">5. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Nominal-Actual Comparison (Hands-on Workshop) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Nominal-Actual Comparison...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Nominal-Actual Comparison</strong> is a hands-on industrial-CT metrology project that teaches and runs the core workflow — <strong>CAD comparison / deviation analysis</strong> — end to end: align a part&#x27;s <strong>actual</strong> (CT scan) to its <strong>nominal</strong> (CAD design), compute the deviation everywhere, and judge conformance.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. The completion certificate is also unofficial — for personal record only.</p>
+<h2 id="2-the-seven-tabs">2. The seven tabs</h2>
+<p>1. <strong>Concepts</strong> — nominal vs actual, the whole pipeline, typical applications.</p>
+<p>2. <strong>Load CAD (Nominal)</strong> — import a STEP/STL reference, or create a synthetic nominal part.</p>
+<p>3. <strong>Load CT (Actual)</strong> — pick a Channel as the scanned part, or create a synthetic CT with a known deviation.</p>
+<p>4. <strong>Actual → surface mesh</strong> — two routes: image segmentation → ROI → mesh; or sub-voxel Surface Determination (this tab compares them in detail).</p>
+<p>5. <strong>Registration</strong> — best-fit ICP overlays the actual mesh onto the nominal.</p>
+<p>6. <strong>Deviation map</strong> — signed nearest-surface distance, coloured by ± tolerance.</p>
+<p>7. <strong>Results &amp; Measurement Inspector</strong> — max/mean/RMS, % within tolerance, histogram.</p>
+<h2 id="3-segmentation-vs-surface-determination-key">3. Segmentation vs Surface Determination (key)</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Dimension</th><th>Segmentation → mesh</th><th>Surface Determination</th></tr><tr><td>Surface location</td><td>voxel-level, pinned to grid (staircase)</td><td>sub-voxel, on the true boundary between voxels</td></tr><tr><td>Accuracy</td><td>~±0.5 voxel</td><td>~±0.1 voxel or better</td></tr><tr><td>Threshold</td><td>very sensitive (one global threshold)</td><td>local-gradient adaptive, robust to beam hardening</td></tr><tr><td>Best for</td><td>quick visualisation, needing a ROI</td><td>dimensional metrology, tolerancing, nominal-actual</td></tr></table></div>
+<p><strong>Prefer surface determination for metrology-grade comparison</strong>; segmentation is enough if you only need a ROI or a quick shape.</p>
+<h2 id="4-how-to-use">4. How to use</h2>
+<p>1. On &#x27;Load CAD&#x27; click &#x27;Create synthetic nominal part&#x27;; on &#x27;Load CT&#x27; click &#x27;Create synthetic CT scan&#x27; (or use your own STEP/STL + CT).</p>
+<p>2. On &#x27;Actual → Mesh&#x27;, mesh with both routes and compare accuracy.</p>
+<p>3. On &#x27;Registration&#x27; click &#x27;Best-fit align (ICP)&#x27; to align actual to nominal.</p>
+<p>4. On &#x27;Deviation map&#x27; set the tolerance and click &#x27;Compute deviation map&#x27; for a coloured mesh.</p>
+<p>5. On &#x27;Results&#x27; read the statistics/histogram, or click &#x27;Open Measurement Inspector&#x27;.</p>
+<p>6. Finish on the &#x27;Certificate&#x27; tab by entering your name to generate a completion certificate.</p>
+<h2 id="5-requirements">5. Requirements</h2>
+<p>No install, no internet, no GPU, no venv. The core actions run in-process on Dragonfly&#x27;s own numpy/skimage/trimesh; buttons also open the built-in Surface Determination / Mesh Registration / Measurement Inspector. <strong>Loading STEP needs Dragonfly 2027.1+</strong> (STL/OBJ/PLY work on all versions).</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>NominalActualWorkshop-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

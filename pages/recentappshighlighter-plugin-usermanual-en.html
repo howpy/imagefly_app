@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recent Apps Highlighter · Dragonfly Prototype Apps</title>
+<meta name="description" content="Recent Apps Highlighter - User Manual Dragonfly Prototype Apps · Recent Apps Highlighter... Version 1.0 · 2026-07-28 English Manual Contents 1. Introductio…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Recent Apps Highlighter</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Recent Apps Highlighter...</div>
+    <h1>Recent Apps Highlighter</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-28</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-how-it-works">2. How it works</a></li><li class="t2"><a href="#3-the-settings-panel">3. The settings panel</a></li><li class="t2"><a href="#4-how-to-use">4. How to use</a></li><li class="t2"><a href="#5-requirements">5. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Recent Apps Highlighter - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Recent Apps Highlighter...</p>
+<p>Version 1.0 · 2026-07-28</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Recent Apps Highlighter</strong> automatically monitors usage of the Prototype Apps menu and makes the N most recently used entries (default 3) instantly visible: the entries turn <strong>bold</strong> with a colored dot marker, and a pinned <strong>&#x27;★ recently used&#x27;</strong> block appears at the very top of the menu — clicking a ★ entry triggers the original. The more plugins you enable and the longer the menu grows, the more useful this gets.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. Pure in-process PyQt6 — no install/internet/GPU/venv.</p>
+<h2 id="2-how-it-works">2. How it works</h2>
+<ul>
+<li><strong>Auto-starts with Dragonfly</strong>: once the plugin loads it finds the Prototype Apps menu and hooks every entry — no need to open the settings panel first.</li>
+<li><strong>Additive only</strong>: monitoring attaches an extra recorder to each menu entry&#x27;s trigger signal; Dragonfly&#x27;s own menu behavior is completely untouched.</li>
+<li><strong>History survives restarts</strong>: every click is recorded to %LOCALAPPDATA%\DragonflyPrototypeLabs\RecentApps\usage.json (last 500 events kept).</li>
+<li><strong>Safe across the 中文/English toggle</strong>: entries are keyed internally by their English source titles, so history stays valid after switching the UI language, and the ★ block shows titles in the current language.</li>
+</ul>
+<h2 id="3-the-settings-panel">3. The settings panel</h2>
+<p>Menu Prototype Apps ▸ Recent Apps Highlighter… opens the settings &amp; history panel:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Setting</th><th>Meaning</th></tr><tr><td>Highlight count</td><td>how many recently used entries to highlight, 1-10, default 3</td></tr><tr><td>Bold text</td><td>recently used entries are shown in bold</td></tr><tr><td>Colored dot marker</td><td>a colored dot is shown in front of the entries</td></tr><tr><td>Pinned block at the top</td><td>inserts the &#x27;★ recently used&#x27; shortcut block at the very top of the menu</td></tr><tr><td>Background color (experimental)</td><td>tries to paint the entry background; Dragonfly&#x27;s dark theme may prevent it from showing — the other cues are unaffected</td></tr><tr><td>Clear history</td><td>deletes the whole usage history</td></tr></table></div>
+<p>The table below lists the full usage history: app name, times used, last used. All settings apply immediately — no restart needed.</p>
+<h2 id="4-how-to-use">4. How to use</h2>
+<p>1. Just use any tool in the Prototype Apps menu — monitoring happens automatically, nothing to configure.</p>
+<p>2. Open the Prototype Apps menu again: the tools you just used are bold with a dot, and appear in the &#x27;★ recently used&#x27; block at the top.</p>
+<p>3. To adjust (count, toggles, clear history), open Prototype Apps ▸ Recent Apps Highlighter….</p>
+<h2 id="5-requirements">5. Requirements</h2>
+<p>No install/internet/GPU/venv. Only the Prototype Apps menu itself is monitored (launches via the App Store&#x27;s Launch button etc. are not counted).</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>RecentAppsHighlighter-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

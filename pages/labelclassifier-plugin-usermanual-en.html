@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classify MultiROI Labels · Dragonfly Prototype Apps</title>
+<meta name="description" content="Classify MultiROI Labels - User Manual Dragonfly Prototype Apps · Classify MultiROI Labels... Version 1.0 · 2026-07-26 English Manual Contents 1. Introduct…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Classify MultiROI Labels</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Classify MultiROI Labels...</div>
+    <h1>Classify MultiROI Labels</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-features">2. Features</a></li><li class="t2"><a href="#3-classification-modes">3. Classification modes</a></li><li class="t3"><a href="#1-unsupervised-k-means-default">1) Unsupervised K-Means (default)</a></li><li class="t3"><a href="#2-compare-3-feature-schemes-3-scalar-slots">2) Compare 3 feature schemes → 3 scalar slots</a></li><li class="t3"><a href="#3-semi-supervised-tag-examples">3) Semi-supervised (tag examples)</a></li><li class="t2"><a href="#4-how-to-use">4. How to use</a></li><li class="t2"><a href="#5-requirements">5. Requirements</a></li><li class="t2"><a href="#6-tips-notes">6. Tips &amp; notes</a></li></ul></nav>
+  <main class="manual"><p><strong>Classify MultiROI Labels - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Classify MultiROI Labels...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>This plugin automatically <strong>classifies</strong> every label in a <strong>MultiROI</strong> (each label is usually one particle / object in the image): using a paired <strong>intensity Channel</strong>, it extracts many per-label image features (radiomics), assigns each label to a group <strong>1..N</strong>, and writes the group id back as a scalar-value slot named <strong>&quot;Classification Group&quot;</strong> on the MultiROI, coloring the MultiROI by group.</p>
+<p>Features are extracted with Dragonfly&#x27;s bundled <strong>pyradiomics</strong>: first-order intensity + shape / morphology + <strong>GLCM / GLRLM / GLSZM / GLDM / NGTDM</strong> texture (~90+ features). They are then standardized and PCA-denoised before clustering / classification.</p>
+<p>Use it when an image has hundreds of particles (already segmented into a MultiROI) and the eye can tell <strong>N types apart by brightness / texture / shape / size</strong>, and you want each particle auto-classified and color-grouped: mineral / rock thin-section phase classification, powder-particle typing, pore / inclusion typing, cell / grain morphology typing, and similar.</p>
+<p>Everything runs <strong>in-process</strong> inside Dragonfly using its bundled scikit-learn / scikit-image / pyradiomics / SimpleITK — <strong>no venv, no internet, no GPU</strong>.</p>
+<h2 id="2-features">2. Features</h2>
+<ul>
+<li><strong>Per-label feature extraction:</strong> pick from three feature families — first-order intensity, shape / morphology, and texture (GLCM/GLRLM/GLSZM/GLDM/NGTDM). Works on 2D or 3D data (2D uses shape2D texture automatically).</li>
+<li><strong>Three ways to classify:</strong> unsupervised K-Means (manual N, or <strong>Auto</strong> to suggest N), semi-supervised RandomForest (tag a few example labels per type, then train + predict), and a <strong>3-feature-scheme comparison</strong> (cluster three different radiomics feature subsets at the same N, writing three scalar slots to compare).</li>
+<li><strong>Multiple clustering algorithms:</strong> K-Means, Gaussian Mixture, and Agglomerative clustering.</li>
+<li><strong>Feature scheme:</strong> cluster on all features / shape only / first-order intensity only / texture only / shape + intensity / intensity + texture. Choosing the subset that matches how your particle types actually differ is the single biggest lever on clustering quality.</li>
+<li><strong>Group numbering:</strong> groups 1..N can be numbered by <strong>cluster size / mean intensity / volume</strong> for interpretability.</li>
+<li><strong>Outlier detection:</strong> optionally flag labels far from their cluster center (distance &gt; mean + z·std) as <strong>group 0 (unclassified / outlier)</strong>.</li>
+<li><strong>Scalar-slot manager:</strong> lists every scalar slot on the MultiROI so you can switch which classification is displayed (color by it) or delete ones you don&#x27;t want to keep.</li>
+<li><strong>Exports:</strong> save a per-label features + group <strong>CSV</strong> and a <strong>PCA scatter plot</strong> (colored by group).</li>
+</ul>
+<h2 id="3-classification-modes">3. Classification modes</h2>
+<h3 id="1-unsupervised-k-means-default">1) Unsupervised K-Means (default)</h3>
+<p>Set the number of groups <strong>N</strong> manually, or click <strong>&quot;Auto — suggest N&quot;</strong> to have the plugin suggest an N from a <strong>consensus vote</strong> of three cluster-validity indices (silhouette / Calinski-Harabasz / Davies-Bouldin), with the per-N curve shown. <strong>This is a suggestion</strong> — if you know the type count, confirm it yourself before classifying.</p>
+<h3 id="2-compare-3-feature-schemes-3-scalar-slots">2) Compare 3 feature schemes → 3 scalar slots</h3>
+<p>In <strong>&quot;Compare 3 feature schemes&quot;</strong>, pick three schemes (default: all / shape + intensity / texture). The plugin clusters at the same N with each and writes three slots named <strong>&quot;Classification-Radiomics-K-Means-1/2/3&quot;</strong>. Use the scalar-slot dropdown below to review each, keep the best, and delete the rest.</p>
+<h3 id="3-semi-supervised-tag-examples">3) Semi-supervised (tag examples)</h3>
+<p>Tag a few example labels per group: select them in Dragonfly and click <strong>&quot;Add Dragonfly selection → selected group&quot;</strong>, or type label IDs directly into the table. The plugin trains a RandomForest and predicts all labels (reporting a cross-validation accuracy). <strong>Tag at least 2 labels across at least 2 groups.</strong></p>
+<h2 id="4-how-to-use">4. How to use</h2>
+<p>1. Open it at <strong>Prototype Apps ▸ Measurements &amp; Analysis ▸ Classify MultiROI Labels...</strong></p>
+<p>2. <strong>Tab 1 &quot;Input &amp; Features&quot;:</strong> click <strong>Refresh lists</strong>, then pick an <strong>Intensity Channel</strong> and a <strong>MultiROI on the same grid</strong> (one label per particle).</p>
+<p>3. Tick the <strong>Feature families</strong> you want — First-order / Shape / Texture — then click <strong>Extract features</strong> (large MultiROIs are processed label by label; watch the log for progress).</p>
+<p>4. <strong>Tab 2 &quot;Classify &amp; Write&quot;:</strong> choose a <strong>Mode</strong> (unsupervised or semi-supervised); for unsupervised set N (or Auto), the algorithm, feature scheme, group numbering, and optional outlier flagging.</p>
+<p>5. Click <strong>Classify</strong> to get a group per label; the panel reports the per-group label counts, silhouette / CV accuracy, etc.</p>
+<p>6. Click <strong>Write groups → MultiROI</strong> to write the &quot;Classification Group&quot; scalar slot back — the MultiROI is then colored by group.</p>
+<p>7. (Optional) click <strong>Save features + groups CSV…</strong> to export a CSV, or <strong>Save PCA plot…</strong> for a PCA scatter plot.</p>
+<p>8. (Optional) use the <strong>scalar-slot manager</strong> at the bottom: pick a <strong>Slot</strong>, <strong>Show / color by this</strong> to switch the displayed classification, or <strong>Delete slot</strong> to remove an unwanted one.</p>
+<h2 id="5-requirements">5. Requirements</h2>
+<ul>
+<li><strong>Input:</strong> an intensity <strong>Channel</strong> + a <strong>MultiROI on the same grid</strong> (one label per particle). 2D or 3D.</li>
+<li><strong>No environment setup:</strong> runs in-process with Dragonfly&#x27;s bundled numpy / scipy / scikit-learn / scikit-image / pyradiomics / SimpleITK.</li>
+<li><strong>No GPU, no internet, and no administrator rights required.</strong></li>
+<li>Install with python install_label_classifier_plugin.py (deploys to every Dragonfly version on the machine), then <strong>fully restart</strong> Dragonfly to see the menu item.</li>
+</ul>
+<h2 id="6-tips-notes">6. Tips &amp; notes</h2>
+<ul>
+<li><strong>The feature scheme is the key quality lever:</strong> different particle types usually separate best along one of shape / brightness / texture. If the default &quot;all features&quot; clusters poorly, use the <strong>3-feature-scheme comparison</strong> to find the best subset.</li>
+<li><strong>Auto&#x27;s N is only a suggestion:</strong> with many correlated radiomics features it tends to favor a coarse k=2 split. When you know the type count, prefer setting N manually (most robust) or use semi-supervised (closest to your own criteria).</li>
+<li><strong>Very small / degenerate labels</strong> where texture is undefined are <strong>skipped</strong> (the extraction result reports how many were skipped) and do not take part in classification.</li>
+<li><strong>Outlier group 0:</strong> with &quot;Flag outliers as group 0&quot; on, labels too far from their cluster center become group 0 (unclassified); a smaller z flags more of them.</li>
+<li>Heavy work (feature extraction / clustering) runs on a background thread, so the buttons are temporarily disabled; watch the log at the bottom for progress.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>LabelClassifier-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

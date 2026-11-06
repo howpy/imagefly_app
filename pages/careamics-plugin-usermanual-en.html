@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Denoising (CAREamics) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Deep Denoising (CAREamics) - User Manual Dragonfly Prototype Apps · Deep Denoising (CAREamics)... Version 1.0 · 2026-07-09 English Manual Contents 1. Overv…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Deep Denoising (CAREamics)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Deep Denoising (CAREamics)...</div>
+    <h1>Deep Denoising (CAREamics)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-license">Underlying engine &amp; license</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t3"><a href="#how-to-choose-an-algorithm">How to choose an algorithm</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t3"><a href="#3-1-install-via-the-full-package">3.1 Install via the Full Package</a></li><li class="t3"><a href="#3-2-where-the-menu-appears">3.2 Where the menu appears</a></li><li class="t3"><a href="#3-3-change-your-choice-later">3.3 Change your choice later</a></li><li class="t3"><a href="#3-4-uninstall">3.4 Uninstall</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#4-1-what-setup-environment-does">4.1 What Setup Environment does</a></li><li class="t3"><a href="#4-2-prerequisites">4.2 Prerequisites</a></li><li class="t3"><a href="#4-3-fallbacks-when-setup-fails">4.3 Fallbacks when Setup fails</a></li><li class="t2"><a href="#5-interface-reference">5. Interface Reference</a></li><li class="t3"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t3"><a href="#5-2-train-tab">5.2 Train tab</a></li><li class="t3"><a href="#5-3-apply-tab">5.3 Apply tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-train-a-denoising-model">6.1 Train a denoising model</a></li><li class="t3"><a href="#6-2-apply-a-model-to-denoise-a-channel">6.2 Apply a model to denoise a Channel</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Deep Denoising (CAREamics) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Deep Denoising (CAREamics)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Deep Denoising (CAREamics)</strong> is a Dragonfly plugin that lets you <strong>train and apply</strong> deep-learning denoising / restoration models <strong>on your own data</strong>. It integrates the open-source <strong>CAREamics</strong> project (built on <strong>PyTorch</strong>) into Dragonfly: in the <strong>Train</strong> tab you pick a noisy image Channel, an algorithm, a patch size, the number of epochs and a model name; after training, the <strong>Apply</strong> tab takes a trained model plus a Channel and outputs a denoised Channel on the <strong>same grid</strong> (identical spacing/origin) as the input, and the trained model is saved for reuse.</p>
+<p>Four algorithms are supported, in two families: <strong>self-supervised</strong> — Noise2Void (N2V) and N2V2 — which need only the noisy data itself and no clean reference; and <strong>supervised</strong> — CARE, which needs a paired clean target image, and Noise2Noise (N2N), which needs a second independent noisy acquisition of the same sample as the target.</p>
+<p>Dragonfly ships <strong>classical filters</strong> (Gaussian, median, non-local means, etc.) but no <strong>learned</strong> self-supervised denoiser. This plugin fills that gap, removing noise while preserving fine structure.</p>
+<p>All heavy compute (PyTorch CUDA + careamics) runs in the plugin&#x27;s <strong>dedicated environment (venv)</strong> as a subprocess and is <strong>never loaded into Dragonfly&#x27;s own Python</strong>, so it cannot pollute or slow down Dragonfly.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12 or 3.13) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="underlying-engine-license">Underlying engine &amp; license</h3>
+<ul>
+<li><strong>Denoising engine:</strong> CAREamics (an open-source Python library built on PyTorch / PyTorch Lightning).</li>
+<li><strong>Algorithms:</strong> Noise2Void, N2V2, CARE, Noise2Noise — built via CAREamics&#x27; create_n2v_configuration / create_care_configuration / create_n2n_configuration config builders; N2V2 is the use_n2v2=True variant of Noise2Void.</li>
+<li><strong>Compute backend:</strong> PyTorch (CUDA build, installed from the official cu124 CUDA wheel index); requires an NVIDIA GPU.</li>
+<li>Each upstream component keeps its own open-source license; the plugin only calls them via a subprocess and does not modify their source.</li>
+</ul>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin is ideal for any <strong>noisy volume or image stack where classical filtering would blur fine detail</strong>. Typical cases include:</p>
+<ul>
+<li><strong>Low-dose / fast-acquisition micro-CT and industrial CT</strong> — noise from shorter exposure or reduced dose.</li>
+<li><strong>Electron microscopy (TEM / SEM)</strong> — low electron-dose imaging.</li>
+<li><strong>Fluorescence and light-sheet microscopy</strong> — shot noise under weak signal / short exposure.</li>
+<li><strong>Batch-cleaning of similar datasets</strong> — train once, then apply the model to the rest of the same-type data.</li>
+</ul>
+<h3 id="how-to-choose-an-algorithm">How to choose an algorithm</h3>
+<ul>
+<li><strong>No clean reference at all</strong> — use Noise2Void or N2V2; they learn to denoise from the noisy data alone (self-supervised).</li>
+<li><strong>A paired clean image exists</strong> — use CARE (supervised), with the clean image as the training target.</li>
+<li><strong>Two independent noisy acquisitions</strong> (same sample, same field of view) — use Noise2Noise, with the second noisy acquisition as the target.</li>
+</ul>
+<p>Especially useful when you must denoise a batch of similar samples uniformly <strong>while preserving fine structures</strong>.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin is distributed with the <strong>Prototype Apps Full Package</strong>. Install and enable it as follows.</p>
+<h3 id="3-1-install-via-the-full-package">3.1 Install via the Full Package</h3>
+<p><strong>1. </strong>Unzip the package to a <strong>short folder</strong> (e.g. C:\PL\); avoid deep download folders or a OneDrive-redirected Desktop.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode: <strong>Fresh</strong> (backs up then resets Prototype Labs blocks/recipes) or <strong>Compatible</strong> (keeps your own blocks and recipes). This choice <strong>only affects the Prototype Labs core</strong>, not any plugin&#x27;s environment or settings.</p>
+<p><strong>4. </strong>In the app list, <strong>tick “Deep Denoising (CAREamics)...”</strong>. Note: by default <strong>all plugins are OFF</strong>, so this plugin must be ticked manually to be deployed.</p>
+<p><strong>5. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>6. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are only scanned at startup).</p>
+<p><strong>This plugin is OFF by default.</strong> The package enables only the light menu items and leaves all plugins off. If you do not tick “Deep Denoising (CAREamics)...”, it will not appear in the menu after restart.</p>
+<h3 id="3-2-where-the-menu-appears">3.2 Where the menu appears</h3>
+<p>After restart, the plugin appears under the <strong>Prototype Apps</strong> menu, in the <strong>Filtering &amp; Restoration</strong> group, with the menu title <strong>“Deep Denoising (CAREamics)...”</strong>. Clicking it opens a movable floating panel.</p>
+<h3 id="3-3-change-your-choice-later">3.3 Change your choice later</h3>
+<p>The easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, and in the “Prototype Apps (Full Package)” list at the bottom each app has a checkbox — tick to deploy, untick to remove the menu entry. <strong>Restart Dragonfly to apply.</strong></p>
+<p>Disabling <strong>never</strong> deletes a plugin&#x27;s built environment (venv); re-enabling is instant, with no need to rebuild.</p>
+<h3 id="3-4-uninstall">3.4 Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> (kept in %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer). It removes all Full-Package menu items, plugins and the central store, but <strong>keeps</strong> every built environment (venv / downloads); their paths are listed at the end so you can delete them manually to reclaim disk space.</p>
+<p>Everything is installed per-user (under %LOCALAPPDATA%) and needs <strong>no administrator rights</strong>.</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p><strong>Heavy plugins download nothing at install time.</strong> Before first use, you must build the dedicated environment by clicking <strong>Setup Environment</strong> on the panel&#x27;s <strong>Setup</strong> tab.</p>
+<h3 id="4-1-what-setup-environment-does">4.1 What Setup Environment does</h3>
+<p><strong>1. </strong>Creates a dedicated virtual environment (venv) using a <strong>base Python</strong>; by default the venv is placed in a venv\ subfolder inside the plugin&#x27;s installed code directory. The default base Python is <strong>Dragonfly&#x27;s own `Python_env\python.exe`</strong> (whose built-in venv + pip work, so you need no separate Python install).</p>
+<p><strong>2. </strong>Upgrades pip / setuptools / wheel inside the venv.</p>
+<p><strong>3. </strong>Installs <strong>torch + torchvision</strong> (GPU build) from the CUDA wheel index (default https://download.pytorch.org/whl/cu124).</p>
+<p><strong>4. </strong>Installs <strong>careamics + numpy</strong> (careamics pulls in PyTorch Lightning, bioimageio, scikit-image, etc.).</p>
+<p><strong>5. </strong>Runs a smoke test: imports torch and careamics and reports whether CUDA is available.</p>
+<p>The first build usually takes <strong>several minutes</strong> and downloads roughly <strong>several GB</strong> (torch CUDA + careamics). On success, the venv&#x27;s python path is recorded in the <strong>CAREamics venv python</strong> field and saved to the config, so it is reused later without rebuilding.</p>
+<h3 id="4-2-prerequisites">4.2 Prerequisites</h3>
+<ul>
+<li><strong>Internet:</strong> needed only for the first Setup (to download torch and careamics). Training / applying afterwards needs no internet.</li>
+<li><strong>NVIDIA GPU:</strong> both training and inference require an NVIDIA GPU.</li>
+<li><strong>Dragonfly version:</strong> the plugin targets <strong>Dragonfly 2027.1</strong> and later.</li>
+</ul>
+<p><strong>Turing GPUs (e.g. RTX 8000, sm_75):</strong> the cu124 wheels run, but use <strong>fp16</strong> — <strong>never bf16</strong> (Turing has no bf16 tensor cores).</p>
+<h3 id="4-3-fallbacks-when-setup-fails">4.3 Fallbacks when Setup fails</h3>
+<ul>
+<li><strong>Base Python lacks venv / pip fails:</strong> enter the path to another CPython 3.9+ in the <strong>Base Python (build)</strong> field (or a form like py -3.12) and retry Setup. Leave it blank to use Dragonfly&#x27;s own python.</li>
+<li><strong>torch install fails:</strong> make sure the <strong>Torch CUDA wheel index</strong> matches your GPU driver (e.g. cu121 / cu124); edit the field and retry.</li>
+<li><strong>Half-built venv:</strong> if a failed Setup leaves a venv with no working pip, clicking Setup Environment again detects and rebuilds it automatically.</li>
+</ul>
+<p>Install locations: the venv lives under the plugin&#x27;s GenericMenuItems\CAREamics\venv directory in each Dragonfly version; settings are saved to %LOCALAPPDATA%\CAREamics\config.json (and a careamics_config.json next to the plugin code).</p>
+<h2 id="5-interface-reference">5. Interface Reference</h2>
+<p>A blue note at the top of the panel summarizes what the plugin does. The body has three tabs — <strong>Setup</strong>, <strong>Train</strong>, <strong>Apply</strong> — with a green <strong>result label</strong> and a read-only <strong>log window</strong> below them that show live progress and errors.</p>
+<h3 id="5-1-setup-tab">5.1 Setup tab</h3>
+<ul>
+<li><strong>CAREamics venv python:</strong> a path field filled automatically by Setup Environment (placeholder “set by &#x27;Setup Environment&#x27;”).</li>
+<li><strong>Base Python (build):</strong> the base Python used to build the venv. Blank = this Dragonfly&#x27;s own python.exe (recommended); or a path / a form like py -3.12.</li>
+<li><strong>Run mode:</strong> a dropdown with windows (default) or wsl; only windows is shipped.</li>
+<li><strong>Torch CUDA wheel index:</strong> the CUDA wheel index for torch, default https://download.pytorch.org/whl/cu124.</li>
+<li><strong>Setup Environment button:</strong> builds the venv and installs torch + careamics. A yellow hint below explains the several-minutes / several-GB first build, the internet + NVIDIA GPU requirement, and the Turing fp16 note.</li>
+</ul>
+<h3 id="5-2-train-tab">5.2 Train tab</h3>
+<p>Three groups:</p>
+<ul>
+<li><strong>Workspace (output folder):</strong> the Output folder field sets the workspace directory (default C:\CAREamicsWorkspace) with a “...” browse button, plus a <strong>Refresh channels</strong> button to reload the scene&#x27;s channel list.</li>
+<li><strong>Training data:</strong> a Noisy image Channel dropdown picks the noisy Channel; a Target Channel (CARE/N2N) dropdown picks the target (a clean image for CARE, a second noisy acquisition for N2N) and includes a “(none)” entry — self-supervised algorithms (N2V/N2V2) ignore it.</li>
+<li><strong>Train:</strong> the Algorithm dropdown (Noise2Void / N2V2 / CARE / Noise2Noise); the Patch size spin box (range 8–1024, step 8); the Epochs spin box (range 1–100000); the Model name text box (default careamics_model); and the <strong>Train button</strong> (blue) to start.</li>
+</ul>
+<h3 id="5-3-apply-tab">5.3 Apply tab</h3>
+<ul>
+<li><strong>Model:</strong> the trained-model path field, auto-filled after training; with a “...” browse button (filter *.ckpt *.zip *.pt *.pth).</li>
+<li><strong>Image Channel:</strong> the dropdown for the Channel to denoise, with a <strong>Refresh</strong> button.</li>
+<li><strong>Result title:</strong> the title for the denoised Channel; blank defaults to CAREamics_denoised.</li>
+<li><strong>Apply -&gt; publish denoised Channel button:</strong> (green) runs inference and publishes the denoised Channel.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-train-a-denoising-model">6.1 Train a denoising model</h3>
+<p><strong>Input requirement:</strong> at least one noisy image Channel in the scene; for CARE/N2N also a target Channel.</p>
+<p><strong>1. </strong>Open / load the noisy image data in Dragonfly so it becomes a Channel.</p>
+<p><strong>2. </strong>Open the panel and complete <strong>Setup Environment</strong> on the <strong>Setup</strong> tab (first time only).</p>
+<p><strong>3. </strong>Switch to the <strong>Train</strong> tab and set an <strong>Output folder</strong> (workspace) in the Workspace group.</p>
+<p><strong>4. </strong>Click <strong>Refresh channels</strong>, then select the noisy Channel in <strong>Noisy image Channel</strong>.</p>
+<p><strong>5. </strong>Choose an algorithm in <strong>Algorithm</strong>. For <strong>CARE</strong> or <strong>Noise2Noise</strong>, you must also pick a <strong>Target Channel</strong>.</p>
+<p><strong>6. </strong>Set <strong>Patch size</strong>, <strong>Epochs</strong> and <strong>Model name</strong>.</p>
+<p><strong>7. </strong>Click <strong>Train</strong>. The log window shows progress (epoch and loss); on completion the result label reads “Trained.” and the model path is auto-filled into the Apply tab.</p>
+<p><strong>What you get:</strong> a trained model checkpoint (typically .ckpt) saved in the workspace (under a train_&lt;timestamp&gt; subfolder), reusable on similar data.</p>
+<h3 id="6-2-apply-a-model-to-denoise-a-channel">6.2 Apply a model to denoise a Channel</h3>
+<p><strong>Input requirement:</strong> a trained model + an image Channel to denoise.</p>
+<p><strong>1. </strong>Switch to the <strong>Apply</strong> tab. If you just trained, the <strong>Model</strong> field is already filled; otherwise click “...” to select the model file.</p>
+<p><strong>2. </strong>Click <strong>Refresh</strong>, then pick the Channel to denoise in <strong>Image Channel</strong>.</p>
+<p><strong>3. </strong>(Optional) enter a title in <strong>Result title</strong>.</p>
+<p><strong>4. </strong>Click <strong>Apply -&gt; publish denoised Channel</strong>.</p>
+<p><strong>5. </strong>Wait for the log to read “Finished”; the denoised Channel is published into the scene under the chosen title.</p>
+<p><strong>What you get:</strong> a denoised Channel on the <strong>same grid</strong> (identical spacing / origin) as the source, ready to compare, overlay or process further.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Base Python (build)</td><td>blank (Dragonfly&#x27;s own python)</td><td>Base Python used to build the venv; a path or py -3.12.</td></tr><tr><td>Run mode</td><td>windows</td><td>Run mode; windows / wsl, only windows is shipped.</td></tr><tr><td>Torch CUDA wheel index</td><td>https://download.pytorch.org/whl/cu124</td><td>CUDA wheel index for torch; must match your GPU driver (cu121/cu124...).</td></tr><tr><td>Output folder</td><td>C:\CAREamicsWorkspace</td><td>Workspace directory; each run creates a train_/apply_ timestamped subfolder under it.</td></tr><tr><td>Noisy image Channel</td><td>(a scene Channel)</td><td>The noisy image Channel used for training.</td></tr><tr><td>Target Channel (CARE/N2N)</td><td>(none)</td><td>Target for supervised algorithms: a clean image for CARE, a second noisy acquisition for N2N; ignored by N2V/N2V2.</td></tr><tr><td>Algorithm</td><td>Noise2Void (n2v)</td><td>One of: Noise2Void / N2V2 (self-supervised), CARE / Noise2Noise (supervised).</td></tr><tr><td>Patch size</td><td>64</td><td>Training patch edge; forced even, range 8–1024, step 8; capped to each axis&#x27; extent.</td></tr><tr><td>Epochs</td><td>30</td><td>Number of training epochs; range 1–100000.</td></tr><tr><td>Model name</td><td>careamics_model</td><td>Name used to save the model (sanitized to filesystem-safe characters).</td></tr><tr><td>Model (Apply)</td><td>blank (auto-filled after training)</td><td>The trained model file used for applying (.ckpt/.zip/.pt/.pth).</td></tr><tr><td>Result title</td><td>blank = CAREamics_denoised</td><td>Title of the published denoised Channel.</td></tr></table></div>
+<p><strong>Axes / dimensionality are inferred automatically:</strong> the plugin decides the processing dimensionality from the exported volume shape — a single slice (z==1) is treated as 2D (YX), a true 3D volume as 3D (ZYX) — and forces the patch edge to be even.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p><strong>Training output:</strong> a trained model checkpoint (typically a Lightning .ckpt) saved under a train_&lt;timestamp&gt; subfolder in the workspace; its path is shown in the log and auto-filled into the Apply tab&#x27;s Model field.</p>
+<p><strong>Apply output:</strong> a new <strong>denoised Channel</strong> published into the Dragonfly scene object tree. This Channel:</p>
+<ul>
+<li>is on the <strong>same grid</strong> as the source — identical spacing (voxel spacing) and origin — so it aligns voxel-for-voxel and can be overlaid or compared directly.</li>
+<li>carries the title you entered in <strong>Result title</strong>, defaulting to CAREamics_denoised when left blank.</li>
+<li>is float32 data (CAREamics normalizes internally).</li>
+</ul>
+<p><strong>How to view:</strong> find the newly published denoised Channel in the object tree, add it to a 2D/3D view, and compare it side-by-side or overlaid with the source to judge the result. Intermediate .npy files, status.json, and results.json remain in the corresponding apply_&lt;timestamp&gt; working folder for troubleshooting.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: Clicking Train shows “venv not set. Run Setup Environment first.” What now?</strong></p>
+<p>A: The environment hasn&#x27;t been built yet. Go to the <strong>Setup</strong> tab and click <strong>Setup Environment</strong>; once it succeeds the venv python field is filled automatically, then return to Train.</p>
+<p><strong>Q: Setup Environment reports that the torch install failed.</strong></p>
+<p>A: This is usually a mismatch between the CUDA wheel index and your GPU driver. Check the <strong>Torch CUDA wheel index</strong> field, set it to a version matching your driver (e.g. cu121 or cu124), and retry; also confirm you can reach the pytorch.org download source.</p>
+<p><strong>Q: I get CUDA errors or out-of-memory during training / inference.</strong></p>
+<p>A: Confirm the machine has a working NVIDIA GPU with a valid driver (this plugin requires a GPU). For out-of-memory, <strong>reduce Patch size</strong>, use <strong>smaller / single-slice data</strong>, or downscale the dataset and retry. On Turing GPUs (e.g. RTX 8000) make sure fp16 is used, not bf16.</p>
+<p><strong>Q: I chose CARE or Noise2Noise but it asks for a target Channel.</strong></p>
+<p>A: CARE / N2N are <strong>supervised</strong> algorithms and require a <strong>Target Channel</strong> (a paired clean image for CARE, a second independent noisy acquisition of the same sample for N2N). If you have no target image, use the self-supervised Noise2Void or N2V2 instead.</p>
+<p><strong>Q: I can&#x27;t find “Deep Denoising (CAREamics)...” in the menu.</strong></p>
+<p>A: Usually the plugin wasn&#x27;t ticked during install (all plugins are off by default) or Dragonfly wasn&#x27;t restarted. Tick it in <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> (or re-run the installer and tick it), then <strong>quit Dragonfly completely and restart</strong>.</p>
+<p><strong>Q: The denoised result looks misaligned with the original / has a different intensity range.</strong></p>
+<p>A: The denoised Channel uses the source Channel&#x27;s spacing and origin, so it is geometrically aligned. CAREamics normalizes internally and outputs float32, so the absolute intensity range may differ from the source — this is expected; simply adjust that Channel&#x27;s window/level in the view.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>NVIDIA GPU required:</strong> both training and inference need a GPU; the plugin cannot run without one.</li>
+<li><strong>Internet on first use:</strong> only the Setup Environment step needs internet (several GB download); afterwards none is needed.</li>
+<li><strong>Turing GPUs:</strong> on sm_75 cards such as the RTX 8000, use fp16 — never bf16 (no bf16 tensor cores).</li>
+<li><strong>Patch size forced even:</strong> UNet downsampling requires even patches; the plugin rounds to an even value and never exceeds the corresponding axis extent.</li>
+<li><strong>Target alignment:</strong> for CARE / N2N, the target Channel must correspond geometrically to the input (the runner passes arrays straight through).</li>
+<li><strong>Disk usage:</strong> the venv (several GB) and each run&#x27;s working folder consume disk; delete the venv and old train_/apply_ folders when no longer needed.</li>
+<li><strong>Menu discovery:</strong> enabling / disabling requires a Dragonfly restart to take effect.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li><strong>CAREamics project:</strong> https://careamics.github.io/</li>
+<li><strong>PyTorch (CUDA wheel index):</strong> https://download.pytorch.org/whl/cu124</li>
+<li><strong>Noise2Void / N2V2 / CARE / Noise2Noise:</strong> method references are linked from the CAREamics documentation.</li>
+<li><strong>Prototype Apps Full Package overview manual:</strong> UserManual_用户手册.docx in the package root.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CAREamics-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

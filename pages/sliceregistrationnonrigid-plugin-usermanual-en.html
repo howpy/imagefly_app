@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slice Registration (Non-Rigid) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Slice Registration (Non-Rigid) - User Manual Dragonfly Prototype Apps · Slice Registration (Non-Rigid)... Version 1.0 · 2026-07-14 English Manual Contents …">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Slice Registration (Non-Rigid)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Slice Registration (Non-Rigid)...</div>
+    <h1>Slice Registration (Non-Rigid)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-14</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#setup-tab">Setup tab</a></li><li class="t3"><a href="#registration-tab-input-channel-image-stack">Registration tab — Input Channel (image stack)</a></li><li class="t3"><a href="#registration-tab-reference">Registration tab — Reference</a></li><li class="t3"><a href="#registration-tab-method">Registration tab — Method</a></li><li class="t3"><a href="#registration-tab-parameters">Registration tab — Parameters</a></li><li class="t3"><a href="#registration-tab-output-run">Registration tab — Output &amp; Run</a></li><li class="t3"><a href="#summary-tab">Summary tab</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Slice Registration (Non-Rigid) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Slice Registration (Non-Rigid)...</p>
+<p>Version 1.0 · 2026-07-14</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Slice Registration (Non-Rigid)</strong> elastically aligns the 2D slices of a Dragonfly image Channel (a Z stack of slices) to each other and publishes a new, aligned Channel. It wraps the mature open-source <strong>SimpleITK</strong> (the simplified API to ITK, the Insight Toolkit), which is <strong>Apache-2.0</strong> licensed. The plugin offers an optional <strong>linear pre-alignment</strong> (translation / rigid / affine) followed by a <strong>non-rigid step</strong> — either <strong>B-spline free-form deformation (FFD)</strong> or <strong>diffeomorphic Demons</strong>.</p>
+<p>It exists to complement Dragonfly&#x27;s <strong>built-in</strong> slice registration, which is limited to <strong>rigid / translation</strong> correction. When consecutive slices bend, stretch, or warp locally — not just shift or rotate — this plugin&#x27;s elastic registration can recover that deformation. Input is one image Channel with at least 2 slices; output is a new Channel plus a per-slice diagnostics.csv.</p>
+<p>What it is <strong>NOT</strong>: it does <strong>not</strong> perform full 3D volumetric registration (each slice is registered independently in its own plane), it is <strong>not</strong> a rigid-only tool, and it does <strong>not</strong> yet propagate the computed deformation to an associated ROI/MultiROI label stack.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li><strong>Serial-section microscopy / histology stacks</strong> where physical sectioning introduces local distortion between neighbouring slices.</li>
+<li><strong>Electron microscopy</strong> section series with slice-to-slice warping.</li>
+<li>Any <strong>Z stack</strong> where slices differ by <strong>local deformation</strong> (bending, stretching, tearing) rather than only a global translation or rotation.</li>
+<li>Correcting <strong>cumulative drift</strong> across a long serial-section series (use the sequential / propagated reference mode).</li>
+<li>As a stronger alternative when Dragonfly&#x27;s built-in rigid slice registration leaves visible residual misalignment.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>This plugin ships inside the <strong>Prototype Apps Full Package</strong>. All plugins are <strong>unchecked by default</strong>, so you must explicitly enable it during install.</p>
+<p>1. Unzip the Full Package to a <strong>short directory path</strong> (e.g. C:\PLApps) to avoid Windows MAX_PATH issues.</p>
+<p>2. Run Install_FullPackage.bat<strong>.</strong></p>
+<p>3. In the installer dialog, <strong>check &quot;Slice Registration (Non-Rigid)&quot;</strong>, then click <strong>Install</strong>.</p>
+<p>4. <strong>Fully restart Dragonfly</strong> — the menu is scanned only at startup, so a running instance will not show the new item.</p>
+<p>5. Open it from <strong>Prototype Apps &gt; Slice Registration (Non-Rigid)...</strong> in the <strong>&quot;Reconstruction &amp; Imaging(重建与成像)&quot;</strong> section.</p>
+<p>To enable or disable it later, use <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>. The plugin installs under %LOCALAPPDATA%<strong> (no administrator rights needed). Restart Dragonfly after every enable/disable toggle. On a developer machine you can instead run </strong>install_slice_registration_nonrigid_plugin.py with Dragonfly&#x27;s Python (and --uninstall to remove).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>This plugin uses the venv_in_code<strong> pattern: the heavy dependency (SimpleITK) runs in an </strong>isolated virtual environment / subprocess<strong>, never inside Dragonfly&#x27;s own Python. Before the first registration you must build that venv from the </strong>Setup<strong> tab.</strong></p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<ul>
+<li><strong>Setup Environment (numpy + SimpleITK)</strong> button — creates a venv (via runner/setup_env.py) whose base is <strong>Dragonfly&#x27;s own Python 3.10</strong>, then pip installs exactly numpy and SimpleITK from PyPI (runner/requirements.txt).</li>
+<li><strong>Download size:</strong> ~tens of MB. Because Python 3.10 has <strong>prebuilt CPython wheels</strong> for SimpleITK, installation needs <strong>no compiler</strong>.</li>
+<li><strong>Internet:</strong> required <strong>only</strong> for this one-time setup (needs_internet: true). Registration itself runs fully offline.</li>
+<li><strong>GPU:</strong> not used (needs_gpu: false). <strong>No</strong> Fiji, ImageJ, Java, or WSL is required.</li>
+<li><strong>venv location:</strong> a venv/ folder inside the installed code directory (...\GenericMenuItems\SliceRegNonRigid\venv). The resolved interpreter is written back into the <strong>Analysis venv python</strong> field and saved to slicereg_config.json.</li>
+<li><strong>Base Python</strong> field — optional override for the interpreter used to create the venv. Leave blank to auto-detect Dragonfly&#x27;s / the system Python; use <strong>Browse...</strong> to point at a specific python.exe (e.g. if the auto-detected one lacks a working pip).</li>
+<li><strong>Job root</strong> — working folder for exported stacks and results, default C:\SliceRegNonRigidJobs. Each run creates a timestamped slicereg_&lt;YYYYMMDD_HHMMSS&gt; subfolder.</li>
+</ul>
+<h2 id="5-interface">5. Interface</h2>
+<p>The panel has a title line and three tabs — <strong>Setup</strong>, <strong>Registration</strong>, <strong>Summary</strong> — plus a status label and a log pane at the bottom.</p>
+<h3 id="setup-tab">Setup tab</h3>
+<ul>
+<li><strong>Analysis venv python</strong> — path to the venv interpreter; normally filled automatically by Setup Environment.</li>
+<li><strong>Base Python</strong> (+ <strong>Browse...</strong>) — optional base interpreter for building the venv; blank = auto-detect.</li>
+<li><strong>Job root</strong> — working directory (default C:\SliceRegNonRigidJobs).</li>
+<li><strong>Setup Environment (numpy + SimpleITK)</strong> button — builds the venv and installs dependencies.</li>
+</ul>
+<h3 id="registration-tab-input-channel-image-stack">Registration tab — Input Channel (image stack)</h3>
+<ul>
+<li><strong>Stack Channel</strong> dropdown — lists Dragonfly Channels (title + shape); <strong>Refresh</strong> button re-scans the session.</li>
+</ul>
+<h3 id="registration-tab-reference">Registration tab — Reference</h3>
+<ul>
+<li><strong>Reference mode</strong> — *Previous slice (sequential, propagated)* or *Fixed reference slice (all-to-one)*.</li>
+<li><strong>Reference/anchor index</strong> — anchor slice (sequential) or template slice (fixed); <strong>-1 = middle slice</strong>. Its maximum is clamped to the selected Channel&#x27;s slice count.</li>
+</ul>
+<h3 id="registration-tab-method">Registration tab — Method</h3>
+<ul>
+<li><strong>Linear pre-alignment</strong> — None / Translation / Rigid (Euler) / Affine.</li>
+<li><strong>Non-rigid method</strong> — B-spline free-form deformation / Diffeomorphic Demons / None (linear only).</li>
+</ul>
+<h3 id="registration-tab-parameters">Registration tab — Parameters</h3>
+<ul>
+<li><strong>Similarity metric</strong> — Mattes mutual information / Mean squares / Correlation. Enabled when a linear stage or B-spline is used.</li>
+<li><strong>Iterations (linear/B-spline)</strong>, <strong>Metric sampling fraction</strong>, <strong>Pyramid levels</strong> — govern the linear + B-spline optimizer stages.</li>
+<li><strong>B-spline grid nodes</strong> — enabled only for B-spline; control-point mesh nodes per dimension (higher = more flexible / slower).</li>
+<li><strong>Demons iterations</strong> and <strong>Demons smoothing sigma</strong> — enabled only for Demons; sigma smooths the displacement field (in pixels).</li>
+<li><strong>Output interpolation</strong> — Linear or Nearest neighbour for the final resampling.</li>
+<li><strong>Fill value (out of bounds)</strong> — value written where a resampled slice falls outside the reference grid.</li>
+</ul>
+<h3 id="registration-tab-output-run">Registration tab — Output &amp; Run</h3>
+<ul>
+<li><strong>Output Channel</strong> — title of the published result (default *Slice-registered (non-rigid)*).</li>
+<li><strong>Run Non-Rigid Slice Registration</strong> button — validates inputs and launches the job.</li>
+</ul>
+<h3 id="summary-tab">Summary tab</h3>
+<ul>
+<li>A two-column <strong>Metric / Value</strong> table populated after a run (slice counts, reference index, methods, mean MAD before/after, improvement percent, failure count).</li>
+</ul>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. <strong>First run only:</strong> open the <strong>Setup</strong> tab and click <strong>Setup Environment (numpy + SimpleITK)</strong>; wait until the status shows &quot;Environment ready&quot; and the venv python path appears.</p>
+<p>2. Go to the <strong>Registration</strong> tab and click <strong>Refresh</strong> to list Channels, then pick your <strong>Stack Channel</strong> (must have ≥ 2 slices).</p>
+<p>3. Choose a <strong>Reference mode</strong>: *Previous slice* for serial sections with drift, or *Fixed reference slice* to register everything to one template. Set the <strong>Reference/anchor index</strong> (-1 = middle).</p>
+<p>4. Choose a <strong>Linear pre-alignment</strong> and a <strong>Non-rigid method</strong> (you must pick at least one non-None).</p>
+<p>5. Tune <strong>Parameters</strong> — metric, iterations, sampling fraction, pyramid levels, and (per method) B-spline grid or Demons iterations/sigma; set output interpolation and fill value.</p>
+<p>6. Set the <strong>Output Channel</strong> title and click <strong>Run Non-Rigid Slice Registration</strong>.</p>
+<p>7. Watch the log; on completion the panel switches to the <strong>Summary</strong> tab, publishes the aligned Channel, and reports the diagnostics.csv path.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Reference mode</td><td>Previous slice</td><td>previous / fixed</td><td>Sequential propagated-from-anchor, or all-to-one template.</td></tr><tr><td>Reference/anchor index</td><td>0</td><td>-1 … n-1</td><td>Anchor (sequential) or template (fixed) slice; -1 = middle.</td></tr><tr><td>Linear pre-alignment</td><td>Affine</td><td>none / translation / rigid / affine</td><td>Linear transform applied before the non-rigid step.</td></tr><tr><td>Non-rigid method</td><td>B-spline FFD</td><td>bspline / demons / none</td><td>Elastic deformation model (or linear only).</td></tr><tr><td>Similarity metric</td><td>Mattes MI</td><td>mattes / meansquares / correlation</td><td>Cost function for linear + B-spline stages.</td></tr><tr><td>Iterations (linear/B-spline)</td><td>100</td><td>1 … 10000</td><td>Optimizer iterations for linear and B-spline stages.</td></tr><tr><td>Metric sampling fraction</td><td>0.1</td><td>0.001 … 1.0</td><td>Fraction of pixels sampled for the metric.</td></tr><tr><td>Pyramid levels</td><td>3</td><td>1 … 4</td><td>Multi-resolution coarse-to-fine levels.</td></tr><tr><td>B-spline grid nodes</td><td>8</td><td>2 … 128</td><td>Control-point mesh nodes per dimension.</td></tr><tr><td>Demons iterations</td><td>50</td><td>1 … 10000</td><td>Iterations for the Demons filter.</td></tr><tr><td>Demons smoothing sigma</td><td>1.0</td><td>0.0 … 20.0</td><td>Gaussian smoothing of the displacement field (pixels).</td></tr><tr><td>Output interpolation</td><td>Linear</td><td>linear / nearest</td><td>Interpolator for the final resampling.</td></tr><tr><td>Fill value</td><td>0.0</td><td>-1e9 … 1e9</td><td>Out-of-bounds pixel value after resampling.</td></tr></table></div>
+<p>The linear stage uses <strong>RegularStepGradientDescent</strong> (self-limiting) and B-spline uses <strong>LBFGS-B</strong>; Demons uses FastSymmetricForcesDemonsRegistrationFilter with histogram matching. The pyramid applies to the linear + B-spline optimizer stages.</p>
+<h2 id="8-output">8. Output</h2>
+<p>On success the plugin creates one new Dragonfly Channel<strong> built from the aligned stack via </strong>createChannelFromNumpyArray, titled from the <strong>Output Channel</strong> field (default <strong>&quot;Slice-registered (non-rigid)&quot;</strong>). It appears in the Data Properties / object tree like any other Channel.</p>
+<ul>
+<li><strong>Geometry:</strong> the output copies the <strong>source Channel&#x27;s spacing (X/Y/Z) and origin</strong>, so it overlays the input. Each moving slice is resampled into the reference grid, so the aligned stack keeps the <strong>input dimensions</strong>.</li>
+<li><strong>Diagnostics:</strong> a per-slice diagnostics.csv<strong> (columns </strong>index, reference, ok, mad_before, mad_after, error) is written into the timestamped job folder under the Job root; its path is reported in the status line.</li>
+<li><strong>Summary:</strong> the Summary tab table reports n_slices, n_registered, reference_index, ref_mode, chosen methods/metric, mean_mad_before, mean_mad_after, improvement_percent, and n_failed.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>&quot;Run Setup first, or set the analysis venv python.&quot;</strong> — The venv is not built yet. Open the Setup tab and click Setup Environment.</li>
+<li><strong>Setup fails / no internet</strong> — The first-time install pulls numpy + SimpleITK from PyPI; ensure network access. If pip is missing on the auto-detected base, point the <strong>Base Python</strong> field at a full python.exe.</li>
+<li><strong>No Channels in the dropdown</strong> — Load an image first, then click <strong>Refresh</strong>. Only Channel objects are listed.</li>
+<li><strong>&quot;The selected Channel has fewer than 2 slices.&quot;</strong> — Non-rigid slice registration needs a Z stack; a single 2D image cannot be registered to itself.</li>
+<li><strong>&quot;Choose at least a linear or a non-rigid method.&quot;</strong> — At least one of Linear pre-alignment / Non-rigid method must be non-None.</li>
+<li><strong>A few slices show </strong>ok = false in the CSV<strong> — A per-slice failure falls back to the raw slice and is logged, so one bad pair never aborts the whole job. Try a different metric, more iterations, or a coarser B-spline grid.</strong></li>
+<li><strong>Slow or memory-heavy runs</strong> — Reduce B-spline grid nodes, lower iterations/sampling fraction, or reduce pyramid levels; large stacks are processed slice by slice but still export a full .npy.</li>
+<li><strong>Result looks over-warped</strong> — Lower the B-spline grid density or Demons iterations, or add a gentler linear pre-alignment first.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>2D per-slice only</strong> — each slice is registered independently in its own plane; this is not full 3D volumetric registration.</li>
+<li>The non-rigid (Demons / B-spline) step runs <strong>single-scale</strong> after the linear pre-alignment; the multi-resolution pyramid applies to the linear + B-spline optimizer stages.</li>
+<li>The computed deformation is <strong>not</strong> yet propagated to an associated ROI/MultiROI label stack — a natural future extension.</li>
+<li>Registration runs in an <strong>isolated venv subprocess</strong>; SimpleITK is never imported into Dragonfly&#x27;s own Python.</li>
+<li>Quality is measured with a <strong>method-agnostic mean-absolute-difference</strong> proxy (per-image min-max normalized) — a directional signal, not an absolute accuracy metric.</li>
+<li><strong>Live in-Dragonfly verification is pending</strong>; the SimpleITK engine and pure helpers are validated offline (tests/test_slicereg_core.py).</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li><strong>SimpleITK</strong> (simplified ITK API) — https://simpleitk.org and docs at https://simpleitk.readthedocs.io ; license <strong>Apache-2.0</strong>.</li>
+<li><strong>ITK (Insight Toolkit)</strong> — https://itk.org (the underlying registration framework).</li>
+<li>Plugin README.md and DESIGN.md in DragonflyPlugins/SliceRegistrationNonRigid-Plugin/.</li>
+<li>Engine: slicereg_code/slicereg_core.py; runner + env: runner/slicereg_runner.py, runner/setup_env.py, runner/requirements.txt.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>SliceRegistrationNonRigid-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

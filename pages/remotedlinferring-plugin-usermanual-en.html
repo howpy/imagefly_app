@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remote DL Inferring · Dragonfly Prototype Apps</title>
+<meta name="description" content="Remote DL Inferring - User Manual Dragonfly Prototype Apps · Remote DL Inferring... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cas…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Remote DL Inferring</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Remote DL Inferring...</div>
+    <h1>Remote DL Inferring</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-technology">Underlying engine / technology</a></li><li class="t3"><a href="#licensing-notes">Licensing notes</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t3"><a href="#dependency-also-install-the-prototype-labs-embedded-package">Dependency: also install the Prototype Labs embedded package</a></li><li class="t3"><a href="#change-your-choice-later-enable-disable">Change your choice later (enable / disable)</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#first-run-configuration-connect-to-the-target-server">First-run configuration: connect to the target server</a></li><li class="t3"><a href="#prerequisite-the-target-server-must-be-running">Prerequisite: the target server must be running</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t2"><a href="#5-1-top-remote-dragonfly-server-bar">5.1 Top: Remote Dragonfly server bar</a></li><li class="t2"><a href="#5-2-left-column-image-to-segment-and-model">5.2 Left column: image to segment and model</a></li><li class="t2"><a href="#5-3-right-column-file-transfer-run-location-result">5.3 Right column: file transfer, run location, result</a></li><li class="t2"><a href="#5-4-bottom-visual-feedback-log-action-buttons">5.4 Bottom: visual feedback, log, action buttons</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#6-1-end-to-end-infer-on-a-remote-gpu-server">6.1 End-to-end: infer on a remote GPU server</a></li><li class="t2"><a href="#6-2-local-inference-no-remote-server">6.2 Local inference (no remote server)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Remote DL Inferring - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Remote DL Inferring...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Remote DL Inferring</strong> is a dockable panel plugin that runs inside Dragonfly 3D World. It applies an already-trained <strong>deep-learning segmentation model</strong> to an image (a Channel), performing the inference in a <strong>remote (or local)</strong> Dragonfly server process, and returns a segmentation <strong>MultiROI</strong>.</p>
+<p>The top of the panel is a <strong>Remote Dragonfly server</strong> bar for the target server&#x27;s <strong>Address, Port and access Token</strong>; below it is the exact <strong>Remote DL Inferring</strong> tab from the standalone app (pick a model already on the server, or upload a model zip, apply it to a Channel, with optional slab-by-slab live preview). Every request goes to the server you set at the top.</p>
+<p>This lets a <strong>GPU-less / limited</strong> machine&#x27;s Dragonfly offload heavy inference to another <strong>GPU-equipped Dragonfly server</strong> — reachable via a Tailscale IP such as 100.64.0.2 or a LAN IP such as 192.168.0.82. It pairs with the companion <strong>Remote DL Training</strong> plugin: train a model, then infer with this plugin.</p>
+<h3 id="underlying-engine-technology">Underlying engine / technology</h3>
+<ul>
+<li>Inference is executed by <strong>Dragonfly&#x27;s built-in deep-learning segmentation engine</strong> (the same capability as Dragonfly&#x27;s Deep Learning / Segment-with-AI tools) in the server process; the plugin only sends the image and model and retrieves the result.</li>
+<li>The plugin&#x27;s UI comes from the <strong>gui_qt</strong> package (shared with the standalone app and the embedded Prototype Labs panel), built on <strong>PyQt6</strong> (both 2025.1 and 2027.1 ship PyQt6 6.7.1).</li>
+<li>Client and server communicate over a <strong>length-prefixed JSON (+ optional binary) TCP</strong> protocol, default port <strong>54321</strong>.</li>
+<li><strong>No venv, no downloads</strong>: the plugin runs in Dragonfly&#x27;s own Python.</li>
+</ul>
+<h3 id="licensing-notes">Licensing notes</h3>
+<p>This plugin is part of the Dragonfly Prototype Apps. Its inference capability relies on Dragonfly&#x27;s own deep-learning tools and is governed by the Dragonfly license you have installed. The plugin itself introduces no additional heavy third-party dependencies.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>Use this plugin to move deep-learning inference from a local machine to a remote GPU server: choose the image to segment in the client Dragonfly, submit it to the remote server with one click, and watch the segmentation preview locally in real time.</p>
+<ul>
+<li><strong>GPU offload</strong>: your local machine has no discrete GPU or limited compute, but a GPU-equipped Dragonfly exists elsewhere. Send inference to that machine.</li>
+<li><strong>Train-then-infer pairing</strong>: first train a segmentation model on the server with the <strong>Remote DL Training</strong> plugin, then apply it to new images here.</li>
+<li><strong>Batch / large data</strong>: when the image lives on a drive the server can read directly, use direct-path mode to avoid uploading large files (each uploaded file must be &lt; 200 MB).</li>
+<li><strong>Local inference</strong>: set the address to 127.0.0.1 to have the local Dragonfly infer (no token needed), or use the local windowless Dragonfly subprocess to infer in the background on this machine.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin is installed via the <strong>Full Package</strong> installer:</p>
+<p><strong>1. </strong>Unzip the package to any short path (e.g. C:\PL\) to avoid &quot;path too long&quot; errors from deep folders.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode (<strong>Fresh</strong> / <strong>Compatible</strong>) and <strong>tick Remote DL Inferring</strong> in the Prototype Apps list (see note below).</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p><strong>This plugin is OFF by default.</strong> In the app list, the light menu items are on by default while all plugins (including this one) are off. You must tick <strong>Remote DL Inferring</strong> for it to install.</p>
+<p>After restart, the plugin appears at:</p>
+<ul>
+<li><strong>Prototype Apps ▸ Remote DL Inferring...</strong> (group: Train Custom Model / Remote Deep Learning).</li>
+</ul>
+<h3 id="dependency-also-install-the-prototype-labs-embedded-package">Dependency: also install the Prototype Labs embedded package</h3>
+<p>The plugin&#x27;s UI comes from the <strong>gui_qt</strong> package, which is provided by the <strong>Prototype Labs embedded package</strong>. When installing this plugin, also tick / install the Prototype Labs embedded package. At runtime the panel resolves gui_qt from the sibling GenericMenuItems\Prototype_Labs folder; if it is missing, the panel shows a &quot;could not find gui_qt&quot; error.</p>
+<h3 id="change-your-choice-later-enable-disable">Change your choice later (enable / disable)</h3>
+<p>To enable or disable the plugin afterwards, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, tick / untick <strong>Remote DL Inferring</strong> in the bottom &quot;Prototype Apps (Full Package)&quot; list, then <strong>restart Dragonfly</strong>. Disabling never deletes any environment; re-enabling is instant.</p>
+<p>You can also re-run the installer anytime (it remembers your previous choices as the new defaults).</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> (a copy also lives in %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer) to remove all Full-Package menu items and plugins.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</h2>
+<p>This plugin is <strong>in_process</strong>: it runs in Dragonfly&#x27;s own Python and needs <strong>no separate venv, no Setup Environment step, and downloads nothing at install time</strong>. There is therefore no dedicated environment-build step.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Item</th><th>Required by this plugin</th><th>Notes</th></tr><tr><td>Separate venv / env setup</td><td>No</td><td>Runs in Dragonfly&#x27;s own Python (PyQt6 + sockets).</td></tr><tr><td>Internet (needs_internet)</td><td>No</td><td>Only TCP traffic between your machine and the target Dragonfly server; no external internet access.</td></tr><tr><td>GPU (needs_gpu)</td><td>No (client)</td><td>The client needs no GPU; the actual compute is provided by the server you connect to — for speed, that server should have a GPU.</td></tr><tr><td>WSL / external app</td><td>No</td><td>No WSL and no external third-party program.</td></tr><tr><td>gui_qt dependency</td><td>Yes</td><td>Provided by the Prototype Labs embedded package (see Chapter 3).</td></tr></table></div>
+<h3 id="first-run-configuration-connect-to-the-target-server">First-run configuration: connect to the target server</h3>
+<p>The only &quot;configuration&quot; needed on first open is to enter the target Dragonfly server&#x27;s connection details in the top bar:</p>
+<p><strong>1. </strong>Enter the server <strong>Address</strong>: a Tailscale IP (e.g. 100.64.0.2) or LAN IP (e.g. 192.168.0.82) for a remote server; 127.0.0.1 for the local machine.</p>
+<p><strong>2. </strong>Enter the <strong>Port</strong> (default 54321).</p>
+<p><strong>3. </strong>Enter the <strong>Token</strong>: <strong>required for a remote server; leave blank for `127.0.0.1`.</strong></p>
+<p><strong>4. </strong>Click <strong>Apply</strong> to apply the settings, or <strong>Test</strong> first to connect and ping the server and check the address / port / token.</p>
+<p><strong>The token is NOT saved to disk</strong> (for security): the address and port are remembered across sessions, but the token must be re-entered each session.</p>
+<h3 id="prerequisite-the-target-server-must-be-running">Prerequisite: the target server must be running</h3>
+<p>Before use, the target must be a running Dragonfly with the Prototype Labs server started (either the TCP server started inside a GUI Dragonfly, or a windowless headless server). If a connection fails, first confirm the server is running, the address/port are correct, and the token is right.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel is split into a <strong>server bar</strong> at the top and an <strong>inference tab</strong> below, and the tab has left and right columns. Each control is described below (matching the code).</p>
+<h2 id="5-1-top-remote-dragonfly-server-bar">5.1 Top: Remote Dragonfly server bar</h2>
+<ul>
+<li><strong>Address</strong>: text field for the target server address; placeholder e.g. 100.64.0.2 (Tailscale) / 192.168.0.82 (LAN) / 127.0.0.1.</li>
+<li><strong>Port</strong>: spin box (range 1–65535), defaulting to the configured value (typically 54321).</li>
+<li><strong>Token</strong>: password field (masked with dots); placeholder notes it is required for remote and can be blank for 127.0.0.1.</li>
+<li><strong>Apply</strong>: use this server for the inference below.</li>
+<li><strong>Test</strong>: connect + ping the server to check the address / port / token.</li>
+<li><strong>Status line</strong>: shows the current target, e.g. Target: 100.64.0.2:54321 (remote - token set); it also reports loopback &quot;no token needed&quot;, &quot;remote - token set&quot;, or &quot;remote - TOKEN REQUIRED&quot;.</li>
+</ul>
+<h2 id="5-2-left-column-image-to-segment-and-model">5.2 Left column: image to segment and model</h2>
+<p><strong>Image to segment</strong> group:</p>
+<ul>
+<li><strong>Image</strong>: text field + Browse... button to select the image. It can be an .ORSObject Channel or a raw image (.tif/.tiff/.png/.jpg/.jpeg/.bmp).</li>
+<li><strong>Channel index</strong>: spin box (0–999) selecting which Channel to use when the .ORSObject holds several (0 = first).</li>
+</ul>
+<p><strong>Model</strong> group (one of two):</p>
+<ul>
+<li><strong>Use a model already on the Dragonfly server</strong>: selected by default. Below it is a model dropdown + <strong>Refresh list</strong> button; the list contains the <strong>trained</strong> models in the server&#x27;s AI library, each shown as &quot;name (N classes)&quot;; multi-input models are marked [needs N inputs].</li>
+<li><strong>Upload a model .zip</strong>: select a local model zip (exported by Remote DL Training or Dragonfly) via a text field + Browse... button.</li>
+</ul>
+<h2 id="5-3-right-column-file-transfer-run-location-result">5.3 Right column: file transfer, run location, result</h2>
+<p><strong>How should the server get the files?</strong> group:</p>
+<ul>
+<li><strong>Upload to the Dragonfly server</strong>: selected by default. Works across machines, but each file must be under <strong>200 MB</strong>.</li>
+<li><strong>The server can read these paths directly</strong>: for the same machine or a shared drive; any size.</li>
+</ul>
+<p><strong>Where should inference run?</strong> group:</p>
+<ul>
+<li><strong>On the connected Dragonfly (GUI Sync)</strong>: selected by default. Sends inference to the server configured at the top (a GUI Dragonfly or a headless server).</li>
+<li><strong>Headless of local Dragonfly (subprocess)</strong>: spawns a windowless Dragonfly process on <strong>this</strong> machine to infer, reading the selected files directly; Cancel hard-stops it.</li>
+<li><strong>Headless on a Dragonfly Server (no GUI)</strong>: connects to a headless Dragonfly server you started yourself on another machine; the adjacent <strong>?</strong> button explains what it is and how to start one.</li>
+<li><strong>Dragonfly (version dropdown) + Detect</strong>: only active for the local subprocess mode; selects which local Dragonfly install runs the subprocess (a 2026.x install is recommended).</li>
+</ul>
+<p><strong>Result</strong> group:</p>
+<ul>
+<li><strong>Also save to</strong>: optional text field for a server-side .ORSObject path to also save the result directly (most useful in direct-path mode).</li>
+</ul>
+<h2 id="5-4-bottom-visual-feedback-log-action-buttons">5.4 Bottom: visual feedback, log, action buttons</h2>
+<ul>
+<li><strong>Visual feedback (collapsible, collapsed by default)</strong>: ticking <strong>Show segmentation preview</strong> processes the volume in z-slabs so the preview refreshes as inference scans down; <strong>Preview every</strong> spin box defaults to 0 (auto = 1/10 of the image&#x27;s z slices). This needs a filesystem shared between the app and the server (server on this machine / loopback, or the local subprocess); otherwise the section is disabled with an explanation.</li>
+<li><strong>Run inference</strong>: start the inference.</li>
+<li><strong>Cancel</strong>: disabled by default; a visual-feedback slab run can be stopped between slabs, and a local subprocess can be hard-stopped at any time.</li>
+<li><strong>Download Result MultiROI</strong>: disabled by default, enabled after a successful run; saves the result as a local .ORSObject.</li>
+<li><strong>Status / progress line / Log (collapsible)</strong>: shows the current status (Idle/Connecting/Inferring slice x/y/Done/Failed, etc.), progress, and a detailed log.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h2 id="6-1-end-to-end-infer-on-a-remote-gpu-server">6.1 End-to-end: infer on a remote GPU server</h2>
+<p><strong>Inputs required</strong>: a running remote Dragonfly with the Prototype Labs server started plus its access token; an image to segment; a trained single-input segmentation model already in the server&#x27;s AI library (or a local model zip).</p>
+<p><strong>1. </strong>Open the panel from <strong>Prototype Apps ▸ Remote DL Inferring...</strong>.</p>
+<p><strong>2. </strong>Enter the server <strong>Address / Port / Token</strong> at the top, click <strong>Test</strong> to confirm reachability, then click <strong>Apply</strong>.</p>
+<p><strong>3. </strong>In <strong>Image to segment</strong>, Browse... to the image; if it is a multi-Channel .ORSObject, set <strong>Channel index</strong>.</p>
+<p><strong>4. </strong>In <strong>Model</strong>, keep &quot;Use a model already on the Dragonfly server&quot;, click <strong>Refresh list</strong> and pick a model; or switch to &quot;Upload a model .zip&quot; and select a local zip.</p>
+<p><strong>5. </strong>In <strong>How should the server get the files?</strong>, keep &quot;Upload to the Dragonfly server&quot; across machines (each file &lt; 200 MB); use &quot;direct paths&quot; for the same machine or a shared drive.</p>
+<p><strong>6. </strong>In <strong>Where should inference run?</strong>, keep &quot;On the connected Dragonfly (GUI Sync)&quot;.</p>
+<p><strong>7. </strong>(Optional) expand <strong>Visual feedback</strong> and tick &quot;Show segmentation preview&quot; to watch progress live (needs a shared filesystem).</p>
+<p><strong>8. </strong>Click <strong>Run inference</strong>; watch progress in Status / Log.</p>
+<p><strong>9. </strong>When done, click <strong>Download Result MultiROI</strong>, choose a location, and save the result MultiROI as a local .ORSObject.</p>
+<p><strong>What you get</strong>: a segmentation <strong>MultiROI</strong> (downloadable as a local .ORSObject); the log reports the label count and file size.</p>
+<h2 id="6-2-local-inference-no-remote-server">6.2 Local inference (no remote server)</h2>
+<p><strong>1. </strong>Set Address to 127.0.0.1, leave Token blank, and click Apply (the local Dragonfly must have its server started); or, in <strong>Where should inference run?</strong>, choose &quot;Headless of local Dragonfly (subprocess)&quot; and use <strong>Detect</strong> to pick the local Dragonfly version (2026.x recommended).</p>
+<p><strong>2. </strong>Select the image and model as in steps 3–5 of 6.1.</p>
+<p><strong>3. </strong>Click <strong>Run inference</strong>; in subprocess mode, Cancel can hard-stop it at any time.</p>
+<p><strong>4. </strong>When done, download the result, or (in direct mode) view it at the server-side path you specified.</p>
+<p><strong>Multi-input models are not supported</strong>: this tab provides a single image only. If the chosen model needs multiple input channels, a warning appears — use a single-input model, or process multi-input models directly in Dragonfly.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter / control</th><th>Default</th><th>Description</th></tr><tr><td>Address</td><td>From config (usually 127.0.0.1)</td><td>Target Dragonfly server address. Tailscale/LAN IP for remote, 127.0.0.1 for local.</td></tr><tr><td>Port</td><td>54321</td><td>Server TCP port, range 1–65535.</td></tr><tr><td>Token</td><td>empty</td><td>Server access token; required for remote, blank for 127.0.0.1. Not saved to disk.</td></tr><tr><td>Image</td><td>empty</td><td>Image to segment: .ORSObject Channel or raw image (.tif/.png/...).</td></tr><tr><td>Channel index</td><td>0</td><td>Which Channel to use in a multi-Channel .ORSObject (0 = first).</td></tr><tr><td>Model source</td><td>Use a model already on the server</td><td>One of: server model (dropdown) or upload a model zip.</td></tr><tr><td>File transfer mode</td><td>Upload to the server</td><td>Upload (across machines, each file &lt; 200 MB) or direct server-side paths (same machine / shared drive, any size).</td></tr><tr><td>Inference run location</td><td>On the connected Dragonfly (GUI Sync)</td><td>One of: connected Dragonfly / local headless subprocess / headless server (no GUI).</td></tr><tr><td>Dragonfly version (subprocess)</td><td>Auto-selects a 2026.x install</td><td>Only active in local subprocess mode: which local Dragonfly install runs the subprocess.</td></tr><tr><td>Also save to</td><td>empty</td><td>Optional server-side .ORSObject path to also save the result directly.</td></tr><tr><td>Show segmentation preview (visual feedback)</td><td>off</td><td>Slab-by-slab inference with live preview; needs a shared filesystem.</td></tr><tr><td>Preview every</td><td>0 (auto = 1/10 of z slices)</td><td>Preview refresh frequency.</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>The core result of a successful run is a <strong>segmentation MultiROI</strong> (a multi-label ROI object) corresponding to the model&#x27;s per-class segmentation of the image.</p>
+<ul>
+<li><strong>Result MultiROI</strong>: created in the server process; click <strong>Download Result MultiROI</strong> to save it as a local .ORSObject, then open it in Dragonfly. The log shows the label count and file size.</li>
+<li><strong>Extra direct save (optional)</strong>: if an <strong>Also save to</strong> path is given (direct / shared mode), the result is also saved server-side as an .ORSObject.</li>
+<li><strong>Visual-feedback preview</strong>: when enabled, a slab-by-slab segmentation preview appears in the preview pane during inference, captioned with the current slice (e.g. &quot;Inference preview at slice X (of Y)&quot;). This is a progress preview; the final result is the downloaded MultiROI.</li>
+<li><strong>Log</strong>: records the whole inference process (connect, upload, infer, result size, error tracebacks) for troubleshooting.</li>
+</ul>
+<p>If the image is <strong>single-slice / 2D</strong>, there is no per-slice preview and the log notes &quot;Visual feedback skipped (2D / single-slice image)&quot;; the inference result is unaffected.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q1: The panel shows &quot;could not find gui_qt / Failed to load Remote DL Inferring panel&quot; — what now?</strong></p>
+<p>A: The plugin&#x27;s UI comes from the gui_qt package provided by the <strong>Prototype Labs embedded package</strong>. Confirm you also installed that package (it installs to the sibling GenericMenuItems\Prototype_Labs folder), then restart Dragonfly and try again.</p>
+<p><strong>Q2: Clicking Test says &quot;cannot reach server&quot;?</strong></p>
+<p>A: Check in order: (1) the target Dragonfly is running with the Prototype Labs server started; (2) the Address and Port are correct; (3) for a remote server the correct <strong>Token</strong> is entered (if the status line says &quot;TOKEN REQUIRED&quot;, the token is missing); (4) the network / Tailscale / firewall allows that port.</p>
+<p><strong>Q3: The model list is empty / &quot;no trained models on the server&quot;?</strong></p>
+<p>A: The list only shows <strong>trained</strong> models in the server&#x27;s AI library. First train and save a model to that server with Remote DL Training, or switch to &quot;Upload a model .zip&quot;. Click <strong>Refresh list</strong> to reload.</p>
+<p><strong>Q4: It says the model needs multiple input channels and won&#x27;t infer?</strong></p>
+<p>A: This tab provides a single image only and does not support multi-input models. Choose a single-input model, or handle multi-input models directly in Dragonfly&#x27;s deep-learning tools.</p>
+<p><strong>Q5: Upload says the file is too large / I need to run very large data?</strong></p>
+<p>A: In upload mode each file must be under <strong>200 MB</strong>. For larger data, place the image on a path the server can read directly (same machine or a shared drive) and choose &quot;The server can read these paths directly&quot;.</p>
+<p><strong>Q6: The visual-feedback (preview) section is disabled / greyed out?</strong></p>
+<p>A: The preview reads a preview image the server writes, so it requires a filesystem <strong>shared</strong> between your app and the server — i.e. the server on this machine (loopback) or the local subprocess. Connecting to a server on another machine has no shared path, so the preview is unavailable, but inference still runs; download the result when it finishes.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>Start the target server first</strong>: the plugin does not start a Dragonfly server; the remote / local target must already be running with the Prototype Labs server started.</li>
+<li><strong>Token is not persisted</strong>: address and port are remembered across sessions, but the token must be re-entered each session (for security).</li>
+<li><strong>Remote requires a token</strong>; connecting to 127.0.0.1 needs none.</li>
+<li><strong>Depends on the Prototype Labs embedded package</strong>: without gui_qt the panel cannot load.</li>
+<li><strong>Single-input segmentation models only</strong>; use multi-input models directly in Dragonfly.</li>
+<li><strong>Upload limit of 200 MB per file</strong>; use direct-path mode for larger data.</li>
+<li><strong>Visual feedback needs a shared filesystem</strong>; unavailable when connecting to a server on another machine (inference itself is unaffected).</li>
+<li><strong>The client does no compute</strong>: inference speed depends on the server (a GPU and a 2026.x install are recommended for deep learning).</li>
+<li><strong>Restart Dragonfly after any menu enable/disable change</strong> for it to take effect.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Companion plugin: <strong>Remote DL Training</strong> — trains segmentation models on the server.</li>
+<li>Dragonfly deep-learning / AI segmentation documentation (see the Help of your installed Dragonfly version).</li>
+<li>Full Package install / enable / uninstall guide: the bundled README.md and Install_FullPackage.bat / Uninstall_FullPackage.bat.</li>
+<li>Prototype Labs panel and Menu Item Manager: <strong>Developer ▸ Prototype Labs...</strong> inside Dragonfly.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>RemoteDLInferring-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

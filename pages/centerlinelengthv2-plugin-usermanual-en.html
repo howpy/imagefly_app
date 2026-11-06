@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centerline and Length (v2) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Centerline and Length (v2) - User Manual Dragonfly Prototype Apps · Centerline and Length (v2)... Version 1.0 · 2026-09-22 English Manual Contents 1. Intro…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Centerline and Length (v2)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Centerline and Length (v2)...</div>
+    <h1>Centerline and Length (v2)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-09-22</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-input">1 Input</a></li><li class="t3"><a href="#2-centerline">2 Centerline</a></li><li class="t3"><a href="#3-smooth-optional">3 Smooth (optional)</a></li><li class="t3"><a href="#4-length-measurement">4 Length measurement</a></li><li class="t3"><a href="#5-report-optional">5 Report (optional)</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Centerline and Length (v2) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Centerline and Length (v2)...</p>
+<p>Version 1.0 · 2026-09-22</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Starting from one published <strong>Multi-ROI</strong>, extracts a centerline for every non-zero label, measures its <strong>real length</strong>, and appends that length to the same Multi-ROI as a new <strong>per-label scalar slot</strong>. The five tabs are the workflow: <strong>Input → Centerline → Smooth → Length measurement → Report</strong>.</p>
+<p>Unlike simply summing a skeleton polyline, this plugin <strong>classifies the shape of each label before measuring it</strong>: an open curve and a branched skeleton are measured along the longest weighted geodesic path; a <strong>closed ring is measured as a ring</strong>; a shell or plate has no centerline and is refused with a stated reason.</p>
+<p>A digital skeleton staircases, so summing it directly reports a length that is <strong>too large</strong>. Measured: +9.0% on a shallow line, +10.5% on a 3-D diagonal, +21.7% at 5:1 anisotropy. The <strong>Smooth</strong> tab removes exactly that; at the default settings the same phantoms all measure to within roughly 1%.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Per-label length of <strong>slender, curved</strong> objects: vessels, fibres, channels, cracks.</li>
+<li>Data whose voxel skeleton is visibly jagged, or whose Z spacing is much larger than X and Y (anisotropic).</li>
+<li>Workflows that need the length <strong>written back onto the Multi-ROI</strong> so labels can be coloured, filtered or exported by length.</li>
+<li>Hundreds of labels at once: measured 0.32 s in total for 300 labels in a 120×300×300 volume (about 1.1 ms per label). Reading the Multi-ROI out of Dragonfly dominates the run.</li>
+</ul>
+<p><strong>Not suitable</strong> for solid blobs, shells or plates. Such labels have no meaningful length, and the plugin flags them <em>not elongated</em> or refuses them outright rather than printing a plausible wrong number.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Run the Prototype Apps installer (Full Package / App Store package).</p>
+<p>2. Tick <strong>Centerline and Length (v2)</strong> in the plugin list.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> — menus are built at startup, so a new entry does not appear until then.</p>
+<p>4. Open it from <strong>Prototype Apps ▸ Measurements &amp; Analysis ▸ Centerline and Length (v2)...</strong></p>
+<p>Use the <strong>Menu Item Manager</strong> to hide the entry temporarily. Disabling only hides the menu; it does not remove the installed code directory.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>This is an in_process plugin: there is <strong>no first-run setup at all</strong>. No virtual environment, no model download, no internet, no GPU and no administrator access.</p>
+<p>It uses only the <strong>PyQt6, NumPy, SciPy and scikit-image</strong> bundled with Dragonfly. It is verified on Dragonfly 2025.1 (Python 3.10.13 / scikit-image 0.19.3) and 2027.1 (Python 3.14.3 / scikit-image 0.25.2), with bit-identical results.</p>
+<p>The HTML report is a <strong>self-contained local file</strong>. Nothing is uploaded anywhere.</p>
+<h2 id="5-interface">5. Interface</h2>
+<h3 id="1-input">1 Input</h3>
+<p>Pick a published <strong>MultiROI</strong> and a <strong>Time step</strong>, then <strong>Read input</strong>. The <strong>Optional steps</strong> group configures the one-button run: <em>Include smoothing</em> and <em>Include report</em> are ticked by default, <em>Publish extracted centerlines</em> and <em>Publish smoothed centerlines</em> are not. <strong>Execute all steps with current settings</strong> runs the whole pipeline.</p>
+<h3 id="2-centerline">2 Centerline</h3>
+<p>Set <strong>Minimum label size (voxels)</strong> and press <strong>Extract centerlines</strong>. <strong>Publish centerlines</strong> publishes the result as a Dragonfly Graph carrying a Label ID scalar.</p>
+<h3 id="3-smooth-optional">3 Smooth (optional)</h3>
+<p><strong>Iterations</strong>, <strong>Smoothing factor</strong> and <strong>Resampling step (voxels)</strong> control the strength; press <strong>Smooth centerlines</strong>. This step can be skipped entirely.</p>
+<h3 id="4-length-measurement">4 Length measurement</h3>
+<p><strong>Measure from</strong> selects raw or smoothed centerlines and <strong>Scalar slot name</strong> names the slot. <strong>Measure lengths</strong> fills the table and <strong>Write as new MultiROI scalar slot</strong> writes it back. Beside the lengths the table gives <strong>Shape, Discarded, Length / diameter and Warnings</strong>; hovering a row explains what each warning costs for that label.</p>
+<h3 id="5-report-optional">5 Report (optional)</h3>
+<p>Choose an output path and press <strong>Generate report</strong> to write a self-contained local HTML file.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. On <strong>1 Input</strong>, choose the Multi-ROI and time step, then <strong>Read input</strong>.</p>
+<p>2. On <strong>2 Centerline</strong>, set the minimum label size and press <strong>Extract centerlines</strong>; read the log for labels that were skipped and why.</p>
+<p>3. (Optional) On <strong>3 Smooth</strong>, press <strong>Smooth centerlines</strong> to remove the staircase bias.</p>
+<p>4. On <strong>4 Length measurement</strong>, choose the source and press <strong>Measure lengths</strong>; check the Shape and Warnings columns.</p>
+<p>5. Press <strong>Write as new MultiROI scalar slot</strong> to store the lengths on the Multi-ROI.</p>
+<p>6. (Optional) On <strong>5 Report</strong>, generate the HTML report.</p>
+<p>All of the above can be done in one click with <strong>Execute all steps with current settings</strong> on <strong>1 Input</strong>; the two checkboxes there decide whether Smooth and Report take part.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Time step</td><td>0</td><td>0–9999</td><td>Which time step to read. A Multi-ROI with several time steps is measured one step at a time, and the number ignored is stated in the log rather than dropped silently.</td></tr><tr><td>Minimum label size (voxels)</td><td>8</td><td>2–100000000</td><td>Labels smaller than this are skipped and listed under Skipped.</td></tr><tr><td>Iterations</td><td>12</td><td>0–500</td><td>Laplacian smoothing iterations. 0 means no smoothing.</td></tr><tr><td>Smoothing factor</td><td>0.35</td><td>0.00–1.00</td><td>How far each point moves towards the mean of its neighbours per iteration. Larger is stronger.</td></tr><tr><td>Resampling step (voxels)</td><td>1.00</td><td>0.10–20.00</td><td>The polyline is resampled to this step before smoothing. It is multiplied by the smallest voxel spacing internally, so the same setting is the same physical window on anisotropic data.</td></tr><tr><td>Measure from</td><td>Smoothed</td><td>Raw / Smoothed</td><td>Which set of centerlines the length is taken from. Only Raw is available if smoothing was not run.</td></tr><tr><td>Scalar slot name</td><td>Centerline Length (v2)</td><td>any text</td><td>Name of the scalar slot written back. An existing slot of the same name is updated rather than duplicated.</td></tr></table></div>
+<p><strong>Too many iterations, or too large a factor, keep shortening the path</strong> past the point where only the staircase is being removed. Compare <em>Raw length</em> with <em>Measured length</em> and read <em>Reduction</em>: sensible smoothing takes 1%–10% off, not tens of percent.</p>
+<h2 id="8-output">8. Output</h2>
+<ul>
+<li><strong>A new scalar slot on the Multi-ROI</strong>: per-label length in metres, carrying a length dimension, usable directly for colouring or filtering by length.</li>
+<li><strong>The lengths table</strong>: Label, Name, Voxels, Points, Raw length, Measured length, Reduction, Shape, Discarded, Length / diameter, Warnings.</li>
+<li><strong>Dragonfly Graphs</strong> (optional): raw and smoothed centerlines, each carrying a Label ID scalar, viewable in the 3-D scene.</li>
+<li><strong>An HTML report</strong> (optional): one self-contained file with the full table, the run settings, the skipped labels, and a legend for exactly those warnings that actually occurred.</li>
+</ul>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Shape</th><th>Meaning</th><th>How it is measured</th></tr><tr><td>Open curve</td><td>a simple open curve</td><td>longest weighted geodesic path</td></tr><tr><td>Branched</td><td>a tree with side branches</td><td>longest weighted geodesic path; branches are excluded and the excluded fraction is given under Discarded</td></tr><tr><td>Closed loop</td><td>a closed ring</td><td>as a ring; measured as an open path it would read about half</td></tr><tr><td>Network</td><td>a skeleton containing loops</td><td>longest weighted geodesic path; one length cannot describe the whole structure</td></tr><tr><td>Surface</td><td>a shell or plate</td><td>refused</td></tr><tr><td>Single point / No skeleton</td><td>a degenerate skeleton</td><td>refused</td></tr></table></div>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<p><strong>A label was skipped.</strong> Read the log: the reasons are grouped (too few voxels, empty label, no measurable path, shell or plate). The Skipped section of the report repeats them.</p>
+<p><strong>The length looks too large.</strong> Smoothing was not run, or was too weak. Run the <strong>3 Smooth</strong> tab and watch the <em>Reduction</em> percentage.</p>
+<p><strong>The length looks too small.</strong> Look for the <em>blunt ends</em> warning and the <strong>End radius</strong> column: at a flat end the skeleton stops short by roughly the local radius (measured: 1 voxel at r=2, 7 voxels at r=6). It is <strong>not</strong> added to the length, because the cap shape that would decide the true figure cannot be known from the mask.</p>
+<p><strong>A result is flagged </strong><em><strong>not elongated</strong></em><strong>.</strong> That label&#x27;s length divided by its equivalent sphere diameter is below 1, so it is not a slender object and a centerline length is not meaningful for it.</p>
+<p><strong>A result is flagged </strong><em><strong>symmetry fallback</strong></em><strong>.</strong> That label is perfectly symmetric about a voxel boundary (for example a prism of exactly 4×4 cross-section, or a cylinder centred on a voxel boundary), and thinning deletes such a body entirely. The plugin re-measures it after a one-voxel dilation, so expect about one voxel of deviation.</p>
+<p><strong>The plugin is not in the menu.</strong> Dragonfly builds its menus at startup; <strong>restart it completely</strong> after installing or enabling.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>Only time step 0 is measured.</strong> A Multi-ROI with more time steps reports how many were ignored, in the log and in the report.</li>
+<li><strong>A branched label reports its trunk only.</strong> Side branches are excluded and the excluded fraction is in the Discarded column — that is the definition, not an error.</li>
+<li><strong>A network with loops cannot be described by one length.</strong> The longest path is still given, flagged <em>contains a loop</em>.</li>
+<li><strong>End shortening is never compensated automatically</strong> (see the FAQ).</li>
+<li><strong>Smoothing is optional but strongly recommended for curved objects.</strong> An axis-aligned or exactly-45° line is unbiased to begin with, and smoothing leaves it completely unchanged.</li>
+<li>The plugin <strong>never modifies the labels</strong> of the source Multi-ROI; it only appends a scalar slot.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>T. C. Lee, R. L. Kashyap, C. N. Chu, <em>Building skeleton models via 3-D medial surface/axis thinning algorithms</em>, CVGIP: Graphical Models and Image Processing, 56(6):462–478, 1994 — the algorithm behind skimage.morphology.skeletonize(method=&quot;lee&quot;).</li>
+<li>scikit-image and SciPy documentation (scipy.ndimage, scipy.sparse.csgraph).</li>
+<li>DESIGN.md in the plugin repository: every measurement quoted in this manual, with the phantom it was taken from.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CenterlineLengthV2-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

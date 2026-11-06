@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load TXM Files · Dragonfly Prototype Apps</title>
+<meta name="description" content="Load TXM Files - User Manual Dragonfly Prototype Apps · Load TXM Files... Version 1.0 · 2026-07-26 English Manual Contents 1. Introduction 2. Features 3. H…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Load TXM Files</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Load TXM Files...</div>
+    <h1>Load TXM Files</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-features">2. Features</a></li><li class="t2"><a href="#3-how-to-use">3. How to use</a></li><li class="t2"><a href="#4-requirements">4. Requirements</a></li><li class="t2"><a href="#5-tips-notes">5. Tips &amp; notes</a></li></ul></nav>
+  <main class="manual"><p><strong>Load TXM Files - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Load TXM Files...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Load TXM Files</strong> opens ZEISS Xradia .txm<strong> reconstructed volume files inside Dragonfly and publishes them as Dragonfly image </strong>Channels<strong>. It is a dockable panel under </strong>Prototype Apps<strong>: use </strong>Add Files...<strong> to pick one or more </strong>.txm files, or <strong>Add Folder...</strong> to recursively scan a folder for every .txm; select a file in the list to see its dimensions, data type, voxel size and a mid-slice preview thumbnail; then click <strong>Load into Dragonfly</strong> to read and publish every listed file.</p>
+<p>The plugin <strong>deliberately does not use any Dragonfly built-in loader</strong>. Its decode logic is carried over verbatim from the working TXM reader in the <strong>UnitedVision</strong> project, so the read path (voxel spacing, slice order, dtype mapping) is identical to UnitedVision — useful whenever you want reproducible results across the two tools.</p>
+<p>A .txm is really an <strong>OLE2 compound file</strong>: the reconstructed volume is stored as one grayscale slice per ImageDataN/ImageM stream, while ImageInfo/* streams hold the dimensions, dtype code and pixel size. The plugin reads them stream-by-stream with a bundled pure-Python olefile, so there is no compiled dependency.</p>
+<h2 id="2-features">2. Features</h2>
+<ul>
+<li><strong>Batch import:</strong> add many .txm files at once; <strong>Add Folder...</strong> recursively scans a whole folder and adds every .txm it finds, sorted by path.</li>
+<li><strong>Preview before import:</strong> selecting a file in the list shows its <strong>Dimensions (X x Y x Z)</strong>, <strong>Data type</strong>, <strong>Voxel size</strong> and <strong>File size</strong> on the right, plus a <strong>grayscale thumbnail of the middle slice</strong> — the preview reads only a single slice, so it is fast.</li>
+<li><strong>Accurate voxel size:</strong> the voxel spacing is read from the TXM ImageInfo/PixelSize (in micrometres); ZEISS volumes are isotropic, so the X/Y/Z spacing is written from the physical size (in metres, per the ORS convention) when the Channel is published.</li>
+<li><strong>Data-type mapping:</strong> DataType == 5 maps to uint16, everything else to float32, matching UnitedVision&#x27;s reader.</li>
+<li><strong>Responsive UI:</strong> the slow full-volume decode runs on a <strong>background worker thread</strong> with a live [i/n] progress bar; only the object-model calls (publishing the Channel) are marshaled onto the Qt UI thread, and you can hit <strong>Cancel</strong> at any time.</li>
+<li><strong>List management:</strong> <strong>Remove</strong> drops the selected items and <strong>Clear</strong> empties the list; a log pane at the bottom traces each file&#x27;s decode and publish steps.</li>
+</ul>
+<h2 id="3-how-to-use">3. How to use</h2>
+<p>1. Open the panel at <strong>Prototype Apps ▸ Load TXM Files...</strong> (in the Reconstruction &amp; Imaging group).</p>
+<p>2. Click <strong>Add Files...</strong> to pick one or more .txm files; or <strong>Add Folder...</strong> to pick a folder, and the plugin recursively scans it for every .txm and adds them to the list.</p>
+<p>3. (Optional) Select a file in the list to inspect its dimensions, data type and voxel size on the right, plus the mid-slice preview thumbnail, and confirm it is the data you want.</p>
+<p>4. (Optional) Use <strong>Remove</strong> to drop unwanted entries, or <strong>Clear</strong> to start over.</p>
+<p>5. Click <strong>Load into Dragonfly</strong>; the plugin decodes and publishes each file in turn — the progress bar shows overall progress and the log prints each file&#x27;s shape and spacing.</p>
+<p>6. When it finishes, each .txm becomes a new <strong>Channel</strong> in the object list (named from the file name) with voxel spacing already set from PixelSize, ready to view in 2D/3D. Click <strong>Cancel</strong> to stop partway.</p>
+<h2 id="4-requirements">4. Requirements</h2>
+<p><strong>Runs purely in-process with zero setup: no venv, no internet, no GPU and no admin rights.</strong></p>
+<ul>
+<li>It depends only on Dragonfly&#x27;s bundled <strong>numpy</strong> plus a <strong>pure-Python </strong>olefile<strong> (a BSD-licensed OLE2 reader packaged under </strong>txm_code/vendor/olefile) — there is <strong>no download or install step</strong> on first use.</li>
+<li><strong>Memory:</strong> the full volume is read into memory before publishing, so make sure you have room for it. A ~990-slice uint16 volume (~2 GB) takes on the order of tens of seconds to decode; the plugin releases each volume&#x27;s memory before starting the next file.</li>
+<li>Install: run python install_load_txm_plugin.py (any Python 3), then <strong>fully restart Dragonfly</strong>; --uninstall removes it. The plugin also ships in the Full / Apps packages (id load_txm, enabled by default).</li>
+</ul>
+<h2 id="5-tips-notes">5. Tips &amp; notes</h2>
+<ul>
+<li><strong>Why not the built-in loader:</strong> Dragonfly can open .txm natively, but this plugin intentionally uses UnitedVision&#x27;s read code so the voxel spacing, slice order and dtype are <strong>bit-for-bit identical</strong> across the two tools, for reproducibility. If you just want a quick open and do not care about matching UnitedVision, the built-in importer is fine too.</li>
+<li><strong>A failed preview does not block import:</strong> the preview is best-effort — even if a file&#x27;s thumbnail or metadata cannot be read, you can usually still click <strong>Load into Dragonfly</strong> and import it (a real failure prints the full stack trace in the log).</li>
+<li>.txm only:<strong> both the file filter and the folder scan match only the </strong>.txm extension; if a file is not a valid OLE2 container the read fails with Not a valid TXM/OLE image container.</li>
+<li><strong>When PixelSize is missing:</strong> the voxel size shows as unknown and the Channel is still published, but without physical spacing — set it manually in Dragonfly afterwards if you need real-world units.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>LoadTXM-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

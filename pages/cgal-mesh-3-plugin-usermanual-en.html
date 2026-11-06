@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CGAL Mesh_3 (Panel) · Dragonfly Prototype Apps</title>
+<meta name="description" content="CGAL Mesh_3 (Panel) - User Manual Dragonfly Prototype Apps · CGAL Mesh_3 (Panel)... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 1.1 How it…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">CGAL Mesh_3 (Panel)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · CGAL Mesh_3 (Panel)...</div>
+    <h1>CGAL Mesh_3 (Panel)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#1-1-how-it-works">1.1 How it works</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-time-setup">4. Runtime Environment &amp; First-time Setup</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#5-1-input-from-dragonfly-group">5.1 Input (from Dragonfly) group</a></li><li class="t3"><a href="#5-2-output-executable-group">5.2 Output &amp; Executable group</a></li><li class="t3"><a href="#5-3-mesh-3-criteria-sizes-in-voxels-group">5.3 Mesh_3 Criteria (sizes in VOXELS) group</a></li><li class="t3"><a href="#5-4-mesh-optimization-group">5.4 Mesh Optimization group</a></li><li class="t3"><a href="#5-5-action-buttons-log-and-completion-dialog">5.5 Action buttons, log and completion dialog</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step Usage</a></li><li class="t3"><a href="#6-1-basic-workflow-end-to-end">6.1 Basic workflow (end to end)</a></li><li class="t3"><a href="#6-2-choosing-the-mesh-size-criteria">6.2 Choosing the mesh size criteria</a></li><li class="t3"><a href="#6-3-viewing-and-using-the-results">6.3 Viewing and using the results</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>CGAL Mesh_3 (Panel) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · CGAL Mesh_3 (Panel)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p>The <strong>CGAL Mesh_3 (Panel)</strong> plugin turns your Dragonfly segmentation — a multi-material <strong>Multi-ROI</strong>, a binary <strong>ROI</strong>, or an integer label <strong>Channel</strong> — directly into a simulation-ready <strong>tetrahedral (volume) mesh</strong>. The mesh is written as a .vtu file (optionally plus a MEDIT .mesh file) in true Dragonfly world coordinates, with every tetrahedron carrying a MaterialID cell attribute equal to its original label value, ready for ParaView or FEM/simulation packages.</p>
+<p>The underlying engine is the <strong>Mesh_3</strong> 3D mesh generation component of the open-source computational geometry library <strong>CGAL</strong> (the plugin is built against CGAL 5.5+/6.0): a labeled-image mesh domain (create_labeled_image_mesh_domain) is built from your labels, make_mesh_3 generates the tetrahedra, and the Perturb, Exude, Lloyd and ODT quality optimizers can be applied. All meshing runs in a standalone local executable, cgal_mesher.exe — CGAL is never loaded into Dragonfly&#x27;s bundled Python, so the plugin is completely non-invasive to the Dragonfly installation.</p>
+<p><strong>Licensing notes:</strong> the plugin ships with the Prototype Apps Full Package; the meshing core cgal_mesher.exe is built on the open-source components CGAL, GMP/MPFR and nlohmann-json, and is bundled together with the required runtime libraries (gmp-10.dll, mpfr-6.dll and the MSVC runtime DLLs). It is invoked as an external subprocess. For the exact license terms of the open-source components, please refer to their official project pages.</p>
+<ul>
+<li>Three input types: Multi-ROI (multi-material), ROI (binary), integer label Channel.</li>
+<li>True world-coordinate output: the full origin + voxel spacing + orientation (4x4 affine) is carried through, so registered/rotated data lands in the right place.</li>
+<li>Material preservation: each tetrahedron&#x27;s MaterialID equals its original label value — multi-material meshes need no remapping.</li>
+<li>Controllable quality: five Mesh_3 criteria (facet angle/size/distance, cell size, radius-edge ratio) plus four optimizer switches.</li>
+<li>Run statistics: every run also writes _result.json (vertex/tet counts, per-material tet counts, bounding box, timing, parameters used).</li>
+</ul>
+<h3 id="1-1-how-it-works">1.1 How it works</h3>
+<p><strong>1. </strong>The panel reads the selected object&#x27;s label volume directly (in-process) from the live Dragonfly session, together with its full voxel-to-world geometry (origin + spacing + orientation, encoded as a 4x4 voxel_to_world affine matrix).</p>
+<p><strong>2. </strong>The data is exported as labels.npy + metadata.json into a per-run job folder (labels are automatically narrowed to uint8 or uint16).</p>
+<p><strong>3. </strong>cgal_mesher.exe runs CGAL Mesh_3 in <strong>voxel space</strong> (the quality size criteria are in voxels) and automatically zero-pads the volume by one voxel on every side, so objects touching the image border still get a complete outer surface.</p>
+<p><strong>4. </strong>When exporting the mesh vertices (in the World output mode) they are mapped back to Dragonfly world coordinates through the voxel_to_world matrix; the run writes .vtu (optionally .mesh) plus the _result.json statistics file.</p>
+<p>Meshing runs on a background worker thread, so the Dragonfly UI stays responsive; the Generate Mesh button is disabled while a job runs, and only one job runs at a time.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>For anyone who needs to run physics simulations on segmented 3D image data, this plugin converts the segmentation into a solver-readable volume mesh in one step:</p>
+<ul>
+<li>Pre-processing (volume mesh generation) for FEM stress, heat transfer, fluid flow, electromagnetics and similar simulations.</li>
+<li>Simulation modeling of industrial CT data — cast parts, additively manufactured parts.</li>
+<li>Materials science: battery electrodes, porous materials and other microstructures.</li>
+<li>Life science: bone and tissue structures.</li>
+<li>Multi-material meshing: every class (phase) of a Multi-ROI is preserved as a separate material in the mesh, so different phases can get different material properties.</li>
+<li>Results open in ParaView, or feed into simulation toolchains such as Gmsh / NGSolve / Abaqus.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin installs through the <strong>Prototype Labs &amp; Apps Full Package</strong>:</p>
+<p><strong>1. </strong>Unzip the Full Package zip anywhere (a short path such as C:\PL\ is recommended).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the installer dialog, tick <strong>CGAL Mesh_3 (Panel)...</strong> in the Prototype Apps list (under the <strong>Simulation &amp; Meshing</strong> group). Note: all plugins are <strong>unticked by default</strong> — you must tick this one.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>After the restart the menu entry appears at <strong>Prototype Apps ▸ CGAL Mesh_3 (Panel)...</strong>. Clicking it docks the panel on the <strong>right</strong> side of the Dragonfly main window, in a tab named &quot;CGAL Mesh_3&quot;; the panel is collapsible, movable and can be floated as a separate window.</p>
+<p><strong>Enable/disable later:</strong> open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick/untick the plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom; restart Dragonfly to apply. Disabling only removes the menu entry — it <strong>never</strong> deletes the plugin&#x27;s settings; re-enabling is instant. You can also re-run the installer anytime (your previous choices are the new defaults): %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat.</p>
+<ul>
+<li>Plugin package location: %LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\Plugins\OrsCgalMesh_&lt;uuid&gt;\</li>
+<li>Panel code and mesher: %LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\CgalMesh\ (with bin\cgal_mesher.exe inside)</li>
+<li>Everything is per-user (%LOCALAPPDATA%); no admin rights needed. Every Dragonfly version on the PC gets its own copy.</li>
+</ul>
+<p><strong>Uninstall:</strong> double-click <strong>`Uninstall_FullPackage.bat`</strong> from the Full Package (a copy is kept in the installer folder above). It removes all Full Package menu items and plugins; the plugin&#x27;s own configuration file (see the next chapter) is kept, and its path is listed at the end so you can delete it manually if desired.</p>
+<h2 id="4-runtime-environment-first-time-setup">4. Runtime Environment &amp; First-time Setup</h2>
+<p>This plugin has <strong>no Setup Environment button and needs no environment build</strong>: the mesher cgal_mesher.exe, together with its runtime libraries (gmp-10.dll, mpfr-6.dll, MSVC runtime DLLs), ships bundled in the bin\ subfolder of the plugin&#x27;s code folder and is auto-detected when the panel opens. <strong>No internet, no GPU, no WSL</strong> — after ticking it in the installer and restarting Dragonfly it is ready to use.</p>
+<ul>
+<li>Mesher executable (auto-detected): %LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\CgalMesh\bin\cgal_mesher.exe</li>
+<li>User configuration: %LOCALAPPDATA%\CgalMesh\config.json — remembers the last-used exe path and output folder; updated automatically on every Generate Mesh click.</li>
+<li>Default output folder: C:\CGALMeshJobs (changeable in the panel; the change is remembered; created automatically at run time if missing).</li>
+</ul>
+<p>If the exe path field is empty or the file has been moved, click the <strong>…</strong> browse button next to it and point it at cgal_mesher.exe; the path is stored in the configuration file as well.</p>
+<p>Supported Dragonfly versions: 2025.1 and 2027.1 (the panel uses Dragonfly&#x27;s own PyQt6 and Python; one codebase serves both versions).</p>
+<p>Unlike other heavy Prototype Apps plugins, this one downloads nothing at install or first use — it works out of the box.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>From top to bottom the panel shows: one blue hint line (&quot;Generate a tetrahedral mesh (CGAL Mesh_3) from a Multi-ROI / ROI / label Channel...&quot;), four parameter groups (scrollable), two action buttons, and the run log window at the bottom. Each element is described below.</p>
+<h3 id="5-1-input-from-dragonfly-group">5.1 Input (from Dragonfly) group</h3>
+<ul>
+<li><strong>Label object</strong> dropdown: lists every object in the current session that can serve as a label volume — all Multi-ROIs, ROIs and Channels (empty objects with zero voxels are filtered out). Entries are formatted Title  [Kind]  [Z x Y x X], where Kind is MultiROI / ROI or the object class name; duplicate names get a GUID prefix suffix for disambiguation.</li>
+<li>The list <strong>auto-refreshes</strong> (re-enumerated from the session roughly every 2.5 seconds) — no manual action needed after creating or deleting objects; your current selection is preserved across refreshes. Objects currently selected in Dragonfly are listed first.</li>
+<li>Grey hint at the top of the group: &quot;Multi-ROI / ROI / label Channels refresh automatically from the session.&quot;</li>
+</ul>
+<h3 id="5-2-output-executable-group">5.2 Output &amp; Executable group</h3>
+<ul>
+<li><strong>Output folder</strong>: the output root folder (default C:\CGALMeshJobs, or your last-used value); the <strong>…</strong> button opens a folder browser. Every run creates its own job subfolder inside it.</li>
+<li><strong>cgal_mesher.exe</strong>: path to the mesher executable, pre-filled automatically with the bundled bin\cgal_mesher.exe; the <strong>…</strong> button lets you point elsewhere.</li>
+<li><strong>Output coordinates</strong> dropdown: World (Dragonfly coordinates) (default — mesh vertices in Dragonfly world coordinates, perfectly aligned with the source data) or Image (origin 0, axis-aligned) (an origin-0, axis-aligned image frame for downstream FE tools that prefer it).</li>
+<li><strong>Also write MEDIT .mesh</strong> checkbox (off by default): additionally writes a MEDIT-format .mesh file next to the .vtu.</li>
+</ul>
+<h3 id="5-3-mesh-3-criteria-sizes-in-voxels-group">5.3 Mesh_3 Criteria (sizes in VOXELS) group</h3>
+<p>Five numeric fields map to CGAL Mesh_3&#x27;s five quality criteria. <strong>Note: all size-type criteria (Facet size, Facet distance, Cell size) are in VOXELS</strong>, independent of the data&#x27;s physical spacing; the conversion is: physical size = voxels x voxel spacing along that axis.</p>
+<ul>
+<li><strong>Facet angle (deg)</strong> (default 30): lower bound on the surface-triangle angles, in degrees.</li>
+<li><strong>Facet size</strong> (default 2.0): upper bound on the surface-triangle circumball radius, in voxels.</li>
+<li><strong>Facet distance</strong> (default 1.0): maximum approximation error between a surface facet and the true boundary, in voxels — controls how faithfully the boundary is reproduced.</li>
+<li><strong>Cell size</strong> (default 2.0): upper bound on the tetrahedron circumball radius, in voxels — the main knob for overall mesh density.</li>
+<li><strong>Cell radius-edge ratio</strong> (default 3.0): upper bound on the ratio of a tetrahedron&#x27;s circumball radius to its shortest edge — controls element shape quality.</li>
+</ul>
+<h3 id="5-4-mesh-optimization-group">5.4 Mesh Optimization group</h3>
+<ul>
+<li><strong>Fast (disable all optimizers)</strong> (off by default): skips every optimizer — fastest, lowest quality.</li>
+<li><strong>Perturb</strong> (on by default): vertex perturbation, removes degenerate elements.</li>
+<li><strong>Exude (sliver removal)</strong> (on by default): exudation, removes sliver tetrahedra.</li>
+<li><strong>Lloyd</strong> (off by default): Lloyd global smoothing optimizer (slower).</li>
+<li><strong>ODT</strong> (off by default): ODT global optimizer (slower).</li>
+<li><strong>Verbose mesher log</strong> (off by default): makes the mesher print a much more detailed progress log — useful for troubleshooting.</li>
+</ul>
+<p>Perturb + Exude together is CGAL&#x27;s default quality combination; when Fast is ticked, the other optimizer checkboxes have no effect.</p>
+<h3 id="5-5-action-buttons-log-and-completion-dialog">5.5 Action buttons, log and completion dialog</h3>
+<ul>
+<li><strong>Generate Mesh</strong> (blue button): reads the selected object and starts the meshing job; disabled while a job is running.</li>
+<li><strong>Open Output Folder</strong>: opens the most recent job&#x27;s output folder in Windows Explorer (or the output root if nothing has run yet).</li>
+<li><strong>Log window</strong> (read-only text box at the bottom): shows object refreshes, the export, every line of the mesher&#x27;s output, and error messages.</li>
+</ul>
+<p>When a run finishes, a <strong>CGAL Mesh_3</strong> completion dialog pops up: on success it shows Vertices, Tetrahedra, Materials, Time and the output file path, with an <strong>Open Output Folder</strong> button (the default) and Close; on failure it shows &quot;Meshing failed.&quot; plus the exact error text.</p>
+<h2 id="6-step-by-step-usage">6. Step-by-step Usage</h2>
+<h3 id="6-1-basic-workflow-end-to-end">6.1 Basic workflow (end to end)</h3>
+<p><strong>1. </strong>Prepare your segmentation in Dragonfly: a Multi-ROI (multi-material), a binary ROI, or an integer label Channel. Labels must be non-negative integers; 0 means background.</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ CGAL Mesh_3 (Panel)...</strong>.</p>
+<p><strong>3. </strong>Pick the input object in the <strong>Label object</strong> dropdown (the list auto-refreshes; check the kind and dimensions shown in brackets).</p>
+<p><strong>4. </strong>Confirm the <strong>Output folder</strong> (default C:\CGALMeshJobs); click <strong>…</strong> to change it.</p>
+<p><strong>5. </strong>Leave the auto-detected <strong>cgal_mesher.exe</strong> path untouched (unless you deliberately moved the executable).</p>
+<p><strong>6. </strong>Choose <strong>Output coordinates</strong>: keep the default World when the mesh must align with your Dragonfly data.</p>
+<p><strong>7. </strong>Set the five <strong>Mesh_3 Criteria</strong> for the target mesh density (units are voxels — see 6.2 for guidance).</p>
+<p><strong>8. </strong>Adjust the <strong>Mesh Optimization</strong> checkboxes as needed; for a first trial run, ticking <strong>Fast</strong> gives a quick preview.</p>
+<p><strong>9. </strong>Click <strong>Generate Mesh</strong>. The log window streams the export and mesher output; you can keep working in Dragonfly meanwhile.</p>
+<p><strong>10. </strong>When the completion dialog appears, check the vertex/tetrahedron/material statistics, click <strong>Open Output Folder</strong>, and take the .vtu (and optional .mesh) files.</p>
+<h3 id="6-2-choosing-the-mesh-size-criteria">6.2 Choosing the mesh size criteria</h3>
+<p>The size criteria are in voxels, so compare them directly with the voxel scale of the features you care about: <strong>Cell size / Facet size must be clearly smaller than the voxel thickness of the finest structure of interest</strong>, otherwise that structure cannot be captured — in the extreme case the mesh comes out empty (the mesher reports &quot;empty mesh&quot;, return code 2). Conversely, smaller values mean a finer mesh, and the tetrahedron count, memory and run time grow steeply.</p>
+<ul>
+<li>Do a first trial with the defaults (Facet size 2.0 / Cell size 2.0 voxels) plus <strong>Fast</strong>, read the tetrahedron count from the completion dialog, then refine or coarsen as needed.</li>
+<li>When you need physical units, convert manually: physical size = voxels x voxel spacing (the mesh itself, in World mode, is already in physical coordinates).</li>
+<li>To improve boundary fidelity only, reduce <strong>Facet distance</strong> first; to control the overall mesh size, adjust <strong>Cell size</strong> first.</li>
+</ul>
+<p>The whole selected volume is meshed at its current resolution: the larger the volume and the finer the criteria, the higher the memory use and run time. For large volumes, validate the workflow with coarse criteria first.</p>
+<h3 id="6-3-viewing-and-using-the-results">6.3 Viewing and using the results</h3>
+<p><strong>1. </strong>Click <strong>Open Output Folder</strong> to open this run&#x27;s job folder (named like cgal_&lt;objectname&gt;_&lt;date_time&gt;).</p>
+<p><strong>2. </strong>Drag &lt;name&gt;.vtu into ParaView and color by the MaterialID cell array to inspect the mesh per material.</p>
+<p><strong>3. </strong>For toolchains that read MEDIT (e.g. Gmsh), use the optionally generated &lt;name&gt;.mesh.</p>
+<p><strong>4. </strong>Open &lt;name&gt;_result.json for the total vertex/tetrahedron counts, per-material tetrahedron counts, the world-space bounding box, the timing, and all parameters used in this run.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Label object</td><td>(session objects)</td><td>Input dropdown: Multi-ROI / ROI / label Channel; auto-refreshes about every 2.5 s.</td></tr><tr><td>Output folder</td><td>C:\CGALMeshJobs</td><td>Output root; each run creates a timestamped job subfolder inside it; remembered across sessions.</td></tr><tr><td>cgal_mesher.exe</td><td>auto-detected (bundled)</td><td>Path to the mesher; defaults to bin\cgal_mesher.exe inside the plugin&#x27;s code folder; remembered.</td></tr><tr><td>Output coordinates</td><td>World (Dragonfly coordinates)</td><td>Vertex coordinate frame: World = Dragonfly world coordinates (origin/spacing/orientation); Image = origin-0, axis-aligned image frame.</td></tr><tr><td>Also write MEDIT .mesh</td><td>off</td><td>Additionally writes a MEDIT .mesh file (1-based indices, material stored as the tetrahedron ref).</td></tr><tr><td>Facet angle (deg)</td><td>30</td><td>Lower bound on surface-triangle angles (degrees).</td></tr><tr><td>Facet size</td><td>2.0</td><td>Upper bound on surface-triangle circumball radius, in voxels.</td></tr><tr><td>Facet distance</td><td>1.0</td><td>Maximum surface approximation error, in voxels; smaller = more faithful boundary.</td></tr><tr><td>Cell size</td><td>2.0</td><td>Upper bound on tetrahedron circumball radius, in voxels; main mesh-density knob.</td></tr><tr><td>Cell radius-edge ratio</td><td>3.0</td><td>Upper bound on circumball radius / shortest edge; controls element shape quality.</td></tr><tr><td>Fast (disable all optimizers)</td><td>off</td><td>Skips all quality optimizers — fastest, lowest quality.</td></tr><tr><td>Perturb</td><td>on</td><td>Vertex perturbation; removes degenerate elements.</td></tr><tr><td>Exude (sliver removal)</td><td>on</td><td>Exudation; removes sliver tetrahedra.</td></tr><tr><td>Lloyd</td><td>off</td><td>Lloyd global optimizer (slower).</td></tr><tr><td>ODT</td><td>off</td><td>ODT global optimizer (slower).</td></tr><tr><td>Verbose mesher log</td><td>off</td><td>More detailed mesher log output.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>This plugin outputs <strong>files</strong> (it does not create new objects inside Dragonfly). Each run creates a job folder cgal_&lt;objectname&gt;_&lt;YYYYMMDD_HHMMSS&gt; under the output root, containing:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>File</th><th>Description</th></tr><tr><td>&lt;name&gt;.vtu</td><td>Main output: VTK XML UnstructuredGrid (ASCII) tetrahedral mesh; every cell carries an Int32 MaterialID attribute = original label value. Opens directly in ParaView.</td></tr><tr><td>&lt;name&gt;.mesh</td><td>Optional (when Also write MEDIT .mesh is ticked): MEDIT-format mesh, 1-based vertex/tetrahedron indices, material written as the tetrahedron ref.</td></tr><tr><td>&lt;name&gt;_result.json</td><td>Run statistics: output path, coordinate mode, num_vertices, num_tetrahedra, num_materials, materials (tetrahedron count per label), bbox_min/bbox_max, seconds, parameters.</td></tr><tr><td>labels.npy</td><td>Intermediate file: the exported label volume (uint8/uint16, C-order Z,Y,X).</td></tr><tr><td>metadata.json</td><td>Intermediate file: shape, spacing, origin, the 4x4 voxel_to_world matrix and the label list.</td></tr></table></div>
+<p><strong>How to view:</strong> open the .vtu in ParaView and color by MaterialID; in World mode the mesh sits in exactly the same coordinate frame as the source data in Dragonfly, so it can be overlaid with other exported data.</p>
+<p>v1 does not re-import the tetrahedral volume mesh into Dragonfly (Dragonfly&#x27;s native mesh support is mainly surface meshes) — use the output files in ParaView / your simulation package.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: The menu entry CGAL Mesh_3 (Panel)... is missing?</strong></p>
+<p>A: The plugin is disabled by default. Make sure it was ticked during installation (or tick it later in <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, &quot;Prototype Apps (Full Package)&quot; list), and that Dragonfly was <strong>fully restarted</strong> afterwards — menus are scanned only at startup.</p>
+<p><strong>Q: My object does not appear in the dropdown?</strong></p>
+<p>A: The list only shows Multi-ROIs / ROIs / Channels that actually contain volume data (zero-voxel objects are filtered out), and it refreshes about every 2.5 seconds — wait a moment if the object was just created or is still loading. If Generate Mesh reports &quot;select a valid input object (it may still be loading)&quot;, re-select once loading has finished.</p>
+<p><strong>Q: Error &quot;CGAL mesher exe not found&quot;?</strong></p>
+<p>A: The exe path field points to a missing file. Click the <strong>…</strong> button next to it and browse to %LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\CgalMesh\bin\cgal_mesher.exe; the path is remembered afterwards.</p>
+<p><strong>Q: &quot;empty mesh&quot; error / failure with return code 2?</strong></p>
+<p>A: The size criteria are too large relative to your structures — <strong>Cell size / Facet size are in voxels</strong>, and if they exceed the voxel thickness of a structure it is skipped entirely. Reduce Cell size and Facet size and retry; also verify the selected object really contains non-zero labels.</p>
+<p><strong>Q: The mesh is too big / the run is too slow?</strong></p>
+<p>A: Increase <strong>Cell size</strong> and <strong>Facet size</strong> (most effective), tick <strong>Fast</strong> to skip the optimizers, and leave Lloyd / ODT unticked. Tick <strong>Verbose mesher log</strong> to watch progress. A running job cannot be cancelled from the panel, so it is best to try coarse settings first and refine once the mesh size is confirmed.</p>
+<p><strong>Q: What are the label restrictions?</strong></p>
+<p>A: Labels must be non-negative integers: negative values raise an error; the maximum label value must not exceed 65535 (above that you are asked to re-label). 0 is treated as background/exterior and is not meshed; every non-zero label becomes one material. Floating-point Channels are rounded to the nearest integer before use.</p>
+<p><strong>Q: In ParaView, the mesh does not line up with my exported image data?</strong></p>
+<p>A: Check that <strong>Output coordinates</strong> was set to World (Dragonfly coordinates) when the mesh was generated — that mode carries the true origin, spacing and orientation; the Image mode is an origin-0, axis-aligned frame, so a mismatch between the two is expected.</p>
+<p><strong>Q: Can I load the generated volume mesh back into Dragonfly?</strong></p>
+<p>A: Not in the current version — Dragonfly&#x27;s native mesh objects mainly target surface meshes, while this plugin outputs tetrahedral volume meshes. Use <strong>Open Output Folder</strong> and view the files in ParaView or another external tool.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>Sizes are in voxels</strong>: Facet size, Facet distance and Cell size are in voxel units (the group title says &quot;sizes in VOXELS&quot;), independent of physical spacing; only the output mesh coordinates (World mode) are in physical/world units.</li>
+<li>Label 0 = background/exterior and is not meshed; every non-zero label produces one material.</li>
+<li>The dropdown lists <strong>all</strong> Channels: pick a genuine integer label map. A plain grayscale Channel would turn every gray value into a material, which is usually not what you want.</li>
+<li>The maximum label value is 65535 (internally stored as uint8 or uint16 depending on the maximum); negative labels are rejected.</li>
+<li>Before meshing, the volume is automatically zero-padded by one voxel on every side so that border-touching objects get a complete outer surface — this is intended behavior.</li>
+<li>If the input object has no Box geometry, unit spacing and an identity transform are used (a log message says so) — the output is then effectively in image coordinates.</li>
+<li>A running job <strong>cannot be cancelled</strong>; the Generate Mesh button stays disabled until it finishes. Evaluate the mesh size with coarse criteria first.</li>
+<li>v1 does not import the volume mesh back into Dragonfly; the deliverables are standard mesh files (.vtu / .mesh).</li>
+<li>labels.npy / metadata.json in the job folder are intermediate files; once you have verified the result they can be deleted to save disk space.</li>
+<li>The configuration (exe path, output folder) is stored in %LOCALAPPDATA%\CgalMesh\config.json; uninstalling the plugin does not delete it.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>The CGAL (Computational Geometry Algorithms Library) project and the official documentation of its <strong>Mesh_3</strong> 3D mesh generation component (this plugin is built against CGAL 5.5+/6.0; GMP/MPFR numeric backend).</li>
+<li>VTK / ParaView: the .vtu (VTK XML UnstructuredGrid) format and mesh viewing.</li>
+<li>The MEDIT .mesh format: a classic mesh exchange format readable by Gmsh and other tools.</li>
+<li>Downstream simulation tools (examples): Gmsh, NGSolve, Abaqus.</li>
+<li>The installation guide shipped inside the Prototype Labs &amp; Apps Full Package (bilingual README in the package).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CGAL-Mesh_3-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

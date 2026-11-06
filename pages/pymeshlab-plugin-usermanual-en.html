@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesh Repair &amp; Remesh (PyMeshLab) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Mesh Repair &amp; Remesh (PyMeshLab) - User Manual Dragonfly Prototype Apps · Mesh Repair &amp; Remesh (PyMeshLab)... Version 1.0 · 2026-07-09 English Manual Conte…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Mesh Repair &amp; Remesh (PyMeshLab)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Mesh Repair &amp; Remesh (PyMeshLab)...</div>
+    <h1>Mesh Repair &amp; Remesh (PyMeshLab)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#about-the-licence-and-run-time-isolation">About the licence and run-time isolation</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t3"><a href="#changing-your-choice-later">Changing your choice later</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#other-fields-on-the-setup-tab">Other fields on the Setup tab</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#setup-tab">Setup tab</a></li><li class="t3"><a href="#operate-tab">Operate tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t3"><a href="#screened-poisson-reconstruction-from-points">Screened-Poisson reconstruction (from points)</a></li><li class="t3"><a href="#isotropic-explicit-remeshing">Isotropic explicit remeshing</a></li><li class="t3"><a href="#simplify-quadric-edge-collapse-decimation">Simplify (quadric edge-collapse decimation)</a></li><li class="t3"><a href="#close-holes">Close holes</a></li><li class="t3"><a href="#repair">Repair</a></li><li class="t3"><a href="#smooth-taubin-laplacian">Smooth (Taubin / Laplacian)</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Mesh Repair &amp; Remesh (PyMeshLab) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Mesh Repair &amp; Remesh (PyMeshLab)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Mesh Repair &amp; Remesh (PyMeshLab)</strong> is a Dragonfly plugin that applies professional mesh repair and remeshing operations to any surface mesh in your scene. You pick a mesh, choose an operation, set the parameters, and click <strong>Run</strong>; the result is published back into the scene as a <strong>new mesh</strong>, leaving the original untouched.</p>
+<p>The underlying engine is <strong>PyMeshLab</strong> — the Python binding to the well-known open-source mesh-processing application <strong>MeshLab</strong>. All geometry runs on the <strong>CPU</strong> (no GPU required). The plugin exposes six operations: Screened-Poisson surface reconstruction, isotropic explicit remeshing, quadric edge-collapse decimation (simplify), close holes, repair (remove non-manifold edges/vertices plus duplicate/unreferenced clean-up), and Taubin / Laplacian smoothing. These are exactly the mesh repair/remesh operations the sibling Open3D plugin lacks.</p>
+<h3 id="about-the-licence-and-run-time-isolation">About the licence and run-time isolation</h3>
+<p>PyMeshLab (MeshLab) is <strong>GPL-3.0-only</strong>. To keep GPL code out of Dragonfly&#x27;s proprietary process, the plugin isolates PyMeshLab strictly: PyMeshLab is installed <strong>only</strong> into the plugin&#x27;s <strong>own dedicated virtual environment (venv)</strong> and is imported <strong>only inside a separate subprocess</strong> — it is <strong>never</strong> imported into the Dragonfly process. The Dragonfly side and that subprocess exchange data only as plain <strong>PLY mesh files plus JSON config/status/result files</strong>, with no in-process linkage. That subprocess IS the licence isolation boundary.</p>
+<p>This design means PyMeshLab&#x27;s GPL terms bind only the dedicated venv subprocess and do not affect Dragonfly itself. All object-model (ORSModel) reads/writes stay on the Dragonfly side; the subprocess never touches the Dragonfly object model.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin is useful whenever meshes extracted from CT or microscopy data need repair and clean-up before further analysis, simulation, or printing:</p>
+<ul>
+<li><strong>Prep for simulation / 3D printing</strong>: clean and remesh a segmentation mesh into a tidy, uniform, topologically sound triangle mesh.</li>
+<li><strong>Fix segmentation-mesh defects</strong>: close holes, remove non-manifold geometry (edges/vertices), and clear duplicate and unreferenced vertices/faces.</li>
+<li><strong>Simplify huge meshes (decimation)</strong>: bring million-face meshes down to a manageable size with quadric edge-collapse while preserving the boundary and normals.</li>
+<li><strong>Reconstruct a watertight surface from a point cloud</strong>: treat the mesh vertices (with normals) as an oriented point cloud and run screened Poisson.</li>
+<li><strong>Surface denoising / smoothing</strong>: reduce staircase artifacts with Taubin (low shrinkage) or Laplacian smoothing.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin ships as one of the <strong>Prototype Apps</strong> inside the <strong>Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the Full Package to any <strong>short</strong> folder (e.g. C:\PL\; avoid a deep Downloads path or a OneDrive-redirected Desktop).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>. In the dialog, choose the core install mode (Fresh / Compatible), then <strong>tick</strong> &quot;Mesh Repair &amp; Remesh (PyMeshLab)&quot; in the Prototype Apps list.</p>
+<p><strong>3. </strong>Click <strong>Install</strong>, wait for the console to finish, then <strong>quit and restart Dragonfly completely</strong>.</p>
+<p>This plugin is <strong>unticked by default</strong> (all plugins default to OFF). You must tick it yourself for the menu entry to appear after a restart.</p>
+<p>After the restart the menu entry appears under <strong>Prototype Apps ▸ Mesh Repair &amp; Remesh (PyMeshLab)...</strong> (in the &quot;Measurements &amp; Analysis&quot; group). Clicking it opens a dockable / floating panel.</p>
+<h3 id="changing-your-choice-later">Changing your choice later</h3>
+<p>The easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>. The &quot;Prototype Apps (Full Package)&quot; list at the bottom has one checkbox per app — tick to deploy the menu entry, untick to remove it. <strong>Restart Dragonfly to apply.</strong> Disabling <strong>never</strong> deletes the plugin&#x27;s built environment (venv); re-enabling is instant.</p>
+<p>Alternatively, re-run the installer anytime (it remembers your previous choices as the new defaults). To uninstall, double-click <strong>`Uninstall_FullPackage.bat`</strong> — it removes the menu items and plugins but <strong>keeps</strong> any built venv environments (their paths are listed at the end so you can delete them manually to reclaim disk space).</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p>Before first use you must build the plugin&#x27;s dedicated run-time environment. Installing the Full Package downloads <strong>no</strong> compute dependencies; the environment is built on first use, from the plugin&#x27;s <strong>Setup</strong> tab.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>On the <strong>Setup</strong> tab, click <strong>&quot;Setup Environment (build venv + pip install pymeshlab numpy)&quot;</strong>. The plugin then:</p>
+<p><strong>1. </strong>Creates a dedicated virtual environment (venv) next to the plugin code, <strong>using Dragonfly&#x27;s own Python by default</strong>.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p><strong>2. </strong>Runs pip install pymeshlab numpy inside that venv, downloading PyMeshLab and NumPy from <strong>PyPI</strong>.</p>
+<p><strong>3. </strong>Records the resulting venv interpreter path in the settings (the &quot;PyMeshLab venv python&quot; field fills in automatically), to be used for every subsequent run.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Item</th><th>Detail</th></tr><tr><td>Duration</td><td>One-time, usually a couple of minutes.</td></tr><tr><td>Download size</td><td>A few hundred MB (pymeshlab is a large wheel).</td></tr><tr><td>Internet</td><td>Required (downloads wheels from PyPI).</td></tr><tr><td>GPU</td><td>Not required — CPU-only compute.</td></tr><tr><td>WSL / external apps</td><td>Not needed; no external software required.</td></tr><tr><td>Environment location</td><td>The venv lives inside the installed plugin code dir (...\GenericMenuItems\PyMeshLab\venv).</td></tr></table></div>
+<h3 id="other-fields-on-the-setup-tab">Other fields on the Setup tab</h3>
+<ul>
+<li><strong>PyMeshLab venv python</strong>: the venv&#x27;s python path. Leave blank — &quot;Setup Environment&quot; fills it in; once built it shows the full interpreter path.</li>
+<li><strong>Base Python (build)</strong>: the base interpreter used to <strong>build</strong> the venv. <strong>Blank = this Dragonfly&#x27;s own python.exe (recommended)</strong>; you may also enter a path or a command such as py -3.12.</li>
+<li><strong>Run mode</strong>: windows (default) or wsl. Normally leave it on windows.</li>
+<li><strong>Job root</strong>: the job root folder, default C:\PyMeshLabJobs. Each run creates a timestamped subfolder there for intermediate files and the result PLY.</li>
+</ul>
+<p>Fallback if it fails: PyMeshLab ships wheels for CPython 3.8–3.12 (Windows x86-64). If this Dragonfly&#x27;s bundled Python is outside that range, pip install pymeshlab fails — enter a 3.8–3.12 Python in the <strong>Base Python (build)</strong> field (e.g. py -3.12 or a Miniconda python.exe) and click Setup Environment again. The full build output streams to the <strong>Log</strong> area at the bottom of the panel for troubleshooting.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>A blue note at the top of the panel reminds you that PyMeshLab runs in a dedicated venv subprocess. The body has two tabs, <strong>Setup</strong> and <strong>Operate</strong>; at the bottom sit a green <strong>result label</strong> and a read-only <strong>Log</strong> area.</p>
+<h3 id="setup-tab">Setup tab</h3>
+<p>Used for the one-time environment build. It contains the four fields &quot;PyMeshLab venv python&quot;, &quot;Base Python (build)&quot;, &quot;Run mode&quot;, and &quot;Job root&quot;, plus a <strong>Setup Environment</strong> button (see Chapter 4).</p>
+<h3 id="operate-tab">Operate tab</h3>
+<p>Where day-to-day work happens, grouped top to bottom:</p>
+<ul>
+<li><strong>Input mesh</strong>: a &quot;Mesh (source)&quot; dropdown lists the scene meshes, with a <strong>Refresh</strong> button on the right to reload it. Each entry shows the mesh title plus its vertex count V / face count F and class. When the Poisson operation is chosen, a grey hint appears below: &quot;Poisson treats the mesh vertices as a point cloud.&quot;</li>
+<li><strong>Operation</strong>: a dropdown listing the six operations (see Chapter 7). Switching operation <strong>rebuilds</strong> the parameter area below with that operation&#x27;s controls.</li>
+<li><strong>Parameters</strong>: controls generated automatically for the chosen operation — integers use a spinbox, floats a double spinbox, booleans a checkbox, choices a dropdown. Hover a control to see its parameter tooltip.</li>
+<li><strong>Output</strong>: a &quot;Result mesh title&quot; text field. Leave it blank for an auto name (e.g. &quot;PyMeshLab Isotropic explicit remeshing&quot;).</li>
+</ul>
+<p>At the bottom of the tab are two buttons: <strong>Run</strong> (blue, starts the computation) and <strong>Open Output Folder</strong> (opens the most recent job&#x27;s output folder).</p>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>After building the environment (Chapter 4), a typical end-to-end run looks like this:</p>
+<p><strong>1. </strong>Have a surface mesh ready in the scene (a FaceVertexMesh or a base Mesh). It can come from a segmentation, a point-cloud reconstruction, or another plugin&#x27;s output.</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Mesh Repair &amp; Remesh (PyMeshLab)...</strong> and switch to the <strong>Operate</strong> tab.</p>
+<p><strong>3. </strong>Click <strong>Refresh</strong> and pick the mesh to process in the &quot;Mesh (source)&quot; dropdown.</p>
+<p><strong>4. </strong>Choose an operation in the <strong>Operation</strong> dropdown (Poisson / remesh / decimate / close holes / repair / smooth).</p>
+<p><strong>5. </strong>Adjust the values in the <strong>Parameters</strong> area (the defaults are a fine starting point; see Chapter 7 for meanings).</p>
+<p><strong>6. </strong>(Optional) type a name for the result in the <strong>Output</strong> &quot;Result mesh title&quot; field.</p>
+<p><strong>7. </strong>Click <strong>Run</strong>. The Log area streams progress (reading mesh -&gt; applying filter -&gt; writing result) and the result label shows &quot;Running…&quot;.</p>
+<p><strong>8. </strong>When finished, the result label reads &quot;Done. Published mesh: V=… F=…&quot; and a new FaceVertexMesh appears in the scene; the original mesh is unchanged. Click <strong>Open Output Folder</strong> to inspect the PLY copy saved for that run.</p>
+<p>If the environment is not built yet (venv python is empty) or no input mesh is selected, clicking Run prints a clear message in the Log and does <strong>not</strong> start the computation. Parameters are validated before submission (for example, when decimating with a target face count of 0, the reduction_ratio must be within (0, 1]).</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>The tables below list every parameter and its default, per operation. The controls are generated dynamically from the plugin&#x27;s operation registry; the values and defaults below match the code exactly.</p>
+<h3 id="screened-poisson-reconstruction-from-points">Screened-Poisson reconstruction (from points)</h3>
+<p>Treats the input mesh&#x27;s vertices as an oriented point cloud (the original faces are dropped), estimates normals, then runs screened-Poisson reconstruction to output a watertight surface.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>depth</td><td>8</td><td>Poisson octree reconstruction depth (higher = finer), range 2-14.</td></tr><tr><td>full_depth</td><td>5</td><td>Adaptive octree depth (0 = auto), range 0-14.</td></tr><tr><td>point_weight</td><td>4.0</td><td>Interpolation (screening) weight; 0 = classic Poisson, range 0-100.</td></tr><tr><td>samples_per_node</td><td>1.5</td><td>Minimum samples per octree node (noise robustness), range 1-100.</td></tr></table></div>
+<h3 id="isotropic-explicit-remeshing">Isotropic explicit remeshing</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>target_edge_length</td><td>0.0</td><td>Target edge length in world units; 0 = auto (~1% of the bounding-box diagonal).</td></tr><tr><td>iterations</td><td>5</td><td>Remeshing iterations, range 1-100.</td></tr><tr><td>adaptive</td><td>off (False)</td><td>Enable adaptive (curvature-driven) edge length.</td></tr></table></div>
+<h3 id="simplify-quadric-edge-collapse-decimation">Simplify (quadric edge-collapse decimation)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>target_faces</td><td>0</td><td>Target #faces; 0 = use reduction_ratio instead.</td></tr><tr><td>reduction_ratio</td><td>0.5</td><td>Fraction of faces to keep when target_faces is 0, range 0.01-1.0.</td></tr><tr><td>preserve_boundary</td><td>on (True)</td><td>Preserve mesh boundary edges.</td></tr><tr><td>preserve_normal</td><td>on (True)</td><td>Preserve the orientation of face normals.</td></tr></table></div>
+<h3 id="close-holes">Close holes</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>max_hole_size</td><td>30</td><td>Max hole boundary size (in edges) to close; 0 = close all holes.</td></tr><tr><td>selected_only</td><td>off (False)</td><td>Close only holes touching a selection (kept off here).</td></tr></table></div>
+<h3 id="repair">Repair</h3>
+<p>Cleans the mesh step by step using the toggles below; all default to on.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>remove_non_manifold_edges</td><td>on (True)</td><td>Remove non-manifold edges.</td></tr><tr><td>remove_non_manifold_vertices</td><td>on (True)</td><td>Remove non-manifold vertices.</td></tr><tr><td>remove_duplicate_vertices</td><td>on (True)</td><td>Remove duplicate vertices.</td></tr><tr><td>remove_duplicate_faces</td><td>on (True)</td><td>Remove duplicate faces.</td></tr><tr><td>remove_unreferenced_vertices</td><td>on (True)</td><td>Remove vertices not referenced by any face.</td></tr></table></div>
+<h3 id="smooth-taubin-laplacian">Smooth (Taubin / Laplacian)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>method</td><td>taubin</td><td>Smoothing method: taubin (low shrinkage) or laplacian.</td></tr><tr><td>iterations</td><td>10</td><td>Smoothing iterations, range 1-1000.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful run produces two kinds of output:</p>
+<ul>
+<li><strong>A new mesh in the scene</strong>: the result is published back into the Dragonfly scene as a new FaceVertexMesh. It is a standalone object and the <strong>original input mesh is left unchanged</strong>. You can view, colour, measure, or feed it into other plugins like any mesh.</li>
+<li><strong>A PLY copy on disk</strong>: each run creates a timestamped job folder under the Job root (default C:\PyMeshLabJobs, e.g. pml_&lt;timestamp&gt;\) containing a PLY copy of the result plus the run&#x27;s config/status/result JSON files. Click <strong>Open Output Folder</strong> to open it directly.</li>
+</ul>
+<p>When the run finishes, the result label at the bottom shows the new mesh&#x27;s vertex and face counts, e.g. &quot;<strong>Done. Published mesh: V=… F=…</strong>&quot;; the Log records a before/after summary like &quot;operation -&gt; V=… F=… (from V=… F=…)&quot;, making it easy to confirm the effect of decimation / remeshing / hole closing.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: After clicking Run, the Log says &quot;PyMeshLab venv not set&quot; — what now?</strong></p>
+<p>A: The run-time environment has not been built yet. Go to the <strong>Setup</strong> tab and click <strong>Setup Environment</strong> for the one-time build (needs internet, a few minutes). Once the &quot;PyMeshLab venv python&quot; field fills in, return to the Operate tab and run.</p>
+<p><strong>Q: Setup Environment fails saying it cannot install pymeshlab — how do I fix it?</strong></p>
+<p>A: The most common cause is that this Dragonfly&#x27;s bundled Python is outside the range for which PyMeshLab ships wheels (CPython 3.8-3.12, Windows x86-64). Enter a 3.8-3.12 Python in the <strong>Base Python (build)</strong> field (e.g. py -3.12 or a Miniconda python.exe) and click Setup Environment again. Also confirm PyPI is reachable. See the Log area for the full error output.</p>
+<p><strong>Q: I can&#x27;t find &quot;Mesh Repair &amp; Remesh (PyMeshLab)...&quot; in the menu.</strong></p>
+<p>A: Two common reasons: (1) it was not ticked at install time (all plugins default to OFF) — tick it in the Menu Item Manager, or when re-running the installer; (2) you didn&#x27;t restart after ticking — menus are scanned only at startup, so every enable/disable change needs one <strong>full quit and restart</strong> of Dragonfly.</p>
+<p><strong>Q: The run reports &quot;operation produced an empty mesh&quot; or &quot;input mesh has no vertices&quot;.</strong></p>
+<p>A: The former often means the parameters were too aggressive (e.g. too small a decimation ratio or an inappropriate Poisson depth) — relax them and retry. The latter means the selected object has no usable vertices — click Refresh and pick a mesh with real geometry. Repair/close-holes operations require the input to already be a triangle mesh.</p>
+<p><strong>Q: Processing a very large mesh is slow.</strong></p>
+<p>A: The mesh is published back to Dragonfly face by face, which is slow at millions of faces. Consider using <strong>Simplify (decimation)</strong> first to reduce the mesh, or operating on a local sub-mesh; all compute is CPU-only.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>GPL isolation</strong>: PyMeshLab is GPL-3.0 and runs only in the plugin&#x27;s dedicated venv subprocess, never in the Dragonfly process; the two exchange data only via PLY + JSON files.</li>
+<li><strong>CPU-only</strong>: all operations run on the CPU, with no CUDA dependency; no GPU is needed.</li>
+<li><strong>Internet on first use</strong>: only Setup Environment needs internet (to download wheels from PyPI); afterwards it runs offline.</li>
+<li><strong>Input requirement</strong>: apart from Screened-Poisson (which uses the vertices as a point cloud), all operations (remesh / decimate / close holes / repair / smooth) require a triangle-mesh input; polygonal faces are fan-triangulated before processing.</li>
+<li><strong>Result is always a new object</strong>: the plugin never modifies the original mesh; it publishes a new FaceVertexMesh.</li>
+<li><strong>Filter-name compatibility</strong>: PyMeshLab filter names differ slightly between releases (around 2022.2). The plugin tries the current name then legacy aliases in turn, to work across a wide wheel range.</li>
+<li><strong>Large-mesh performance</strong>: the per-face publish and the PLY round-trip are slower and more memory-hungry at millions of faces — decimate first.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>PyMeshLab documentation: https://pymeshlab.readthedocs.io/</li>
+<li>MeshLab website: https://www.meshlab.net/</li>
+<li>GPL-3.0 licence: https://www.gnu.org/licenses/gpl-3.0.html</li>
+<li>Bundled with this plugin: the README.md in the plugin folder (feature and install overview).</li>
+<li>Full Package install / enable / uninstall details: the UserManual_用户手册.docx in the Full Package root and the installer README.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>PyMeshLab-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CellFocus Volume Crop &amp; QC · Dragonfly Prototype Apps</title>
+<meta name="description" content="CellFocus Volume Crop &amp; QC - User Manual Dragonfly Prototype Apps · CellFocus Volume Crop &amp; QC... Version 1.0 · 2026-08-02 English Manual Contents 1. Intro…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">CellFocus Volume Crop &amp; QC</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · CellFocus Volume Crop &amp; QC...</div>
+    <h1>CellFocus Volume Crop &amp; QC</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-08-02</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-inputs">1. Inputs</a></li><li class="t3"><a href="#2-calibration-preprocessing">2. Calibration &amp; Preprocessing</a></li><li class="t3"><a href="#3-parameters">3. Parameters</a></li><li class="t3"><a href="#4-preview-qc">4. Preview &amp; QC</a></li><li class="t3"><a href="#5-run">5. Run</a></li><li class="t3"><a href="#6-results-export">6. Results &amp; Export</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>CellFocus Volume Crop &amp; QC - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · CellFocus Volume Crop &amp; QC...</p>
+<p>Version 1.0 · 2026-08-02</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Finds the cell in a volume-EM (SBF-SEM and similar) stack, crops to its 3-D bounding box, and reports enough QC to judge whether that crop is trustworthy.</p>
+<p><strong>Cropping is a translation.</strong> The plugin therefore returns the new origin and applies it when publishing, so every voxel keeps its true position in space and any measurement made after the crop is still valid. If this Dragonfly build cannot set an origin, the plugin <strong>warns clearly</strong> at publish time and states the resulting offset — it never quietly publishes a displaced object.</p>
+<p><strong>Per-slice re-centring destroys geometry.</strong> That mode exists for deep-learning training frames; it translates each slice independently, so the spatial relationship between slices is destroyed and no 3-D measurement on the output is meaningful. It is never the default, it saves every dx/dy so it can be undone, and it warns <strong>before</strong> the run, not only after.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Cropping and shrinking volume-EM data before segmentation or deep learning.</li>
+<li>Seeing at a glance which slices in a stack are charged, out of focus or blank.</li>
+<li>Preparing centred training frames for deep learning, having accepted that it breaks the geometry between slices.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install the Prototype Apps package (or tick this plugin in the App Store).</p>
+<p>2. This plugin is <strong>disabled by default</strong> — enable it in the App Store or the Menu Item Manager.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> (plugins are discovered at startup only).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>Nothing to install or configure.</strong> It runs entirely in Dragonfly&#x27;s own Python using the NumPy and SciPy it already ships. No internet, no download, no GPU, no virtual environment.</p>
+<p>The header reports whether this build can publish Channels, publish ROIs and <strong>set an origin</strong>.</p>
+<h2 id="5-interface">5. Interface</h2>
+<h3 id="1-inputs">1. Inputs</h3>
+<p>Choose the Channel (published objects only) and timestep; shape, spacing and origin are shown.</p>
+<h3 id="2-calibration-preprocessing">2. Calibration &amp; Preprocessing</h3>
+<p>Cell polarity, smoothing sigma and closing radius. Preprocessing acts on a working copy and never modifies the input object.</p>
+<h3 id="3-parameters">3. Parameters</h3>
+<p>Minimum and maximum cell area fraction, minimum contrast, crop margin, anomaly sensitivity k, crop mode, and whether to zero the background.</p>
+<h3 id="4-preview-qc">4. Preview &amp; QC</h3>
+<p>A fast pass on downsampled data showing the box and the fraction kept. <strong>Nothing is published</strong> and the export buttons stay disabled.</p>
+<h3 id="5-run">5. Run</h3>
+<p>Full resolution, cancellable at any time.</p>
+<h3 id="6-results-export">6. Results &amp; Export</h3>
+<p>Publish the cropped Channel or the cell-mask ROI; export the per-slice table (CSV) and the full result (JSON, including per-slice dx/dy).</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Pick the Channel in step 1.</p>
+<p>2. Confirm the cell polarity in step 2.</p>
+<p>3. Run a preview in step 4 and check the box looks sensible with few anomalous slices.</p>
+<p>4. Run at full resolution in step 5.</p>
+<p>5. Publish or export in step 6.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Meaning</th></tr><tr><td>Cell polarity</td><td>bright</td><td>whether the cell is brighter or darker than background</td></tr><tr><td>Smoothing sigma</td><td>2.0</td><td>Gaussian smoothing before segmentation</td></tr><tr><td>Closing radius</td><td>3</td><td>closes small gaps in the cell outline</td></tr><tr><td>Minimum cell area fraction</td><td>0.001</td><td>smaller than this is speckle, reported as no cell</td></tr><tr><td>Maximum cell area fraction</td><td>0.95</td><td>larger than this is a blank slice mis-segmented</td></tr><tr><td>Minimum contrast</td><td>3.0</td><td>difference between the two class means; below it, the slice has no structure</td></tr><tr><td>Crop margin</td><td>0</td><td>extra voxels kept beyond the box</td></tr><tr><td>Anomaly sensitivity k</td><td>5.0</td><td>robust deviations from the median before a slice is flagged</td></tr><tr><td>Crop mode</td><td>fixed 3-D bounding box</td><td>the alternative is per-slice re-centring, which breaks geometry</td></tr><tr><td>Mask out background</td><td>off</td><td>sets voxels outside the mask to 0</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Output</th><th>Meaning</th></tr><tr><td>Cropped Channel</td><td>the crop, carrying its new origin</td></tr><tr><td>Cell mask ROI</td><td>the per-slice cell segmentation</td></tr><tr><td>Per-slice CSV</td><td>area, threshold, intensity, centroid and anomaly flag for every slice</td></tr><tr><td>JSON</td><td>box, origin, compression, anomalous slices, per-slice dx/dy and all warnings</td></tr></table></div>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>Some slices report no cell</strong> — normal if they lie outside the cell; otherwise check the polarity and the minimum contrast.</li>
+<li><strong>An origin warning at publish time</strong> — this build cannot set an object origin, so the published crop sits at the source&#x27;s position; the warning states the exact offset.</li>
+<li><strong>The box is almost the whole volume</strong> — usually blank slices mis-segmented into a large &quot;cell&quot;; lower the maximum area fraction or raise the minimum contrast.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>The whole volume is read into memory; use the preview to settle parameters on large data.</li>
+<li>Inputs must be <strong>published</strong> Channels.</li>
+<li>Publishing is always an explicit step-6 action; neither preview nor run publishes anything.</li>
+<li>Data produced by per-slice re-centring <strong>must not be used for any 3-D measurement</strong>.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<p>The workflow follows Hermine-K/amira-sbfsem-cell-mask (MIT): https://github.com/Hermine-K/amira-sbfsem-cell-mask — no source was copied and no Amira or Hx API is required. Thresholding: N. Otsu, IEEE Trans. SMC 9(1), 1979.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CellFocus-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

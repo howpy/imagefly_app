@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Image Correlation 2D (muDIC) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Digital Image Correlation 2D (muDIC) - User Manual Dragonfly Prototype Apps · Digital Image Correlation 2D (muDIC)... Version 1.0 · 2026-07-09 English Manu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Digital Image Correlation 2D (muDIC)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Digital Image Correlation 2D (muDIC)...</div>
+    <h1>Digital Image Correlation 2D (muDIC)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t3"><a href="#changing-your-choices-later">Changing your choices later</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#internet-gpu-wsl-external-software">Internet / GPU / WSL / external software</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#fallback-when-setup-fails">Fallback when setup fails</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#input-image-sequence">Input image sequence</a></li><li class="t3"><a href="#dic-parameters">DIC parameters</a></li><li class="t3"><a href="#roi-extent">ROI extent</a></li><li class="t3"><a href="#publish-result-channels">Publish result channels</a></li><li class="t3"><a href="#environment-mudic-venv">Environment (muDIC venv)</a></li><li class="t3"><a href="#action-buttons-output-area">Action buttons &amp; output area</a></li><li class="t2"><a href="#6-usage-steps">6. Usage Steps</a></li><li class="t3"><a href="#input-requirements">Input requirements</a></li><li class="t3"><a href="#first-time-setup-once">First-time setup (once)</a></li><li class="t3"><a href="#run-a-dic-analysis">Run a DIC analysis</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t3"><a href="#how-to-view">How to view</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t3"><a href="#q1-i-can-t-find-the-plugin-in-the-menu">Q1: I can&#x27;t find the plugin in the menu</a></li><li class="t3"><a href="#q2-compute-dic-says-the-environment-is-not-set-up">Q2: Compute DIC says the environment is not set up</a></li><li class="t3"><a href="#q3-setup-environment-fails">Q3: Setup Environment fails</a></li><li class="t3"><a href="#q4-it-reports-out-of-memory">Q4: It reports Out of memory</a></li><li class="t3"><a href="#q5-the-result-field-is-nearly-all-zeros-or-clearly-unreasonable">Q5: The result field is nearly all zeros or clearly unreasonable</a></li><li class="t3"><a href="#q6-the-channel-dropdown-is-empty">Q6: The Channel dropdown is empty</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Digital Image Correlation 2D (muDIC) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Digital Image Correlation 2D (muDIC)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Digital Image Correlation 2D (muDIC)</strong> is a Dragonfly plugin that performs full-field <strong>Digital Image Correlation (DIC)</strong> on a 2D image <strong>sequence</strong>. You pick a Channel whose Z (or T) axis is a stack of consecutive 2D frames, set the reference frame index, mesh element size, an optional ROI extent, and a strain measure, then click <strong>Compute DIC</strong>. The plugin builds a <strong>Q4 quadrilateral mesh</strong> on the reference frame, runs the correlation analysis, and produces per-frame <strong>displacement fields</strong> (u, v) and <strong>strain fields</strong> (exx, eyy, exy) relative to the reference. These fields are resampled back onto the original pixel grid and published as new Channels in the Dragonfly scene.</p>
+<p>The underlying compute engine is the open-source library <strong>muDIC</strong> (project: github.com/PolymerGuy/muDIC, <strong>MIT license</strong>). Its standard pipeline is: image stack → build Q4 mesh (Mesher) → assemble correlation input (DICInput) → run analysis (DICAnalysis().run()) → extract fields (Fields). muDIC depends on <strong>numpy</strong> (BSD), <strong>scipy</strong> (BSD), and <strong>matplotlib</strong> (PSF/BSD-style).</p>
+<p>This plugin is dedicated to <strong>2D surface deformation</strong>. It is a different tool from the <strong>SPAM-DVC</strong> plugin, which performs <strong>Digital Volume Correlation (DVC)</strong> on 3D data: muDIC handles in-plane deformation of a 2D image sequence, while SPAM-DVC handles volumetric deformation between 3D volumes.</p>
+<p>License summary: the plugin code follows the same terms as the DragonflyPrototypeLabs repository; the muDIC engine is MIT-licensed (permissive); numpy / scipy are BSD; matplotlib is PSF/BSD-style. All dependencies are permissive open-source with no GPL components.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets <strong>2D full-field deformation measurement</strong> in materials and experimental mechanics - extracting displacement and strain distributions from a set of surface images recorded under changing load or time. Typical uses include:</p>
+<ul>
+<li><strong>Tensile / compression tests</strong> - measuring and visualizing the surface strain field;</li>
+<li><strong>Crack-tip fields</strong> - displacement and strain concentration near a crack;</li>
+<li><strong>Composites and sheet-metal</strong> deformation studies;</li>
+<li><strong>In-situ loading</strong> CT or microscopy image sequences - surface deformation analysis;</li>
+<li>Any 2D image sequence with random speckle or natural texture recorded frame-by-frame under load.</li>
+</ul>
+<p>The input sequence should have enough <strong>surface texture or speckle pattern</strong> for the correlation algorithm to track local grayscale patterns between adjacent frames. Clean, texture-free regions cannot be correlated reliably.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin ships with the <strong>Prototype Apps Full Package</strong>. Install it as follows:</p>
+<p><strong>1. </strong>Unzip the Full Package to any short path (e.g. C:\PL\) to avoid Windows path-too-long errors from deep folders.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode (<strong>Fresh</strong> = clean install / <strong>Compatible</strong> = keep your own blocks &amp; recipes) and <strong>tick</strong> the Prototype Apps you want to enable.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully restart Dragonfly</strong> (quit completely, then reopen).</p>
+<p>Important: in the installer&#x27;s app list, <strong>all plugins are unticked (OFF) by default</strong>. To use this plugin you must manually tick &quot;Digital Image Correlation 2D (muDIC)...&quot; at install time, otherwise it will not appear in the menu after restart.</p>
+<p>After the restart, the plugin appears under the Dragonfly menu at <strong>Prototype Apps ▸ Digital Image Correlation 2D (muDIC)...</strong> (in the &quot;Measurements &amp; Analysis&quot; group). Clicking it opens a dockable (floating) panel.</p>
+<h3 id="changing-your-choices-later">Changing your choices later</h3>
+<p>The easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, and in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, tick = deploy this plugin, untick = remove its menu entry, then restart Dragonfly to apply. Disabling <strong>never</strong> deletes the plugin&#x27;s built environment; re-enabling is instant. You can also re-run the installer anytime (it remembers your previous choices as the new defaults).</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> to remove all Full-Package menu items and plugins. Uninstalling <strong>keeps</strong> each plugin&#x27;s built environment (venv); to reclaim disk space, delete it manually using the paths listed at the end of the script.</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p>To avoid polluting Dragonfly&#x27;s bundled Python, the plugin isolates the heavy compute in a dedicated <strong>virtual environment (venv)</strong>. This environment is not downloaded by the installer; instead you build it once, from the panel, on <strong>first use</strong>.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>When you click the <strong>Setup Environment</strong> button in the panel&#x27;s &quot;Environment (muDIC venv)&quot; group, the plugin:</p>
+<p><strong>1. </strong>Creates a venv inside the plugin&#x27;s installed code directory, <strong>using Dragonfly&#x27;s own Python as the default base interpreter</strong> (Dragonfly 2025.1 / 2027.1 both bundle a full CPython 3.10 whose stdlib venv + pip work, so no separate Python install is needed);</p>
+<p><strong>2. </strong>Upgrades pip, setuptools, and wheel inside that venv;</p>
+<p><strong>3. </strong>Installs <strong>muDIC + numpy + scipy + matplotlib</strong> from the default PyPI index over the internet (no CUDA);</p>
+<p><strong>4. </strong>Runs an import self-check to confirm the libraries are usable;</p>
+<p><strong>5. </strong>Records the venv&#x27;s Python interpreter path for subsequent computations.</p>
+<p>On success, the &quot;Status&quot; line shows <strong>Ready: &lt;path to the venv&#x27;s python&gt;</strong>; before setup it shows the hint &quot;Not set up - click &#x27;Setup Environment&#x27;...&quot;. This step runs <strong>only once</strong>; every later computation reuses the same environment.</p>
+<h3 id="internet-gpu-wsl-external-software">Internet / GPU / WSL / external software</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Item</th><th>Required?</th><th>Notes</th></tr><tr><td>Internet</td><td>First setup only</td><td>Needed once while Setup Environment downloads dependencies from PyPI; computation afterwards is fully offline.</td></tr><tr><td>GPU</td><td>No</td><td>All computation runs on the CPU.</td></tr><tr><td>WSL</td><td>No</td><td>No Linux-subsystem dependency.</td></tr><tr><td>External software</td><td>No</td><td>No third-party application to install; Dragonfly&#x27;s own Python is used by default.</td></tr></table></div>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<p>The venv is created inside the plugin&#x27;s installed code directory: %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\MuDIC\venv. Temporary job files produced during a computation (input input.npy, intermediate status.json, result results.json, and per-field .npy files) live in a folder prefixed with mudic_ under the system temp directory.</p>
+<h3 id="fallback-when-setup-fails">Fallback when setup fails</h3>
+<p>If the default Dragonfly Python cannot build the venv (e.g. its stdlib venv module is missing), enter the path of another <strong>CPython 3.10 or newer</strong> interpreter (e.g. C:\Python312\python.exe) or a launcher command such as py -3.11 in the panel&#x27;s <strong>Base Python</strong> field, then click Setup Environment again. Leaving it blank uses the current Dragonfly&#x27;s Python.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel is organized top-to-bottom into several groups, described below.</p>
+<h3 id="input-image-sequence">Input image sequence</h3>
+<ul>
+<li><strong>Channel</strong> dropdown: lists every Channel in the current Dragonfly scene, each showing its title and shape (e.g. name (30x512x512)). Select a Channel whose Z/T axis is a stack of 2D frames.</li>
+<li><strong>Refresh</strong> button: re-reads the Channel list from the scene (click after loading a new image in Dragonfly).</li>
+</ul>
+<h3 id="dic-parameters">DIC parameters</h3>
+<ul>
+<li><strong>Reference frame index</strong> (spinbox): index of the undeformed reference frame along the Z/T axis; all displacement is measured relative to it. Range auto-limited by the selected Channel&#x27;s frame count; default <strong>0</strong>.</li>
+<li><strong>Mesh element size (px)</strong> (spinbox): Q4 mesh element edge length in pixels. Range 4-256, step 2, default <strong>16</strong>. Smaller = finer but noisier field; larger = smoother.</li>
+<li><strong>Strain measure</strong> (dropdown): how strain is derived from the displacement gradient - Engineering (small strain), Green-Lagrange, or True (logarithmic); default <strong>Green-Lagrange</strong>.</li>
+</ul>
+<h3 id="roi-extent">ROI extent</h3>
+<ul>
+<li><strong>Limit correlation to a rectangular ROI</strong> (checkbox): unticked by default (full frame). Tick it to confine correlation to a rectangular pixel window.</li>
+<li><strong>Extent</strong> (four spinboxes y0 / y1 / x0 / x1): pixel bounds of the rectangular ROI. Editable only when the checkbox is ticked; upper limits are set from the selected Channel&#x27;s height/width and default to the full frame.</li>
+</ul>
+<h3 id="publish-result-channels">Publish result channels</h3>
+<ul>
+<li><strong>Displacement u, v</strong> (checkbox): whether to publish displacement components u, v (2 per-frame stack Channels); ticked by default.</li>
+<li><strong>Strain exx, eyy, exy</strong> (checkbox): whether to publish strain components exx, eyy, exy (3 per-frame stack Channels); ticked by default.</li>
+</ul>
+<h3 id="environment-mudic-venv">Environment (muDIC venv)</h3>
+<ul>
+<li><strong>Base Python</strong> (text field): optional; the base interpreter path or command used to build the venv; blank = the current Dragonfly&#x27;s Python.</li>
+<li><strong>Status</strong>: shows whether the environment is ready (Ready + path, or a not-set-up hint).</li>
+</ul>
+<h3 id="action-buttons-output-area">Action buttons &amp; output area</h3>
+<ul>
+<li><strong>Setup Environment</strong> button: builds the venv and installs dependencies (see Chapter 4).</li>
+<li><strong>Compute DIC</strong> button: runs the 2D DIC computation with the current parameters.</li>
+<li><strong>Summary line</strong>: after a computation, reports the engine, frame count, reference frame, element size, strain measure, and max displacement magnitude.</li>
+<li><strong>Log text box</strong>: read-only; shows progress, published Channel names, and error messages.</li>
+</ul>
+<h2 id="6-usage-steps">6. Usage Steps</h2>
+<p>The complete end-to-end workflow is as follows.</p>
+<h3 id="input-requirements">Input requirements</h3>
+<p>Load a <strong>2D image sequence</strong> as a Channel in Dragonfly: its Z axis (or T axis) is a stack of consecutive 2D frames, at least <strong>2 frames</strong>, with one frame (often the first) representing the undeformed reference state. The images should contain trackable speckle or texture.</p>
+<h3 id="first-time-setup-once">First-time setup (once)</h3>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Digital Image Correlation 2D (muDIC)...</strong>.</p>
+<p><strong>2. </strong>(Optional) Enter a custom interpreter in <strong>Base Python</strong>; usually leave it blank.</p>
+<p><strong>3. </strong>Click <strong>Setup Environment</strong> and wait until the log shows &quot;Environment ready&quot; and Status becomes Ready.</p>
+<h3 id="run-a-dic-analysis">Run a DIC analysis</h3>
+<p><strong>1. </strong>In the <strong>Channel</strong> dropdown, select the image sequence to analyze (click <strong>Refresh</strong> first if needed).</p>
+<p><strong>2. </strong>Set the <strong>Reference frame index</strong>.</p>
+<p><strong>3. </strong>Set the <strong>Mesh element size (px)</strong>; start with the default 16 and adjust as needed.</p>
+<p><strong>4. </strong>Choose the <strong>Strain measure</strong>; default is Green-Lagrange.</p>
+<p><strong>5. </strong>(Optional) Tick <strong>Limit correlation to a rectangular ROI</strong> and enter y0/y1/x0/x1 to confine computation to a region of interest.</p>
+<p><strong>6. </strong>In <strong>Publish result channels</strong>, choose displacement and/or strain.</p>
+<p><strong>7. </strong>Click <strong>Compute DIC</strong> and watch progress in the log area.</p>
+<p><strong>8. </strong>When finished, the new result Channels appear automatically in the Dragonfly scene (<strong>no restart needed</strong>), and the summary line shows statistics.</p>
+<p>Tip: do a quick preview with a larger element size (e.g. 32) over the full frame first; once the result looks reasonable, decrease the element size or confine the ROI for a finer field.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Channel (input)</td><td>First Channel in scene</td><td>Input image whose Z/T axis is a 2D frame sequence; at least 2 frames.</td></tr><tr><td>Reference frame index</td><td>0</td><td>Index of the undeformed reference frame; displacement is measured relative to it; range 0 to frames-1.</td></tr><tr><td>Mesh element size (px)</td><td>16</td><td>Q4 mesh element edge length (px); range 4-256, step 2; smaller = finer but noisier.</td></tr><tr><td>Strain measure</td><td>Green-Lagrange</td><td>How strain is derived from the displacement gradient: Engineering (small strain) / Green-Lagrange / True (logarithmic).</td></tr><tr><td>Limit correlation to ROI</td><td>Unticked (full frame)</td><td>Whether to correlate only within a rectangular window.</td></tr><tr><td>ROI Extent y0 / y1 / x0 / x1</td><td>Full frame</td><td>Pixel bounds of the rectangular ROI; effective only when ROI is ticked.</td></tr><tr><td>Displacement u, v</td><td>Ticked</td><td>Publish the u, v per-frame displacement stack Channels.</td></tr><tr><td>Strain exx, eyy, exy</td><td>Ticked</td><td>Publish the exx, eyy, exy per-frame strain stack Channels.</td></tr><tr><td>Base Python</td><td>Blank (use Dragonfly&#x27;s Python)</td><td>Base interpreter path or command for building the venv; requires CPython 3.10+.</td></tr></table></div>
+<p>About how strain is derived (from the displacement gradients du/dx, du/dy, dv/dx, dv/dy): <strong>Engineering</strong> uses the small-strain approximation, exx=du/dx, eyy=dv/dy, exy=0.5(du/dy+dv/dx); <strong>Green-Lagrange</strong> includes quadratic terms and suits larger deformation; <strong>True (logarithmic/Hencky)</strong> takes the log of the normal stretch, with the shear component treated as engineering shear.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>When the computation finishes, the plugin resamples the fitted displacement/strain fields back onto the <strong>full pixel grid aligned with the input frames</strong> and publishes them as new Channels (preserving the source Channel&#x27;s spatial geometry - pixel spacing and origin). Depending on your selections, the published objects are:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Channel name</th><th>Content</th><th>Unit</th></tr><tr><td>&lt;source&gt; - DIC u (px)</td><td>Displacement component along X (per-frame stack)</td><td>pixels px</td></tr><tr><td>&lt;source&gt; - DIC v (px)</td><td>Displacement component along Y (per-frame stack)</td><td>pixels px</td></tr><tr><td>&lt;source&gt; - DIC exx</td><td>Normal strain in X (per-frame stack)</td><td>dimensionless</td></tr><tr><td>&lt;source&gt; - DIC eyy</td><td>Normal strain in Y (per-frame stack)</td><td>dimensionless</td></tr><tr><td>&lt;source&gt; - DIC exy</td><td>Shear strain component (per-frame stack)</td><td>dimensionless</td></tr></table></div>
+<p>Each output is a (frames, H, W) stack matching the input shape, and the <strong>layer corresponding to the reference frame is zero</strong> (the reference state has no displacement/strain).</p>
+<h3 id="how-to-view">How to view</h3>
+<ul>
+<li>Find the new Channels in the Dragonfly scene / object tree;</li>
+<li>Apply a <strong>colormap (LUT)</strong> to visualize the spatial distribution of displacement or strain;</li>
+<li>Scrub through the stack frame-by-frame to observe the change under load/time;</li>
+<li>Combine with Dragonfly&#x27;s measurement and statistics tools for further analysis.</li>
+</ul>
+<p>In addition, the <strong>summary line</strong> at the bottom of the panel reports the <strong>engine</strong>, <strong>frame count</strong>, <strong>reference frame</strong>, <strong>element size</strong>, <strong>strain measure</strong>, and <strong>max displacement magnitude</strong> used for this run; the log area lists the actually published Channel names.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<h3 id="q1-i-can-t-find-the-plugin-in-the-menu">Q1: I can&#x27;t find the plugin in the menu</h3>
+<p>A: Make sure you <strong>ticked</strong> &quot;Digital Image Correlation 2D (muDIC)...&quot; during installation (all plugins are unticked by default), and that you <strong>fully restarted</strong> Dragonfly afterwards (menus are scanned only at startup). You can also enable it via <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and restart.</p>
+<h3 id="q2-compute-dic-says-the-environment-is-not-set-up">Q2: Compute DIC says the environment is not set up</h3>
+<p>A: The log message &quot;environment not set up. Click &#x27;Setup Environment&#x27; first.&quot; means the venv has not been built. Click <strong>Setup Environment</strong> first and wait for it to finish (internet is needed the first time). If Status never turns Ready, check the error message in the log.</p>
+<h3 id="q3-setup-environment-fails">Q3: Setup Environment fails</h3>
+<p>A: Common causes are a base Python missing the stdlib venv module, or blocked internet/PyPI access. The log shows an error code and hint. Point the <strong>Base Python</strong> field at another <strong>CPython 3.10+</strong> interpreter (e.g. C:\Python312\python.exe) and retry, and make sure PyPI is reachable during setup.</p>
+<h3 id="q4-it-reports-out-of-memory">Q4: It reports Out of memory</h3>
+<p>A: With many frames or very high resolution, memory can run out. The log shows &quot;Out of memory - try a smaller ROI or fewer frames.&quot; Tick the ROI to process only the region of interest, reduce the number of frames involved, or increase the mesh element size to lower the compute load.</p>
+<h3 id="q5-the-result-field-is-nearly-all-zeros-or-clearly-unreasonable">Q5: The result field is nearly all zeros or clearly unreasonable</h3>
+<p>A: Check that the input sequence actually contains frame-to-frame deformation; that the images have enough speckle/texture to track; that the reference frame index is correct; and that the mesh element size is neither too large (loses detail) nor too small (noisy). Do a preview run over the full frame at the default element size, then refine gradually.</p>
+<h3 id="q6-the-channel-dropdown-is-empty">Q6: The Channel dropdown is empty</h3>
+<p>A: There is no usable image sequence in the current scene. Load an image whose Z/T axis is a 2D frame sequence in Dragonfly, then return to the panel and click <strong>Refresh</strong>.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>This plugin is <strong>2D</strong> in-plane DIC; for 3D volume correlation use the <strong>SPAM-DVC</strong> plugin.</li>
+<li>The input needs at least <strong>2 frames</strong>; a single frame cannot be correlated.</li>
+<li>Result quality depends on the image&#x27;s <strong>speckle/texture quality</strong>; texture-free regions cannot be correlated reliably.</li>
+<li>The <strong>output layer for the reference frame is always zero</strong> (defined as the undeformed baseline).</li>
+<li>Displacement is in <strong>pixels (px)</strong>; to convert to physical length, use the source image&#x27;s pixel spacing yourself.</li>
+<li>The mesh element size trades accuracy against noise: small = more detail but noisier, large = smoother but may miss local concentrations.</li>
+<li>First use requires <strong>internet once</strong> to install dependencies; installed content goes only into the plugin&#x27;s dedicated venv and <strong>does not</strong> modify Dragonfly&#x27;s own Python.</li>
+<li>All computation runs on the <strong>CPU</strong>, not the GPU; large datasets can take a while.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>muDIC project (MIT license): https://github.com/PolymerGuy/muDIC</li>
+<li>numpy: https://numpy.org (BSD)</li>
+<li>scipy: https://scipy.org (BSD)</li>
+<li>matplotlib: https://matplotlib.org (PSF/BSD-style)</li>
+<li>Full install / enable / uninstall guide: see the UserManual_用户手册.docx overview manual in the root of the Prototype Apps Full Package.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>muDIC-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

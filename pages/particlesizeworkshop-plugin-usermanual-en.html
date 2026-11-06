@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Particle Size Distribution (Hands-on Workshop) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Particle Size Distribution (Hands-on Workshop) - User Manual Dragonfly Prototype Apps · Particle Size Distribution... Version 1.0 · 2026-07-26 English Manu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Particle Size Distribution (Hands-on Workshop)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Particle Size Distribution...</div>
+    <h1>Particle Size Distribution (Hands-on Workshop)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-features">2. Features</a></li><li class="t2"><a href="#3-the-four-tabs">3. The four tabs</a></li><li class="t2"><a href="#4-how-to-use">4. How to use</a></li><li class="t2"><a href="#5-requirements">5. Requirements</a></li><li class="t2"><a href="#6-tips-pitfalls">6. Tips &amp; pitfalls</a></li></ul></nav>
+  <main class="manual"><p><strong>Particle Size Distribution (Hands-on Workshop) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Particle Size Distribution...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>This is the second Hands-on Project in the <strong>Hands-on Workshops</strong> category: a <strong>four-tab teaching wizard</strong> that walks the whole chain from <strong>an image full of particles → each particle&#x27;s size → the overall size distribution</strong>. The four tabs are: (1) <strong>Concepts</strong> (semantic vs instance segmentation); (2) <strong>Instance-segmentation methods</strong> (classic watershed / SNOW / Fast-split / Cellpose-SAM); (3) <strong>MultiROI measurements</strong> (what can be measured per particle); (4) <strong>Particle size definitions &amp; computation</strong> (the many size definitions + D10/D50/D90 statistics).</p>
+<p>Every tab pairs <strong>📖 Learn</strong> buttons (resizable, 中文|EN-switchable teaching pop-ups) with <strong>🛠 Try it</strong> buttons that run on real data. The core actions — create synthetic particles, Otsu binary segmentation, watershed instance segmentation, per-particle measurement and distribution aggregation — run <strong>fully in-process</strong> on Dragonfly&#x27;s bundled numpy/scipy/skimage: <strong>no venv, no download, no internet</strong>.</p>
+<p>Use it for: teaching and self-study (couple concepts with real operations, learning by doing); onboarding new staff/students to the standard particle-analysis workflow and its pitfalls (over/under-segmentation, edge particles, voxel size, number- vs volume-weighting); as a guided SOP that prevents skipping key steps; and as an interactive tutorial for demos and marketing.</p>
+<h2 id="2-features">2. Features</h2>
+<ul>
+<li><strong>Four-tab teaching wizard</strong>: Concepts → Instance seg → Measure → Size, with docs and hands-on actions side by side.</li>
+<li><strong>One-click synthetic particle sample</strong>: set the particle count (default 70), mean radius in voxels (default 9) and whether particles touch; it generates a blurred, noisy grayscale image and publishes it as a Channel — touching particles merge into a blob once binarised, which is exactly why instance segmentation is needed.</li>
+<li><strong>Semantic segmentation (Otsu binary ROI)</strong>: Otsu-threshold the particle phase into one binary ROI to see that touching particles are merged and cannot be counted.</li>
+<li><strong>In-process watershed instance segmentation → MultiROI</strong>: distance transform + peak_local_max seeds + watershed splits the phase into individual particles and publishes a MultiROI (one label per particle); tunable <strong>min_distance</strong> (seed spacing) and a <strong>Particle = high intensity</strong> toggle.</li>
+<li><strong>Per-particle measurement</strong>: for each label, compute <strong>volume</strong>, <strong>equivalent-volume sphere diameter</strong> ((6V/π)^(1/3)) and a <strong>Feret bounding-box approximation (max/min)</strong>; enter a <strong>voxel size</strong> to convert to real world units.</li>
+<li><strong>Size-distribution statistics</strong>: aggregate the per-particle diameters into a distribution — <strong>number-weighted</strong> D10/D50/D90 + span + mean; if volumes are available, also <strong>volume-weighted</strong> Dv10/Dv50/Dv90, plus histogram data.</li>
+<li><strong>Guidance to heavier methods</strong>: the more demanding routes (SNOW, Cellpose-SAM) are not run in this plugin — a pop-up points you to the matching Prototype Apps plugin.</li>
+</ul>
+<h2 id="3-the-four-tabs">3. The four tabs</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Tab</th><th>Learn docs (📖)</th><th>Try it actions (🛠)</th><th>Output</th></tr><tr><td>1 · Concepts</td><td>What is segmentation / Semantic / Instance / Semantic vs instance</td><td>🧪 Create synthetic particles; 🔲 Semantic ROI (Otsu); ✅ Use the selected image</td><td>Synthetic particles Channel, binary ROI</td></tr><tr><td>2 · Instance Seg</td><td>Classic watershed / SNOW / Fast-split / Cellpose-SAM / Comparison</td><td>💧 Watershed instance segmentation → MultiROI; ➡ SNOW (guide); ➡ Cellpose-SAM (guide)</td><td>Particle MultiROI (one label per particle)</td></tr><tr><td>3 · Measure</td><td>What is a MultiROI / Measurements in Dragonfly / Interpreting them</td><td>📏 Measure each particle (volume &amp; equivalent diameter); ➡ Open measurements panel (guide)</td><td>Per-particle volume / equivalent diameter / Feret approx.</td></tr><tr><td>4 · Size</td><td>Definitions of particle size / What Dragonfly can compute / Distribution &amp; D10/D50/D90</td><td>📈 Compute size distribution (D10/D50/D90)</td><td>Number- and volume-weighted distribution statistics</td></tr></table></div>
+<h2 id="4-how-to-use">4. How to use</h2>
+<p>1. Open <strong>Hands-on Workshops ▸ Particle Size Distribution...</strong> from Dragonfly&#x27;s menu bar (it opens as a dockable panel). Click <strong>📘 Overview</strong> at the top for a course overview.</p>
+<p>2. <strong>Tab 1</strong>: set N particles, mean radius, tick <strong>Make particles touch</strong>, then <strong>🧪 Create synthetic particles</strong> to generate and select the sample; click <strong>🔲 Semantic ROI (Otsu)</strong> to see why a binary segmentation cannot count them. (Or pick your own image from the top Image dropdown and click <strong>✅ Use the selected image</strong>.)</p>
+<p>3. <strong>Tab 2</strong>: set <strong>min_distance</strong> and <strong>Particle = high intensity</strong>, then <strong>💧 Watershed instance segmentation → MultiROI</strong> to split the particles and publish a MultiROI; eyeball it for over/under-segmentation.</p>
+<p>4. <strong>Tab 3</strong>: enter the correct <strong>Voxel size</strong>, then <strong>📏 Measure each particle</strong> to get per-particle volume, equivalent diameter and Feret-approx mean/median.</p>
+<p>5. <strong>Tab 4</strong>: click <strong>📈 Compute size distribution</strong> for number-weighted D10/D50/D90, span and mean (plus volume-weighted Dv10/Dv50/Dv90 if volumes are available).</p>
+<p>6. For stronger separation, use <strong>➡ SNOW</strong> or <strong>➡ Cellpose-SAM</strong> on Tab 2 and follow the pop-up to the matching Prototype Apps plugin; for full Feret / sphericity use Dragonfly&#x27;s MultiROI measurement panel.</p>
+<h2 id="5-requirements">5. Requirements</h2>
+<ul>
+<li><strong>No venv, no download, no GPU, no admin.</strong> The core actions run fully in-process.</li>
+<li>Watershed instance segmentation, measurement and distribution statistics use Dragonfly&#x27;s <strong>bundled numpy / scipy / skimage</strong> (inside the Dragonfly process); synthetic particle samples are generated with numpy.</li>
+<li><strong>The teaching docs work anywhere</strong> (no Dragonfly needed), but the <strong>🛠 Try it buttons must run inside Dragonfly</strong> (they read/publish objects). If the object model is not detected, the panel notes that the docs work while the action buttons run inside Dragonfly.</li>
+<li>Heavier methods are <strong>not bundled</strong> here: <strong>SNOW</strong> guides to the Prototype Apps <strong>ROI to MultiROI (SNOW)</strong> plugin (porespy, one-time venv); <strong>Cellpose-SAM</strong> guides to the <strong>Cellpose</strong> plugin (both Dragonfly 2025.1 and 2027.1 bundle Cellpose with SAM weights; a GPU is recommended for the deep model).</li>
+</ul>
+<h2 id="6-tips-pitfalls">6. Tips &amp; pitfalls</h2>
+<ul>
+<li><strong>min_distance is the key watershed knob</strong>: too small → over-segmentation (one particle cut into pieces); too large → under-segmentation (several merged). Both directly distort the PSD, so always eyeball the result.</li>
+<li><strong>Voxel size drives every length</strong>: volume scales with the cube of voxel size, diameter linearly — a wrong value ruins every dimensioned quantity. The panel reads the image spacing as the default when it can.</li>
+<li><strong>Number- vs volume-weighting</strong>: for the same particles the two D50s can differ several-fold (volume ∝ d³, so large particles dominate the volume-weighted stats). Always state the weighting when reporting.</li>
+<li><strong>Edges &amp; resolution</strong>: particles clipped by the field of view read too small — often exclude labels touching the boundary; particles only a few voxels across have huge measurement error (partial-volume), so require a diameter ≥ 3–5 voxels.</li>
+<li><strong>Use enough particles</strong>: too few and the statistics are unstable — aim for hundreds to thousands. The per-particle measurement here gives the <strong>equivalent-volume diameter</strong> and a <strong>Feret bounding-box approximation</strong>; for exact Feret / sphericity use Dragonfly&#x27;s MultiROI measurement panel.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ParticleSizeWorkshop-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

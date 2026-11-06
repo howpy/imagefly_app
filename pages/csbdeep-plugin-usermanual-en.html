@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Denoising (CSBDeep / Noise2Void) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Deep Denoising (CSBDeep / Noise2Void) - User Manual Dragonfly Prototype Apps · Deep Denoising (CSBDeep / Noise2Void)... Version 1.0 · 2026-07-09 English Ma…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Deep Denoising (CSBDeep / Noise2Void)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Deep Denoising (CSBDeep / Noise2Void)...</div>
+    <h1>Deep Denoising (CSBDeep / Noise2Void)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and First-Run Setup</a></li><li class="t2"><a href="#5-interface-reference">5. Interface Reference</a></li><li class="t3"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t3"><a href="#5-2-train-tab">5.2 Train tab</a></li><li class="t3"><a href="#5-3-apply-tab">5.3 Apply tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-first-time-preparation-once-only">6.1 First-time preparation (once only)</a></li><li class="t3"><a href="#6-2-train-a-noise2void-model-noisy-images-only">6.2 Train a Noise2Void model (noisy images only)</a></li><li class="t3"><a href="#6-3-train-a-care-model-noisy-clean-pairs">6.3 Train a CARE model (noisy + clean pairs)</a></li><li class="t3"><a href="#6-4-apply-a-model-to-denoise">6.4 Apply a model to denoise</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-output-results">8. Output Results</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Deep Denoising (CSBDeep / Noise2Void) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Deep Denoising (CSBDeep / Noise2Void)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Deep Denoising (CSBDeep / Noise2Void)</strong> is a Dragonfly plugin for <strong>content-aware image restoration (denoising)</strong>. It is built on the <strong>TensorFlow 2</strong> deep-learning framework and offers two complementary algorithms:</p>
+<ul>
+<li><strong>CARE</strong> (from csbdeep, supervised): needs <strong>paired</strong> &#x27;noisy&#x27; and &#x27;clean&#x27; image Channels. The model learns to reconstruct the high-quality reference from the low-quality input, giving stronger restoration.</li>
+<li><strong>Noise2Void (N2V)</strong> (from n2v, self-supervised): needs <strong>only the noisy image</strong> — no clean reference at all. When you have no high-quality reference, you can still train a denoiser from the noisy data alone.</li>
+</ul>
+<p>The workflow has two steps: in the <strong>Train</strong> tab you add one or more training cases and train a model; in the <strong>Apply</strong> tab you pick a saved model and a Channel to predict on. The denoised result is published back into the Dragonfly scene as a <strong>brand-new Channel</strong>, ready for measurement, segmentation and visualization.</p>
+<p><strong>Underlying engines and algorithms:</strong></p>
+<ul>
+<li>Deep-learning framework: <strong>TensorFlow 2</strong> (Keras).</li>
+<li>Supervised content-aware restoration engine: <strong>csbdeep</strong> (CARE).</li>
+<li>Self-supervised denoising engine: <strong>n2v</strong> (Noise2Void). <strong>The n2v 0.3.x series pins TensorFlow 2</strong>.</li>
+<li>Helper libraries: <strong>numpy</strong>, <strong>tifffile</strong>.</li>
+</ul>
+<p><strong>Architecture note:</strong> all heavy machine-learning work (TensorFlow + csbdeep + n2v) runs in the plugin&#x27;s <strong>dedicated Python virtual environment (venv), driven via a subprocess + JSON file IPC</strong> — never inside Dragonfly&#x27;s own Python. This isolates dependencies and keeps the Dragonfly runtime clean.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>Licensing note: this plugin wraps the CSBDeep and Noise2Void open-source projects. TensorFlow, csbdeep, n2v, numpy and tifffile are downloaded from PyPI into the plugin&#x27;s own virtual environment on first &#x27;Setup Environment&#x27;, each under its upstream license. Please observe the respective project licenses, and cite the relevant papers for academic use.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is useful <strong>whenever image noise should be reduced before measurement or segmentation</strong>. Typical scenarios include:</p>
+<ul>
+<li><strong>Low-dose or fast-acquisition CT</strong>: images acquired to shorten scan time or lower dose have a low SNR; denoising sharpens boundaries and stabilizes segmentation.</li>
+<li><strong>Noisy microscopy and fluorescence volumes</strong>: live-cell imaging, light-sheet microscopy and similar low-exposure 3-D data.</li>
+<li><strong>Materials-science and industrial scans</strong>: speckle and grain noise in X-ray or electron-microscopy data.</li>
+<li><strong>A general preprocessing step for downstream quantification</strong>: denoising often markedly improves the reliability of subsequent thresholding, connected-component analysis and morphometry.</li>
+</ul>
+<p><strong>How to choose between the two algorithms:</strong></p>
+<ul>
+<li>When you have <strong>no clean reference</strong>, use <strong>Noise2Void</strong>: it learns to denoise in a self-supervised way from the noisy data itself, with no paired labels.</li>
+<li>When you have <strong>paired high-quality references</strong> (e.g. a high-dose/high-exposure acquisition of the same sample, or low-noise / high-noise pairs), use <strong>CARE</strong>: supervised training usually gives stronger restoration.</li>
+</ul>
+<p>The plugin supports both <strong>2D and 3D</strong> data: if an exported volume has a z-length of 1 (a single slice) it is treated as 2D (YX); otherwise it is handled as a genuine 3-D volume (ZYX).</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships in the <strong>Prototype Apps Full Package</strong>. Install it as follows:</p>
+<p><strong>1. </strong>Unzip the Full Package zip to a <strong>short folder</strong> (e.g. C:\PL\) to avoid long-path errors (see the note below).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick</strong> &quot;Deep Denoising (CSBDeep / Noise2Void)&quot; in the list. <strong>Note: all plugins are unchecked (off) by default</strong> and must be ticked to enable.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are only scanned at startup).</p>
+<p>After the restart, the plugin appears under the menu: <strong>Prototype Apps ▸ Deep Denoising (CSBDeep / Noise2Void)...</strong> (in the *Filtering &amp; Restoration* group). Clicking it opens a floating panel window.</p>
+<p><strong>Changing your choices later:</strong> the easiest way is inside Dragonfly. Open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>; in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, each app has a checkbox: ticked = deploy, unticked = remove the menu entry. Restart Dragonfly to apply. <strong>Disabling never deletes a plugin&#x27;s built environment (venv) — re-enabling is instant.</strong></p>
+<p><strong>Uninstall:</strong> double-click <strong>`Uninstall_FullPackage.bat`</strong> (also kept in the installer folder). It removes all Full-Package menu items, plugins and the central store, but <strong>keeps</strong> the Prototype Labs core and every plugin&#x27;s built environment (venv / downloads) — their paths are listed at the end so you can delete them manually to reclaim disk space.</p>
+<p>&quot;Path too long&quot; (Error 0x80010135): Windows caps a full path at 260 characters. Do not drag/copy the unzipped folder in Explorer — just run Install_FullPackage.bat (it deploys to short paths). Extract the zip to a short folder (e.g. C:\PL\), not a deep &#x27;Downloads\&lt;zip name&gt;\…&#x27; path or a OneDrive-redirected Desktop.</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and First-Run Setup</h2>
+<p>This plugin is a <strong>venv-in-code</strong> type: <strong>no machine-learning dependencies are downloaded at install time</strong>. On first use, click the <strong>Setup Environment</strong> button on the panel&#x27;s <strong>Setup</strong> tab to build the runtime environment.</p>
+<p><strong>What Setup Environment does:</strong></p>
+<p><strong>1. </strong>Creates a dedicated virtual environment (venv) using a &#x27;base Python&#x27;. <strong>By default it uses the current Dragonfly&#x27;s own `Python_env\python.exe`</strong> — a full CPython with venv and pip, so <strong>no separate Python install is needed</strong>.</p>
+<p><strong>2. </strong>Upgrades pip / setuptools / wheel inside that venv.</p>
+<p><strong>3. </strong>Installs the full stack from PyPI: <strong>tensorflow, csbdeep, n2v, numpy, tifffile</strong>.</p>
+<p><strong>4. </strong>Runs a smoke test: imports tensorflow / csbdeep / n2v and reports whether a GPU was detected.</p>
+<p><strong>5. </strong>On success, the venv&#x27;s python path is filled into the &quot;CSBDeep venv python&quot; field and saved to config.</p>
+<p><strong>Download size:</strong> the first build downloads <strong>TensorFlow 2 + csbdeep + n2v (several GB total)</strong>, taking a few to a dozen-plus minutes depending on your connection.</p>
+<p><strong>Internet / GPU requirements:</strong></p>
+<ul>
+<li><strong>Internet is required</strong>: all dependencies resolve from PyPI (unlike PyTorch, TensorFlow&#x27;s PyPI wheels handle GPU directly, so no separate CUDA wheel index is needed).</li>
+<li><strong>An NVIDIA GPU is strongly recommended</strong> (with matching CUDA/cuDNN) for practical training/prediction speed. It also runs without a GPU, but training will be noticeably slower.</li>
+</ul>
+<p><strong>Where the environment is installed:</strong> the venv is built in a venv subfolder of the plugin&#x27;s installed code directory, i.e. %LOCALAPPDATA%\comet\&lt;DragonflyVersion&gt;\pythonUserExtensions\GenericMenuItems\CSBDeep\venv. The plugin config (including the venv python path) is saved to csbdeep_config.json in that same code directory and also mirrored to %LOCALAPPDATA%\CSBDeepDenoising\config.json.</p>
+<p><strong>Other fields on the Setup tab:</strong></p>
+<ul>
+<li><strong>CSBDeep venv python</strong>: filled automatically by Setup Environment; normally no need to edit.</li>
+<li><strong>Base Python (build)</strong>: the base Python used to build the venv. <strong>Blank = the current Dragonfly&#x27;s own python.exe (recommended)</strong>; you can also enter a path or a command like py -3.10 to override.</li>
+<li><strong>Run mode</strong>: windows (default, shipped) or wsl (reserved; only the windows mode ships currently).</li>
+</ul>
+<p>Fallback if setup fails: if building the venv with Dragonfly&#x27;s Python fails (e.g. venv or pip unavailable), enter the path to another CPython 3.9+ (with the stdlib venv + pip) in the &quot;Base Python (build)&quot; field — for example C:\Python310\python.exe — and click Setup Environment again. A half-built venv (has python.exe but no working pip) is detected and rebuilt automatically.</p>
+<h2 id="5-interface-reference">5. Interface Reference</h2>
+<p>The top of the panel shows a blue note summarizing the plugin. The middle holds three tabs, <strong>Setup / Train / Apply</strong>; the bottom has a green result status line followed by a read-only run log (showing live progress of export, training, prediction, etc.).</p>
+<h3 id="5-1-setup-tab">5.1 Setup tab</h3>
+<p>Used to build the runtime environment. Controls:</p>
+<ul>
+<li><strong>CSBDeep venv python</strong> (text field): the venv&#x27;s python path, filled by Setup Environment.</li>
+<li><strong>Base Python (build)</strong> (text field): the base Python for building the venv; blank = Dragonfly&#x27;s own python.</li>
+<li><strong>Run mode</strong> (dropdown): windows / wsl, default windows.</li>
+<li><strong>Setup Environment (build venv + install TensorFlow + csbdeep + n2v)</strong> (button): click to build the environment.</li>
+</ul>
+<h3 id="5-2-train-tab">5.2 Train tab</h3>
+<p>Divided into four groups, completed top to bottom for one training run.</p>
+<p><strong>Mode group:</strong></p>
+<ul>
+<li><strong>Training mode</strong> (dropdown): choose Noise2Void (self-supervised, only noisy) or CARE (supervised, noisy + clean pairs), default Noise2Void. Switching to CARE reveals the &quot;Clean Channel&quot; row below; choosing N2V hides it.</li>
+</ul>
+<p><strong>Workspace group:</strong></p>
+<ul>
+<li><strong>Output folder</strong> (text field + &quot;…&quot; browse button): all training artifacts and the saved model land here; default C:\CSBDeepWorkspace.</li>
+<li><strong>Model name</strong> (text field): the saved model&#x27;s name. Blank = default name (n2v_model for N2V, care_model for CARE).</li>
+<li><strong>Refresh channels</strong> (button): re-reads the Channel list from the current Dragonfly scene to populate the dropdowns below.</li>
+</ul>
+<p><strong>(1) Add training cases group:</strong></p>
+<ul>
+<li><strong>Noisy Channel</strong> (dropdown): select the noisy Channel.</li>
+<li><strong>Clean Channel (CARE)</strong> (dropdown, visible only in CARE mode): select the paired clean (high-quality) Channel.</li>
+<li><strong>Add case</strong> (button): add the current selection as a training case (accumulated in an in-memory list). N2V needs only the noisy Channel; CARE needs both noisy and clean selected.</li>
+<li><strong>Clear cases</strong> (button): clear the accumulated training cases.</li>
+<li><strong>Training cases: N</strong> (label): shows how many cases have been added.</li>
+</ul>
+<p><strong>(2) Train group:</strong></p>
+<ul>
+<li><strong>Patch size</strong> (spin box): the training patch edge length, range 16–512, step 8, default <strong>64</strong>. Square patches in 2D, cubic in 3D.</li>
+<li><strong>Epochs</strong> (spin box): number of training epochs, range 1–5000, default <strong>20</strong>.</li>
+<li><strong>Steps per epoch</strong> (spin box): range 1–100000, default <strong>100</strong>.</li>
+<li><strong>Batch size</strong> (spin box): range 1–512, default <strong>16</strong>.</li>
+<li><strong>Train</strong> (blue button): export the added cases and start training.</li>
+</ul>
+<h3 id="5-3-apply-tab">5.3 Apply tab</h3>
+<p>Predicts (denoises) a Channel using a saved model. Controls:</p>
+<ul>
+<li><strong>Model type</strong> (dropdown): model type Noise2Void or CARE; must match the type used at training.</li>
+<li><strong>Model folder</strong> (text field + &quot;…&quot; browse button): the folder of the saved model (i.e. …/&lt;model_name&gt;). After a successful training, this is pre-filled automatically.</li>
+<li><strong>Image Channel</strong> (dropdown + Refresh button): select the image Channel to denoise.</li>
+<li><strong>Tiles (memory; &gt;1 splits volume)</strong> (spin box): tile count, range 1–64, default <strong>1</strong>. When a volume is too large for memory/GPU, a value &gt;1 splits it into tiles for prediction.</li>
+<li><strong>Result title</strong> (text field): the title of the result Channel. Blank = auto-named &lt;source&gt;_restored.</li>
+<li><strong>Apply -&gt; publish restored Channel</strong> (green button): start prediction and publish the denoised result as a new Channel.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-first-time-preparation-once-only">6.1 First-time preparation (once only)</h3>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Deep Denoising (CSBDeep / Noise2Void)...</strong>.</p>
+<p><strong>2. </strong>Go to the <strong>Setup</strong> tab, leaving &quot;Base Python&quot; blank (to use Dragonfly&#x27;s own Python).</p>
+<p><strong>3. </strong>Click <strong>Setup Environment</strong> and wait for the console to finish (several GB the first time; internet required). The log showing &quot;Environment ready.&quot; means success.</p>
+<h3 id="6-2-train-a-noise2void-model-noisy-images-only">6.2 Train a Noise2Void model (noisy images only)</h3>
+<p><strong>Input requirement:</strong> at least one noisy Channel (no clean reference needed).</p>
+<p><strong>1. </strong>Go to the <strong>Train</strong> tab and set <strong>Training mode</strong> to Noise2Void.</p>
+<p><strong>2. </strong>Set the <strong>Output folder</strong> (default C:\CSBDeepWorkspace) and an optional <strong>Model name</strong>.</p>
+<p><strong>3. </strong>Click <strong>Refresh channels</strong> to load the scene&#x27;s Channels.</p>
+<p><strong>4. </strong>Pick a noisy Channel in <strong>Noisy Channel</strong> and click <strong>Add case</strong>. Repeat for multiple noisy Channels to accumulate cases.</p>
+<p><strong>5. </strong>Adjust Patch size / Epochs / Steps per epoch / Batch size in the <strong>(2) Train</strong> group as needed.</p>
+<p><strong>6. </strong>Click <strong>Train</strong>. The log shows live &quot;epoch X/Y, loss …&quot; progress.</p>
+<p><strong>7. </strong>When training finishes, the result line shows &quot;Trained.&quot; and <strong>the Apply tab&#x27;s Model folder is pre-filled</strong> with the just-saved model path.</p>
+<h3 id="6-3-train-a-care-model-noisy-clean-pairs">6.3 Train a CARE model (noisy + clean pairs)</h3>
+<p><strong>Input requirement:</strong> paired noisy and clean (high-quality) Channels, both aligned to the same grid.</p>
+<p><strong>1. </strong>On the <strong>Train</strong> tab, set <strong>Training mode</strong> to CARE — the <strong>Clean Channel (CARE)</strong> row now appears.</p>
+<p><strong>2. </strong>Click <strong>Refresh channels</strong>; pick the noisy Channel in <strong>Noisy Channel</strong> and the matching clean Channel in <strong>Clean Channel</strong>.</p>
+<p><strong>3. </strong>Click <strong>Add case</strong> to add this pair. Repeat to add more pairs.</p>
+<p><strong>4. </strong>Adjust the training parameters and click <strong>Train</strong>.</p>
+<h3 id="6-4-apply-a-model-to-denoise">6.4 Apply a model to denoise</h3>
+<p><strong>Input requirement:</strong> a saved model folder and an image Channel to denoise.</p>
+<p><strong>1. </strong>Go to the <strong>Apply</strong> tab and set <strong>Model type</strong> to the same type used at training (N2V or CARE).</p>
+<p><strong>2. </strong>Make sure <strong>Model folder</strong> points to the saved model folder (usually pre-filled after training; you can also browse with &quot;…&quot;).</p>
+<p><strong>3. </strong>Click <strong>Refresh</strong> and pick the Channel to denoise in <strong>Image Channel</strong>.</p>
+<p><strong>4. </strong>If you hit memory/GPU limits, raise <strong>Tiles</strong> (&gt;1); optionally fill in <strong>Result title</strong>.</p>
+<p><strong>5. </strong>Click <strong>Apply -&gt; publish restored Channel</strong>. When done, the denoised result appears as a new Channel in the scene.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>The table below lists the adjustable parameters, their defaults and meaning.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Training mode</td><td>Noise2Void</td><td>Choose N2V (self-supervised, noisy only) or CARE (supervised, noisy + clean).</td></tr><tr><td>Output folder</td><td>C:\CSBDeepWorkspace</td><td>Root folder for training artifacts and the saved model.</td></tr><tr><td>Model name</td><td>blank</td><td>Blank uses a default name: n2v_model for N2V, care_model for CARE.</td></tr><tr><td>Patch size</td><td>64</td><td>Training patch edge, range 16–512, step 8; rounded down to a multiple of 8. Square in 2D, cubic in 3D.</td></tr><tr><td>Epochs</td><td>20</td><td>Range 1–5000.</td></tr><tr><td>Steps per epoch</td><td>100</td><td>Range 1–100000.</td></tr><tr><td>Batch size</td><td>16</td><td>Range 1–512.</td></tr><tr><td>Model type (Apply)</td><td>Noise2Void</td><td>Model type chosen for prediction; must match training.</td></tr><tr><td>Model folder</td><td>blank / pre-filled</td><td>Folder of the saved model; auto-filled after successful training.</td></tr><tr><td>Tiles</td><td>1</td><td>Range 1–64; &gt;1 splits the volume into tiles to reduce memory/GPU use.</td></tr><tr><td>Result title</td><td>blank</td><td>Title of the denoised result Channel; blank = &lt;source&gt;_restored.</td></tr><tr><td>Base Python (build)</td><td>blank</td><td>Base Python for building the venv; blank = Dragonfly&#x27;s own python.exe.</td></tr><tr><td>Run mode</td><td>windows</td><td>windows (shipped) or wsl (reserved).</td></tr></table></div>
+<p>About Patch size: csbdeep / n2v require each axis length to be divisible by the network&#x27;s downsampling factor, so the plugin rounds your entered value down to a multiple of 8 (not below 16) before using it.</p>
+<h2 id="8-output-results">8. Output Results</h2>
+<p><strong>Training output:</strong> a saved deep-learning model at &lt;Output folder&gt;/&lt;model_name&gt;/ (csbdeep / n2v store a model as &lt;basedir&gt;/&lt;name&gt;/). Intermediate artifacts of the run (exported case .npy files, CARE patch .npz, status/results JSON) are kept in a timestamped job subfolder (e.g. train_YYYYMMDD_HHMMSS).</p>
+<p><strong>Apply output:</strong> a <strong>brand-new Channel</strong> published back into the current Dragonfly scene.</p>
+<ul>
+<li>The Channel&#x27;s title is what you entered in <strong>Result title</strong>; blank gives &lt;source Channel&gt;_restored.</li>
+<li>The denoised result <strong>reuses the source Channel&#x27;s grid geometry</strong> (voxel spacing and origin are copied over), so it is spatially aligned and can be overlaid on the original.</li>
+<li>For single-slice data treated as 2D, the leading singleton z axis is restored after prediction so the result re-publishes onto the source Channel&#x27;s (z, y, x) grid.</li>
+</ul>
+<p><strong>How to view:</strong> the new Channel appears in Dragonfly&#x27;s Object List like any other Channel. You can display it in 2D/3D views, adjust window/level, and use it for thresholding and measurement. It is good practice to compare the denoised Channel side by side with (or overlaid on) the original noisy Channel to judge the result.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: Train or Apply says &quot;venv not set. Run Setup Environment first.&quot; What do I do?</strong></p>
+<p>A: The runtime environment has not been built yet. Go to the <strong>Setup</strong> tab and click <strong>Setup Environment</strong>; once the log shows &quot;Environment ready.&quot; and the &quot;CSBDeep venv python&quot; field is filled, return to train or apply.</p>
+<p><strong>Q: Setup Environment fails with a download or install error?</strong></p>
+<p>A: This is usually a network issue or a TensorFlow / n2v incompatibility with the current Python. Confirm you can reach PyPI (internet required); if building with Dragonfly&#x27;s Python fails, enter the path to another CPython 3.9+ (with venv + pip) in <strong>Base Python (build)</strong> — e.g. C:\Python310\python.exe — and retry. A half-built venv is rebuilt automatically.</p>
+<p><strong>Q: Training/prediction reports out-of-memory (OOM) or a CUDA-related error?</strong></p>
+<p>A: For prediction, raise <strong>Tiles</strong> (&gt;1) to split the volume and lower per-pass memory; for training, reduce <strong>Patch size</strong> or <strong>Batch size</strong>. If the log says no GPU / CUDA was found, the plugin can still run on CPU (slower), or check your NVIDIA driver and a matching CUDA/cuDNN.</p>
+<p><strong>Q: Adding a CARE case says &quot;CARE needs a clean (high-quality) Channel too&quot;?</strong></p>
+<p>A: CARE is supervised, so each case must supply both a noisy Channel and a paired clean Channel. Pick a clean Channel in the <strong>Clean Channel (CARE)</strong> row before clicking <strong>Add case</strong>; if you have no clean reference, switch to <strong>Noise2Void</strong> instead.</p>
+<p><strong>Q: Add case says &quot;select a noisy Channel (Refresh)&quot;?</strong></p>
+<p>A: No Channel is available in the dropdown or none is selected. Click <strong>Refresh channels</strong> to load the Channels in the current scene, then select one in <strong>Noisy Channel</strong>.</p>
+<p><strong>Q: The plugin does not appear in the menu?</strong></p>
+<p>A: Confirm you <strong>ticked</strong> the plugin during install (it is unchecked by default) and <strong>fully restarted</strong> Dragonfly afterwards (menus are scanned only at startup). You can also tick it in <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and restart.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Internet is required the first time</strong> to download several GB of dependencies (TensorFlow 2 + csbdeep + n2v); allow time and disk space.</li>
+<li><strong>A GPU is strongly recommended</strong>: it runs without one, but training/prediction will be markedly slower.</li>
+<li><strong>n2v 0.3.x pins TensorFlow 2</strong> and needs a compatible Python version; if the auto-install fails, try a matching Python as the Base Python.</li>
+<li><strong>CARE needs paired data</strong> with the noisy and clean Channels aligned to the same grid; N2V needs only noisy data.</li>
+<li><strong>Model type must match training</strong>: a model trained with N2V must be applied as N2V, and likewise for CARE.</li>
+<li><strong>Only the windows Run mode currently ships</strong> (wsl is a reserved option).</li>
+<li><strong>For large-volume prediction</strong>, use Tiles (&gt;1) to avoid memory/GPU overflow.</li>
+<li>Denoising is an <strong>estimated reconstruction</strong> of the image: always compare the result with the original to check for unwanted smoothing or artifacts before using it for quantitative analysis.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>CSBDeep (CARE / content-aware restoration) project: https://github.com/CSBDeep/CSBDeep</li>
+<li>Noise2Void (n2v) project: https://github.com/juglab/n2v</li>
+<li>TensorFlow official site: https://www.tensorflow.org/</li>
+<li>CARE paper: Weigert et al., &quot;Content-aware image restoration: pushing the limits of fluorescence microscopy&quot;, Nature Methods, 2018.</li>
+<li>Noise2Void paper: Krull et al., &quot;Noise2Void - Learning Denoising from Single Noisy Images&quot;, CVPR, 2019.</li>
+<li>Prototype Apps Full Package install/enable guide: the bundled UserManual_用户手册.docx and the README in the installer folder.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CSBDeep-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

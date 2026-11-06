@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPU Image Filters (pyclesperanto) · Dragonfly Prototype Apps</title>
+<meta name="description" content="GPU Image Filters (pyclesperanto) - User Manual Dragonfly Prototype Apps · GPU Image Filters (pyclesperanto)... Version 1.0 · 2026-07-09 English Manual Con…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">GPU Image Filters (pyclesperanto)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · GPU Image Filters (pyclesperanto)...</div>
+    <h1>GPU Image Filters (pyclesperanto)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#license-notes">License notes</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t3"><a href="#install-steps">Install steps</a></li><li class="t3"><a href="#changing-your-choice-later">Changing your choice later</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-internet-gpu-requirements">Download size / internet / GPU requirements</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#fallbacks-when-setup-fails">Fallbacks when setup fails</a></li><li class="t2"><a href="#5-interface-reference">5. Interface Reference</a></li><li class="t3"><a href="#input-channel">Input Channel</a></li><li class="t3"><a href="#operation">Operation</a></li><li class="t3"><a href="#opencl-device">OpenCL device</a></li><li class="t3"><a href="#environment-pyclesperanto-venv">Environment (pyclesperanto venv)</a></li><li class="t3"><a href="#action-buttons-output-area">Action buttons &amp; output area</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#workflow-a-filtering-channel-output">Workflow A: filtering (Channel output)</a></li><li class="t3"><a href="#workflow-b-one-click-instance-labeling-multiroi-output">Workflow B: one-click instance labeling (MultiROI output)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t3"><a href="#operations-at-a-glance">Operations at a glance</a></li><li class="t3"><a href="#control-defaults-and-ranges">Control defaults and ranges</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t3"><a href="#how-to-view">How to view</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t3"><a href="#q1-compute-says-environment-not-set-up">Q1: Compute says &quot;environment not set up&quot;?</a></li><li class="t3"><a href="#q2-list-devices-reports-no-opencl-device-now-what">Q2: List devices reports no OpenCL device — now what?</a></li><li class="t3"><a href="#q3-setup-environment-fails-saying-there-is-no-venv-module-or-creation-failed">Q3: Setup Environment fails saying there is no venv module or creation failed?</a></li><li class="t3"><a href="#q4-i-get-an-out-of-memory-error-while-computing">Q4: I get an out-of-memory error while computing?</a></li><li class="t3"><a href="#q5-the-plugin-is-not-in-the-menu">Q5: The plugin is not in the menu?</a></li><li class="t3"><a href="#q6-the-channel-dropdown-is-empty">Q6: The Channel dropdown is empty?</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>GPU Image Filters (pyclesperanto) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · GPU Image Filters (pyclesperanto)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>GPU Image Filters (pyclesperanto)</strong> is a Dragonfly plugin that uses the GPU (OpenCL) to run fast image filtering and one-shot instance labeling on an image <strong>Channel</strong>. It moves heavy 2D/3D volume operations from the CPU onto the graphics card, and on large CT / microscopy stacks it is typically much faster than CPU-based scikit-image.</p>
+<p>The underlying compute engine is the open-source <strong>pyclesperanto</strong> library (from the clEsperanto project), which executes image-processing kernels through OpenCL on a GPU or CPU device. The plugin ships the <strong>stable `pyclesperanto`</strong> (not the experimental pyclesperanto_prototype).</p>
+<p>Six operations are provided in two output families: <strong>filter operations</strong> (Gaussian blur, top-hat background subtraction, difference-of-Gaussian, Otsu threshold) publish a new <strong>Channel</strong>; <strong>labeling operations</strong> (Voronoi-Otsu labeling, connected-components labeling) publish a <strong>MultiROI</strong> (one instance label per object). Results are published back into the Dragonfly scene aligned with the source grid (voxel spacing + origin).</p>
+<h3 id="license-notes">License notes</h3>
+<ul>
+<li>Compute engine <strong>pyclesperanto</strong>: <strong>BSD-3-Clause</strong> (permissive).</li>
+<li><strong>numpy</strong>: BSD license.</li>
+<li>The plugin code follows the terms of the DragonflyPrototypeLabs project.</li>
+<li>The OpenCL driver (ICD) is a system component provided by a GPU vendor driver or a CPU OpenCL runtime; it is not installed via pip.</li>
+</ul>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is aimed at <strong>batch pre-processing</strong> and <strong>pre-segmentation</strong> of large CT / microscopy stacks, especially where GPU acceleration pays off:</p>
+<ul>
+<li><strong>Denoising and smoothing</strong> — suppress random noise with a Gaussian blur to give segmentation or measurement a smoother input.</li>
+<li><strong>Background subtraction</strong> — remove slowly varying background non-uniformity with a top-hat transform to bring out small bright structures.</li>
+<li><strong>Edge / blob enhancement</strong> — enhance blob-like or edge structures of a given scale with difference-of-Gaussian (DoG).</li>
+<li><strong>Thresholding</strong> — split the image into foreground / background with automatic Otsu thresholding.</li>
+<li><strong>One-click instance labeling</strong> — get instance segmentation of particles / cells directly (one label per object) with Voronoi-Otsu or connected-components labeling, output as a MultiROI.</li>
+<li><strong>Big-data acceleration</strong> — on large image stacks, GPU filtering is typically far faster than CPU scikit-image.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin ships as part of the <strong>Prototype Apps</strong> in the <strong>Full Package</strong> installer. It is <strong>not ticked by default</strong> and must be enabled manually.</p>
+<h3 id="install-steps">Install steps</h3>
+<p><strong>1. </strong>Unzip the Full Package anywhere (prefer a short folder such as C:\PL\ to avoid path-length issues).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick &quot;GPU Image Filters (pyclesperanto)...&quot;</strong> in the Prototype Apps list (all plugins are OFF by default and must be ticked).</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>After the restart the menu item appears under <strong>Prototype Apps ▸ GPU Image Filters (pyclesperanto)...</strong> (in the &quot;Filtering &amp; Restoration&quot; group). Clicking it opens a dockable / floating panel.</p>
+<h3 id="changing-your-choice-later">Changing your choice later</h3>
+<p>The easiest way is from inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick / untick this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then restart Dragonfly. Disabling a plugin <strong>never</strong> deletes its built environment (venv) — re-enabling is instant.</p>
+<p>Menus are discovered only at Dragonfly startup — every enable/disable change requires one restart before it takes effect.</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> to remove all Full-Package menu items, plugins and the central store. Uninstall <strong>keeps</strong> each plugin&#x27;s built environment (venv); its path is listed at the end so you can delete it manually to reclaim disk space.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</h2>
+<p>The plugin uses the <strong>venv_in_code</strong> model: the compute engine (pyclesperanto + numpy) runs in a <strong>dedicated virtual environment (venv)</strong> driven by a subprocess, so it never touches Dragonfly&#x27;s own Python. You must build that environment once before first use.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>When you click <strong>Setup Environment</strong> on the panel, the plugin:</p>
+<p><strong>1. </strong>Creates a local venv from a &quot;base Python&quot; (by default <strong>Dragonfly&#x27;s own Python</strong>, i.e. Python_env\python.exe — no separate Python install needed).</p>
+<p><strong>2. </strong>Upgrades pip / setuptools / wheel inside the venv.</p>
+<p><strong>3. </strong>pip-installs <strong>`pyclesperanto` (BSD-3)</strong> and <strong>`numpy`</strong> from the default PyPI index (both prebuilt wheels).</p>
+<p><strong>4. </strong>Runs a smoke check (prints numpy / pyclesperanto versions and detected OpenCL devices), then records the venv&#x27;s Python path on success.</p>
+<p>After setup, the panel&#x27;s <strong>Status</strong> field shows Ready: &lt;venv python path&gt;. Later runs need no rebuild; if a usable venv already exists, it is reused.</p>
+<h3 id="download-size-internet-gpu-requirements">Download size / internet / GPU requirements</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Requirement</th><th>Details</th></tr><tr><td>Internet</td><td>Needed once during setup to download the pyclesperanto + numpy prebuilt wheels from PyPI. No internet is needed afterwards.</td></tr><tr><td>Download size</td><td>A small one-time download (the pyclesperanto + numpy wheels).</td></tr><tr><td>GPU / OpenCL</td><td>pyclesperanto needs an OpenCL ICD (installable client driver). A GPU vendor driver usually provides one; with no GPU, a CPU OpenCL runtime (POCL or the Intel CPU runtime) works as a fallback device.</td></tr><tr><td>WSL / external apps</td><td>Not required — no WSL and no external applications are needed.</td></tr></table></div>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<p>The venv lives inside the installed plugin code directory, i.e. ...\GenericMenuItems\Pyclesperanto\venv under %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\. The OpenCL driver (ICD) itself is a system component and is not installed into this venv.</p>
+<h3 id="fallbacks-when-setup-fails">Fallbacks when setup fails</h3>
+<ul>
+<li><strong>Base Python has no venv module / venv creation fails</strong>: enter a different CPython 3.10+ path (e.g. C:\Python312\python.exe) or a launcher command like py -3.11 in the <strong>Base Python</strong> field and re-run Setup Environment. pyclesperanto needs CPython (prebuilt wheels for 3.9–3.12 on Windows).</li>
+<li><strong>No OpenCL device</strong>: install a GPU vendor driver (provides the GPU&#x27;s ICD) or a CPU OpenCL runtime (POCL / Intel CPU runtime) as a fallback, then click <strong>List devices</strong> again.</li>
+</ul>
+<h2 id="5-interface-reference">5. Interface Reference</h2>
+<p>The panel is organized top-to-bottom into the following groups (matching the code).</p>
+<h3 id="input-channel">Input Channel</h3>
+<ul>
+<li><strong>Channel (dropdown)</strong> — lists every Channel in the current Dragonfly scene as &quot;name  (shape)&quot;. If the scene has no Channel it shows &quot;(no channels - load an image in Dragonfly)&quot;.</li>
+<li><strong>Refresh (button)</strong> — re-reads the Channel list from the scene. Click it after loading a new image.</li>
+</ul>
+<h3 id="operation">Operation</h3>
+<ul>
+<li><strong>Operation (dropdown)</strong> — one of the six operations (see the parameter table). Switching operation automatically enables or disables the sigma / radius fields depending on whether that operation uses them.</li>
+<li><strong>sigma (spin box)</strong> — Gaussian scale, range 0.0–50.0, step 0.5, default <strong>2.0</strong>. Used by Gaussian blur, difference-of-Gaussian and Voronoi-Otsu labeling.</li>
+<li><strong>radius (spin box)</strong> — structuring-element radius in voxels, range 0.0–100.0, step 1.0, default <strong>5.0</strong>. Used only by top-hat background subtraction.</li>
+</ul>
+<h3 id="opencl-device">OpenCL device</h3>
+<ul>
+<li><strong>Device (dropdown)</strong> — the OpenCL device to compute on. The default entry is &quot;(default)&quot; (let pyclesperanto choose).</li>
+<li><strong>List devices (button)</strong> — enumerates the OpenCL devices the venv can see and fills the dropdown (requires Setup Environment first).</li>
+<li>A note below reminds you that pyclesperanto needs an OpenCL ICD; a GPU driver usually provides one, otherwise a CPU OpenCL runtime (POCL / Intel) is a valid fallback device.</li>
+</ul>
+<h3 id="environment-pyclesperanto-venv">Environment (pyclesperanto venv)</h3>
+<ul>
+<li><strong>Base Python (field)</strong> — leave blank to use this Dragonfly&#x27;s own Python, or enter a Python path or a command like py -3.11 to override the base interpreter.</li>
+<li><strong>Status (label)</strong> — shows whether the environment is ready: Ready: &lt;path&gt; when built, otherwise a prompt to click Setup Environment first.</li>
+</ul>
+<h3 id="action-buttons-output-area">Action buttons &amp; output area</h3>
+<ul>
+<li><strong>Setup Environment (button)</strong> — builds / reuses the venv and installs dependencies (see Chapter 4).</li>
+<li><strong>Compute (button)</strong> — runs the computation with the selected Channel, operation and parameters and publishes the result back to Dragonfly.</li>
+<li><strong>Summary (label)</strong> — a one-line summary of the result (operation, device, label count or statistics, shape).</li>
+<li><strong>Log area (read-only text box)</strong> — shows progress and messages during the run (reading image, uploading to GPU, running operation, downloading result, publishing object, etc.).</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="workflow-a-filtering-channel-output">Workflow A: filtering (Channel output)</h3>
+<p>For Gaussian blur, top-hat background subtraction, difference-of-Gaussian, and Otsu threshold.</p>
+<p><strong>1. </strong><strong>Input requirement</strong>: first load a 2D or 3D grayscale image (a Channel) in Dragonfly.</p>
+<p><strong>2. </strong>Open the <strong>Prototype Apps ▸ GPU Image Filters (pyclesperanto)...</strong> panel.</p>
+<p><strong>3. </strong>(First run) click <strong>Setup Environment</strong> and wait for Status to show Ready.</p>
+<p><strong>4. </strong>Pick the Channel to process in <strong>Input Channel</strong> (click <strong>Refresh</strong> if needed).</p>
+<p><strong>5. </strong>Choose a filter operation in <strong>Operation</strong>; adjust <strong>sigma</strong> (Gaussian family) or <strong>radius</strong> (top-hat) as needed.</p>
+<p><strong>6. </strong>(Optional) click <strong>List devices</strong> and pick a GPU or CPU OpenCL device in <strong>Device</strong>.</p>
+<p><strong>7. </strong>Click <strong>Compute</strong>. When it finishes, the log shows &quot;Published: Channel&quot; and a new Channel named &quot;&lt;source&gt; - &lt;operation&gt;&quot; appears in the scene — no restart needed.</p>
+<h3 id="workflow-b-one-click-instance-labeling-multiroi-output">Workflow B: one-click instance labeling (MultiROI output)</h3>
+<p>For Voronoi-Otsu labeling and connected-components labeling.</p>
+<p><strong>1. </strong><strong>Input requirement</strong>: again load a grayscale image Channel (bright structures such as particles / cells).</p>
+<p><strong>2. </strong>Pick the Channel; in <strong>Operation</strong> choose &quot;Voronoi-Otsu labeling&quot; or &quot;Connected components labeling&quot;.</p>
+<p><strong>3. </strong>Voronoi-Otsu uses <strong>sigma</strong> (as the spot / outline scale); connected-components labeling first applies Otsu threshold and needs no sigma / radius.</p>
+<p><strong>4. </strong>Click <strong>Compute</strong>. When it finishes, the log shows &quot;Published: MultiROI (N labels)&quot; and a <strong>MultiROI</strong> named &quot;&lt;source&gt; - &lt;operation&gt;&quot; appears in the scene — one instance label per object, aligned with the source grid.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<h3 id="operations-at-a-glance">Operations at a glance</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Operation</th><th>Uses</th><th>Output</th><th>Notes</th></tr><tr><td>Gaussian blur</td><td>sigma</td><td>Channel</td><td>Same Gaussian sigma on all axes (also z in 3D); denoising / smoothing.</td></tr><tr><td>Top-hat background subtraction</td><td>radius</td><td>Channel</td><td>White top-hat; subtracts slowly varying background by structuring-element radius to bring out small bright structures.</td></tr><tr><td>Difference of Gaussian (DoG)</td><td>sigma</td><td>Channel</td><td>Difference of two Gaussians; the second sigma is auto-set to max(sigma×1.6, sigma+1.0), enhancing blobs / edges at a scale.</td></tr><tr><td>Otsu threshold</td><td>none</td><td>Channel</td><td>Automatic threshold binarization; outputs a 0/1 binary Channel.</td></tr><tr><td>Voronoi-Otsu labeling</td><td>sigma</td><td>MultiROI</td><td>Uses sigma as the spot scale and max(sigma, 1.0) as the outline scale to produce instance labels.</td></tr><tr><td>Connected components labeling</td><td>none</td><td>MultiROI</td><td>Applies Otsu threshold first, then labels connected components into instance labels.</td></tr></table></div>
+<h3 id="control-defaults-and-ranges">Control defaults and ranges</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter / control</th><th>Default</th><th>Range / step</th><th>Notes</th></tr><tr><td>sigma</td><td>2.0</td><td>0.0 – 50.0, step 0.5</td><td>Gaussian scale (voxels). Used by Gaussian blur, DoG, Voronoi-Otsu; disabled for other operations.</td></tr><tr><td>radius</td><td>5.0</td><td>0.0 – 100.0, step 1.0</td><td>Structuring-element radius (voxels) for top-hat; disabled for other operations.</td></tr><tr><td>Device (OpenCL)</td><td>(default)</td><td>enumerated device names</td><td>Blank / (default) lets pyclesperanto choose; can be a GPU or CPU OpenCL device.</td></tr><tr><td>Base Python</td><td>blank (= Dragonfly&#x27;s Python)</td><td>a path or a py -3.11 command</td><td>Overrides the base interpreter used to build the venv.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>Depending on the operation, the plugin publishes different object types into the Dragonfly scene, all aligned with the source grid (spacing + origin):</p>
+<ul>
+<li><strong>A new Channel</strong> — from filter operations (Gaussian blur, top-hat, DoG, Otsu threshold), named &quot;&lt;source&gt; - &lt;operation&gt;&quot;. Otsu threshold outputs a 0/1 binary image; the others output a floating-point filtered result.</li>
+<li><strong>A MultiROI</strong> — from labeling operations (Voronoi-Otsu, connected components), named &quot;&lt;source&gt; - &lt;operation&gt;&quot;, with one integer instance label per object (0 is background).</li>
+</ul>
+<p>The result appears in the scene immediately — <strong>no restart needed</strong>. The panel&#x27;s Summary line reports: for a filter result, the operation, device, min / mean / max and shape; for a labeling result, the operation, device, label count and shape.</p>
+<h3 id="how-to-view">How to view</h3>
+<ul>
+<li>New Channel: select it in the object tree to display it in 2D / 3D views; adjust window/level or overlay it like any other Channel.</li>
+<li>MultiROI: expand it in the object tree to inspect the instance labels for downstream particle / cell counting, shape measurement or further analysis.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<h3 id="q1-compute-says-environment-not-set-up">Q1: Compute says &quot;environment not set up&quot;?</h3>
+<p>The runtime environment has not been built yet. Click <strong>Setup Environment</strong>, wait for Status to show Ready, then click Compute again.</p>
+<h3 id="q2-list-devices-reports-no-opencl-device-now-what">Q2: List devices reports no OpenCL device — now what?</h3>
+<p>pyclesperanto needs an OpenCL <strong>ICD (driver)</strong>. Install a GPU vendor driver (usually provides the GPU&#x27;s ICD); if the machine has no GPU, install a <strong>CPU OpenCL runtime</strong> (POCL or the Intel CPU runtime) as a fallback device and click List devices again. Device enumeration never crashes the plugin — it just returns an empty list.</p>
+<h3 id="q3-setup-environment-fails-saying-there-is-no-venv-module-or-creation-failed">Q3: Setup Environment fails saying there is no venv module or creation failed?</h3>
+<p>Enter a CPython 3.10+ with stdlib venv and pip (e.g. C:\Python312\python.exe) or a command like py -3.11 in the <strong>Base Python</strong> field, then re-run Setup Environment. pyclesperanto needs a prebuilt wheel (3.9–3.12 on Windows).</p>
+<h3 id="q4-i-get-an-out-of-memory-error-while-computing">Q4: I get an out-of-memory error while computing?</h3>
+<p>The GPU / memory cannot hold the whole volume. Crop a smaller ROI before processing, or downsample the image and run again.</p>
+<h3 id="q5-the-plugin-is-not-in-the-menu">Q5: The plugin is not in the menu?</h3>
+<p>This plugin is off by default. Make sure you ticked it during install, or tick it under <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and <strong>restart Dragonfly</strong>. Menus are only scanned at startup.</p>
+<h3 id="q6-the-channel-dropdown-is-empty">Q6: The Channel dropdown is empty?</h3>
+<p>There is no loaded image in the current scene. Load an image in Dragonfly first, then click <strong>Refresh</strong> on the panel.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>The input image must be <strong>2D or 3D grayscale</strong> data; the plugin converts it to float32 before sending it to the GPU.</li>
+<li>The <strong>OpenCL driver (ICD) is a system component</strong> and is not installed with the plugin. With no OpenCL device at all, computation cannot run — install a GPU driver or a CPU OpenCL runtime.</li>
+<li>Using a <strong>CPU OpenCL runtime</strong> as a fallback reduces the speed advantage (depends on the CPU and implementation). The GPU benefit is greatest on large image stacks.</li>
+<li>Labeling operations (Voronoi-Otsu / connected components) output a MultiROI; the number of labels depends on image content and thresholding, and connected-components labeling relies on the preceding Otsu threshold.</li>
+<li>The first environment setup needs <strong>internet</strong> once; later runs need none.</li>
+<li>Menus are scanned only at <strong>Dragonfly startup</strong>, so enabling / disabling requires a restart.</li>
+<li>The plugin ships the <strong>stable `pyclesperanto`</strong>, not pyclesperanto_prototype; some API names differ across pyclesperanto versions (e.g. top-hat / connected components), and the plugin already handles those variations.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>pyclesperanto (compute engine, BSD-3-Clause): https://github.com/clEsperanto/pyclesperanto</li>
+<li>clEsperanto project home: https://clesperanto.github.io/</li>
+<li>OpenCL (Khronos): https://www.khronos.org/opencl/</li>
+<li>POCL (Portable CPU OpenCL runtime): https://portablecl.org/</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>pyclesperanto-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

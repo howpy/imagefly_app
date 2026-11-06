@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4D Drift Correction · Dragonfly Prototype Apps</title>
+<meta name="description" content="4D Drift Correction - User Manual Dragonfly Prototype Apps · Correct 4D Drift (Time-lapse)... Version 1.0 · 2026-07-31 English Manual Contents 1. Introduct…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">4D Drift Correction</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Correct 4D Drift (Time-lapse)...</div>
+    <h1>4D Drift Correction</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-31</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-reference-first-frame-or-previous-frame">2. Reference: first frame or previous frame</a></li><li class="t2"><a href="#3-accuracy-sub-voxel-and-two-measured-defaults">3. Accuracy: sub-voxel, and two measured defaults</a></li><li class="t2"><a href="#4-shifting-interpolated-or-whole-voxel">4. Shifting: interpolated or whole-voxel</a></li><li class="t2"><a href="#5-channel-alignment-tab-2">5. Channel alignment (tab 2)</a></li><li class="t2"><a href="#6-how-to-use-it">6. How to use it</a></li><li class="t2"><a href="#7-requirements-and-limits">7. Requirements and limits</a></li></ul></nav>
+  <main class="manual"><p><strong>4D Drift Correction - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Correct 4D Drift (Time-lapse)...</p>
+<p>Version 1.0 · 2026-07-31</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>4D Drift Correction</strong> removes drift that accumulated while a time-lapse 3D image was acquired - stage creep, thermal expansion, specimen settling. Each time point is reduced to intensity projections, its shift relative to a reference frame is measured by <strong>phase correlation</strong>, and the volume is shifted back.</p>
+<p>A projection along <strong>z</strong> gives the lateral (x, y) drift; a projection along <strong>y</strong> (or x) gives the axial (z) drift. Each projection contributes only the component it measures best.</p>
+<p>This implements the METHOD of <strong>Fast4DReg</strong> (Pylvänäinen et al., J Cell Sci 2023, https://github.com/CellMigrationLab/Fast4DReg). The code is an <strong>independent implementation, not a port</strong>: that repository also ships NanoJ-Core (GPL-3.0) and its drift estimation historically derived from NanoJ, which is incompatible with how this plugin is distributed. Phase correlation itself is a textbook technique. Please cite Fast4DReg for the method.</p>
+<h2 id="2-reference-first-frame-or-previous-frame">2. Reference: first frame or previous frame</h2>
+<p><strong>First time point</strong> (default): every frame is compared with frame 0. <strong>No error accumulation</strong>, but it fails once the specimen has drifted so far that it barely overlaps frame 0.</p>
+<p><strong>Previous time point</strong>: consecutive frames are compared and the per-step shifts are <strong>summed cumulatively</strong>. This tracks very large total drift, at the cost of accumulating each frame&#x27;s small error.</p>
+<p>Rule of thumb: total drift under a tenth of the field of view - use the first frame; the specimen visibly leaves its starting position - use the previous frame.</p>
+<h2 id="3-accuracy-sub-voxel-and-two-measured-defaults">3. Accuracy: sub-voxel, and two measured defaults</h2>
+<p><strong>Sub-voxel refinement</strong> defaults to 10, i.e. a tenth of a voxel - note that Fast4DReg is itself sub-pixel in BOTH estimation and application, so sub-voxel accuracy is NOT an advantage of this plugin over it; the advantage is running in-process inside Dragonfly on published Channels. Set it to 1 for whole-voxel estimates.</p>
+<p><strong>The axial projection uses MAXIMUM, not average</strong>, and that is a measured result: as the specimen drifts along z, structure leaves the volume through the top or bottom slice, which changes an <strong>average</strong> projection&#x27;s amplitude and biases phase correlation <strong>low</strong> - a true 1.0 / 2.0 / 4.8-voxel drift came back as 0.2 / 2.3 / 4.6, while a <strong>maximum</strong> projection recovered 1.00 / 2.00 / 4.80 on the same data. With a pure wrap-around shift, where no data is lost, both are exact - which is how the bias was traced to content leaving the volume rather than to the estimator.</p>
+<p><strong>The axial estimate windows only the lateral axis</strong>: a Hann window along the short z axis costs accuracy even when no data is lost at all.</p>
+<p><strong>Smoothing is off by default.</strong> Drift is physically smooth, so smoothing suppresses estimation noise - but it equally removes genuine fast motion, which on a fast acquisition means silently degrading the data. You have to switch it on deliberately.</p>
+<h2 id="4-shifting-interpolated-or-whole-voxel">4. Shifting: interpolated or whole-voxel</h2>
+<p>By default a spline (linear or cubic) performs the sub-voxel shift, leaving the least residual drift - but interpolation <strong>slightly blurs</strong> the data and invents intermediate grey values that were not in the original.</p>
+<p>Ticking <strong>whole-voxel shifts only</strong> rounds the drift to integers and moves whole voxels: <strong>every value is preserved exactly</strong> (safer for downstream quantification or segmentation), at the cost of up to half a voxel of residual drift. Prefer this for intensity quantification.</p>
+<p>Either way, <strong>zero-filled margins</strong> appear at the edges - unavoidable, because the original data has no content there.</p>
+<h2 id="5-channel-alignment-tab-2">5. Channel alignment (tab 2)</h2>
+<p>Measures the <strong>constant offset</strong> between two channels (chromatic aberration, two-camera misalignment), from a calibration slide or from the data itself. It reports dz/dy/dx in voxels and world units, and can apply that offset to <strong>every time step</strong> of the channel and publish the aligned result.</p>
+<p>Do this before any colocalisation analysis: even a single voxel of offset is enough to distort the result.</p>
+<h2 id="6-how-to-use-it">6. How to use it</h2>
+<p>1. <strong>Publish</strong> the time-lapse into the session (the plugin lists published objects only, and labels how many time steps each channel has).</p>
+<p>2. <strong>Estimate without publishing first</strong>: untick &quot;Publish the corrected channel&quot;. Look at the drift table and plot on tab 3 and confirm the magnitude is plausible (total drift should not exceed the field of view).</p>
+<p>3. Isolated jumps in the curve usually mean those frames had poor signal. Switch the projection to maximum, or enable modest smoothing.</p>
+<p>4. When it looks right, tick publish and run again. The corrected 4D channel is published as a new object, and an <strong>integer source stays integer</strong> instead of becoming float and doubling in size.</p>
+<p>5. Tab 3 exports the drift table (voxels + world units, with <strong>both the raw and the as-applied</strong> drift, so it is always possible to check afterwards what was actually applied) and the plot.</p>
+<h2 id="7-requirements-and-limits">7. Requirements and limits</h2>
+<p>No GPU, no internet, no admin rights and nothing to install: everything runs inside Dragonfly on the bundled numpy/scipy/scikit-image.</p>
+<p>Limits: the input must be a <strong>published Channel with a time axis</strong> (at least 2 time steps); time points are read one at a time, so peak memory is roughly two copies of the volume; only rigid <strong>translation</strong> is corrected - not rotation, scaling or deformation (that is non-rigid registration; see the Slice Registration plugin).</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Drift4D-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Executor · Dragonfly Prototype Apps</title>
+<meta name="description" content="Recipe Executor - User Manual Dragonfly Prototype Apps · Recipe Executor... Version 1.0 · 2026-07-14 English Manual Contents 1. Introduction 2. Use cases 3…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Recipe Executor</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Recipe Executor...</div>
+    <h1>Recipe Executor</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-14</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#dragonfly-server">Dragonfly server</a></li><li class="t3"><a href="#recipe">Recipe</a></li><li class="t3"><a href="#input-output-only-for-recipes-that-use-runtime-variables">Input / Output (only for recipes that use runtime variables)</a></li><li class="t3"><a href="#run-and-log">Run and log</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Recipe Executor - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Recipe Executor...</p>
+<p>Version 1.0 · 2026-07-14</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Recipe Executor</strong> is a lightweight, native windowed &quot;execute recipe&quot; tool that runs a <strong>Prototype Labs script recipe</strong> inside Dragonfly. Instead of the Prototype Labs browser/web client, it gives you a dockable <strong>PyQt6</strong> panel — a window like every other Prototype Apps plugin — that lets you pick a recipe, optionally supply an input/output, and run it in Dragonfly&#x27;s UI thread.</p>
+<p>It does <strong>not</strong> import ORSModel. Like the web client, it connects to the in-process <strong>Prototype Labs TCP server</strong> over a loopback socket (default 127.0.0.1:54321) and asks the server to run_script in Dragonfly&#x27;s UI thread (<strong>GUI Sync</strong>). It reuses the web client&#x27;s exact backend verbatim: the TCP protocol (send_df_request), recipe loading (.py, JSON workflow assembled via script_builder + script_blocks, sidecar .py fallback), input/output runtime-variable analysis, and runtime-prefix injection.</p>
+<p><strong>Input:</strong> a recipe file (.py / .json / .md) plus, if the recipe uses runtime variables, an input file/folder and/or an output folder. <strong>Output:</strong> whatever Dragonfly objects the recipe itself creates (Channels, ROIs, MultiROIs, meshes, saved files, etc.) — Recipe Executor is only the launcher, not the algorithm.</p>
+<p>This is <strong>not</strong> the full Prototype Labs GUI: there is no backup, macro recording, auto-executor, or menu/macro management here — it does exactly one thing, execute a recipe. There is no bundled open-source engine; it is a pure socket + PyQt in-process tool wrapping the standard library.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>You don&#x27;t want to open the full Prototype Labs GUI and only need to &quot;pick a recipe and run it in Dragonfly&quot;.</li>
+<li>Quickly re-run a <strong>saved library recipe</strong> on the current session.</li>
+<li>Run a .py or .json recipe that <strong>someone sent you</strong>, without adding it permanently.</li>
+<li>Run an <strong>input/output recipe</strong> against a chosen file or folder (e.g. load-a-volume-then-process pipelines that read input_file/input_dir and write to output_dir).</li>
+<li>Keep a small personal <strong>recipe library</strong> of frequently used scripts, accessible from a dropdown inside Dragonfly.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>Recipe Executor ships in the <strong>Prototype Apps Full Package</strong>. It is not a standalone download — install it through the Full Package installer.</p>
+<p>1. Unzip the Full Package to a <strong>short directory path</strong> (e.g. C:\PLApps) to avoid Windows long-path issues.</p>
+<p>2. Run Install_FullPackage.bat<strong>.</strong></p>
+<p>3. In the installer dialog, <strong>check &quot;Recipe Executor&quot;</strong> (all plugins are unchecked by default), then click <strong>Install</strong>.</p>
+<p>4. <strong>Fully restart Dragonfly</strong> — the menu is scanned only at startup, so a running instance will not show the new item.</p>
+<p>5. Open it from <strong>Prototype Apps &gt; Recipe Executor...</strong>, listed in the <strong>&quot;Generators &amp; Utilities(生成器与工具)&quot;</strong> section.</p>
+<p>You can later enable or disable it via <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>. Everything installs under %LOCALAPPDATA% and needs <strong>no administrator rights</strong>. <strong>Restart Dragonfly after each toggle</strong> for the change to take effect.</p>
+<p>For developers, the plugin can be installed directly with E:\Dragonfly2027.1\Python_env\python.exe install_recipe_executor_plugin.py (uninstall with --uninstall), followed by a full restart.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>No environment setup is required.</strong> Recipe Executor runs <strong>in-process</strong> in Dragonfly&#x27;s own Python and uses only the <strong>standard library</strong> (socket, struct, json, tokenize) plus PyQt6. There is <strong>no venv</strong>, <strong>no download</strong>, <strong>no GPU</strong>, and <strong>no internet</strong> needed — there is no &quot;Setup Environment&quot; button because there are no third-party dependencies to install.</p>
+<p>The one hard dependency is that the <strong>Prototype Labs TCP server must be running</strong>. Start it from <strong>Prototype Apps &gt; Server Management</strong>. Recipe Executor connects to it over a loopback socket and shows the connection status when the panel opens; without it, <strong>Run Recipe</strong> and <strong>Check connection</strong> will fail.</p>
+<p>The server target defaults to 127.0.0.1:54321 and can be overridden via the environment variables DF_PROTOTYPE_LABS_TCP_HOST / DF_PROTOTYPE_LABS_TCP_PORT (also honored: DF_SERVER_HOST/PORT, AED_DF_GUI_HOST/PORT). Assembling <strong>JSON-workflow</strong> recipes additionally needs script_builder.py + the script_blocks folder; the plugin resolves these from the installed GenericMenuItems folder, then the dev repo, then its own code directory, and falls back to a sidecar .py (or a clear message) when they cannot be found. Plain .py recipes run with no such dependency.</p>
+<h2 id="5-interface">5. Interface</h2>
+<p>The panel opens as a dockable/floating window titled <strong>Recipe Executor</strong>, with a one-line header reminding you it runs in <strong>GUI Sync</strong> and needs the Prototype Labs Server.</p>
+<h3 id="dragonfly-server">Dragonfly server</h3>
+<ul>
+<li><strong>Server: &lt;host:port&gt;</strong> — read-only label showing the resolved TCP target.</li>
+<li><strong>Status: …</strong> — connection status (green on success/connected, red on failure), updated by the check.</li>
+<li><strong>Check connection</strong> — pings the server and reports Success (in GUI) / Connected plus the server pid, or the error.</li>
+<li><strong>Interrupt</strong> — sends interrupt_ui_thread to stop a running script or a blocking dialog on the Dragonfly UI thread.</li>
+</ul>
+<h3 id="recipe">Recipe</h3>
+<ul>
+<li><strong>Library:</strong> — dropdown of saved recipes from the recipe library (sorted newest first); its tooltip shows the library folder path.</li>
+<li><strong>Refresh</strong> — re-reads the library folder into the dropdown.</li>
+<li><strong>Load</strong> — loads the currently selected library recipe.</li>
+<li><strong>Browse file… (.py / .json / .md)</strong> — pick and load a recipe file from anywhere without adding it to the library.</li>
+<li><strong>Add file to library…</strong> — pick a recipe file, copy it into the library, and load it.</li>
+<li><strong>Loaded:</strong> — shows the loaded recipe name, its source, and an IO badge: *needs input*, *needs output*, or *no runtime input/output*.</li>
+</ul>
+<h3 id="input-output-only-for-recipes-that-use-runtime-variables">Input / Output (only for recipes that use runtime variables)</h3>
+<ul>
+<li><strong>Input file/folder:</strong> — line edit plus <strong>File…</strong> and <strong>Folder…</strong> buttons. Enabled only when the loaded recipe references an input runtime variable.</li>
+<li><strong>Output folder:</strong> — line edit plus a <strong>Folder…</strong> button. Enabled only when the loaded recipe references an output runtime variable.</li>
+</ul>
+<h3 id="run-and-log">Run and log</h3>
+<ul>
+<li><strong>Run Recipe</strong> — the primary (blue) button; executes the loaded recipe in Dragonfly&#x27;s UI thread.</li>
+<li><strong>Status line</strong> — one-line result (green on success, red on failure).</li>
+<li><strong>Log</strong> — read-only, time-stamped log pane streaming client messages and the remote <strong>stdout/stderr</strong> from the run.</li>
+</ul>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Start the <strong>Prototype Labs Server</strong> from <strong>Prototype Apps &gt; Server Management</strong>, then open <strong>Prototype Apps &gt; Recipe Executor...</strong>.</p>
+<p>2. Click <strong>Check connection</strong> and confirm the status turns green (Success/Connected).</p>
+<p>3. Pick a recipe: choose one from the <strong>Library</strong> dropdown and click <strong>Load</strong>, or use <strong>Browse file…</strong> to load an external .py/.json/.md, or <strong>Add file to library…</strong> to save-and-load it.</p>
+<p>4. Read the <strong>Loaded:</strong> badge. If it says *needs input* / *needs output*, fill <strong>Input file/folder</strong> and/or <strong>Output folder</strong> (use the File…/Folder… pickers). If it says *no runtime input/output*, skip this step.</p>
+<p>5. Click <strong>Run Recipe</strong>. Watch the log for remote stdout/stderr; the status line reports success or the error.</p>
+<p>6. If a script hangs or leaves a blocking dialog open, click <strong>Interrupt</strong> to stop the UI thread.</p>
+<p>Input/output paths you enter are remembered in recipe_exec_config.json next to the plugin code, so they pre-fill next time.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<p>Recipe Executor has no numeric algorithm parameters of its own — the computation lives entirely in the recipe you load. The controls/options that affect a run are:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Option / control</th><th>Default</th><th>Range / values</th><th>Meaning</th></tr><tr><td>Recipe source</td><td>(none loaded)</td><td>Library dropdown / Browse file / Add to library</td><td>Where the recipe comes from</td></tr><tr><td>Recipe file type</td><td>—</td><td>.py, .json, .md</td><td>.py runs directly; .json = code/script keys or a workflow assembled via script_builder + script_blocks, else a sidecar .py; .md loads its sibling .json/.py</td></tr><tr><td>Input file/folder</td><td>(remembered)</td><td>Any existing file or folder</td><td>Sets input_file/input_files/input_name/input_dir/input_folder; enabled only if the recipe uses an input var</td></tr><tr><td>Output folder</td><td>(remembered)</td><td>Any writable folder (auto-created)</td><td>Sets output_dir/output_folder; enabled only if the recipe uses an output var</td></tr><tr><td>Server host:port</td><td>127.0.0.1:54321</td><td>Overridable via env vars</td><td>TCP endpoint of the Prototype Labs server</td></tr><tr><td>Execution mode</td><td>GUI Sync</td><td>fixed</td><td>run_script with exec_mode=ui_thread (runs on Dragonfly&#x27;s UI thread)</td></tr></table></div>
+<p>Recognized input runtime variables: input_file, input_files, input_dir, input_folder, input_name. Output: output_dir, output_folder. Recipe Executor detects which are used by tokenizing the recipe source and injects a runtime prefix defining them before running. A special comment # AED_AUTO_CLOSE_DIALOG: &lt;title&gt;|&lt;delay_ms&gt; in a recipe will auto-close a matching Windows dialog after the delay (default 2000 ms).</p>
+<h2 id="8-output">8. Output</h2>
+<p>Recipe Executor itself creates <strong>no Dragonfly objects</strong> — it is a launcher. The <strong>outputs are whatever the executed recipe produces</strong>: for example Channels, ROIs, MultiROIs, meshes, measurements, or files written to the output folder. These appear in Dragonfly exactly as they would if the recipe were run from the Prototype Labs GUI, since it is the same run_script GUI-Sync path.</p>
+<p>When an output folder is supplied it is created if missing, and output_dir/output_folder are set to its resolved absolute path. For a file input, input_file is that file and input_dir/input_folder its parent; for a folder input, input_files is the sorted list of files in it and input_file is the first. The remote <strong>stdout/stderr</strong> of the run is streamed into the log pane; the status line shows *Script finished.* on success.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>Status is red / &quot;No response from Dragonfly server&quot;</strong> — the Prototype Labs Server isn&#x27;t running or is on a different port. Start it from <strong>Prototype Apps &gt; Server Management</strong> and click <strong>Check connection</strong>.</li>
+<li><strong>&quot;Load a recipe first.&quot;</strong> — no recipe is loaded; select one and click <strong>Load</strong> (or Browse/Add).</li>
+<li><strong>&quot;This recipe needs runtime variable(s)…&quot;</strong> — the recipe uses input_*/output_*; fill the enabled Input/Output fields before running.</li>
+<li><strong>&quot;script_builder.py was not found&quot; / &quot;script_blocks folder was not found&quot;</strong> — you selected a JSON <strong>workflow</strong> recipe but the assembler assets aren&#x27;t reachable. Select the generated .py recipe instead, or install the shared assets under GenericMenuItems.</li>
+<li><strong>&quot;Recipe JSON has no workflow, code, script path, or matching sidecar .py&quot;</strong> — the .json has no runnable body and no sibling .py; provide the .py.</li>
+<li><strong>Markdown recipe fails</strong> — a .md needs a sibling .json or .py of the same name; load that file instead.</li>
+<li><strong>Interrupt says &quot;Unknown cmd&quot;</strong> — the running server build predates interrupt_ui_thread; restart the Prototype Labs Server to a current build.</li>
+<li><strong>A recipe error appears in the log</strong> — the traceback comes from the recipe running inside Dragonfly; debug the recipe itself (this tool only launched it).</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>Execute-recipe only</strong> — no backup, macro recording, auto-executor, or menu/macro management; those stay in the web client / full Prototype Labs GUI.</li>
+<li><strong>Requires the Prototype Labs TCP server</strong> running; there is no direct object-model access (ORSModel is never imported).</li>
+<li>Runs in <strong>GUI Sync</strong> on Dragonfly&#x27;s UI thread — while a recipe runs, Dragonfly&#x27;s UI is busy; a stuck script may require <strong>Interrupt</strong>.</li>
+<li><strong>JSON-workflow assembly</strong> depends on script_builder.py + script_blocks being reachable; without them only .py recipes (or JSON with an embedded/sidecar script) run.</li>
+<li>The <strong>auto-close-dialog</strong> helper is Windows-only (FindWindowW/PostMessage).</li>
+<li><strong>Live-verify pending:</strong> the TCP run path is copied verbatim from the working web client but has not been re-run live in this plugin form.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Plugin docs: DragonflyPlugins/RecipeExecutor-Plugin/README.md and DESIGN.md.</li>
+<li>Core backend (TCP protocol, recipe loading, IO analysis, run): recipe_exec_code/recipe_exec_core.py; PyQt panel: recipe_exec_code/recipe_exec_panel.py.</li>
+<li>No third-party open-source engine is wrapped — it uses only the Python standard library (socket, struct, json, tokenize) and PyQt6, over the Prototype Labs dragonfly_server TCP protocol.</li>
+<li>Related: Prototype Apps &gt; <strong>Server Management</strong> (starts the required TCP server) and the Prototype Labs <strong>Script Builder</strong> / recipe library.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>RecipeExecutor-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

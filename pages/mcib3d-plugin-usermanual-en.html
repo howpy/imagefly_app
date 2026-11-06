@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Object Analysis (MCIB3D) · Dragonfly Prototype Apps</title>
+<meta name="description" content="3D Object Analysis (MCIB3D) - User Manual Dragonfly Prototype Apps · 3D Object Analysis (MCIB3D)... Version 1.0 · 2026-07-09 English Manual Contents 1. Ove…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">3D Object Analysis (MCIB3D)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · 3D Object Analysis (MCIB3D)...</div>
+    <h1>3D Object Analysis (MCIB3D)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-and-algorithms">Underlying engine and algorithms</a></li><li class="t3"><a href="#licensing">Licensing</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t3"><a href="#changing-your-choice-later">Changing your choice later</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and First-Run Setup</a></li><li class="t3"><a href="#step-1-have-fiji-installed">Step 1: Have Fiji installed</a></li><li class="t3"><a href="#step-2-point-the-panel-at-the-fiji-launcher">Step 2: Point the panel at the Fiji launcher</a></li><li class="t3"><a href="#step-3-check-install-mcib3d-needs-internet">Step 3: Check / install MCIB3D (needs internet)</a></li><li class="t3"><a href="#setting-jvm-memory-max-heap">Setting JVM memory (Max heap)</a></li><li class="t2"><a href="#5-interface-reference">5. Interface Reference</a></li><li class="t3"><a href="#intro">Intro</a></li><li class="t3"><a href="#input-channel-or-binary-multiroi">Input (Channel or binary MultiROI)</a></li><li class="t3"><a href="#mcib3d-operation">MCIB3D operation</a></li><li class="t3"><a href="#fiji-3d-imagej-suite-mcib3d">Fiji / 3D ImageJ Suite (MCIB3D)</a></li><li class="t3"><a href="#output">Output</a></li><li class="t3"><a href="#run-button-and-results-area">Run button and results area</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#input-requirements-and-outputs-per-operation">Input requirements and outputs per operation</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>3D Object Analysis (MCIB3D) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · 3D Object Analysis (MCIB3D)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>3D Object Analysis (MCIB3D)</strong> is a Dragonfly Prototype Apps plugin. It lets you pick a Dragonfly <strong>Channel</strong> or <strong>binary MultiROI</strong>, export it as a Fiji-readable TIFF, then run the <strong>3D ImageJ Suite (MCIB3D)</strong> inside your locally-installed <strong>Fiji/ImageJ</strong> to perform <strong>true-3D</strong> object segmentation, per-object 3D shape measurements, and 3D spatial-distribution statistics. The resulting 3D label image is imported back into Dragonfly as a <strong>MultiROI</strong>, and a per-object measurements table is shown in the panel (savable as CSV).</p>
+<p>Unlike slice-by-slice processing, MCIB3D works directly on the whole volume with 3D connectivity and 3D watershed, so it correctly handles objects that span slices and reports each object&#x27;s true 3D volume, surface area and shape descriptors.</p>
+<h3 id="underlying-engine-and-algorithms">Underlying engine and algorithms</h3>
+<ul>
+<li><strong>Engine:</strong> the 3D ImageJ Suite (commonly abbreviated MCIB3D), provided as a Fiji update site named mcib3d at https://sites.imagej.net/mcib3d/.</li>
+<li><strong>3D segmentation methods:</strong> 3D Simple Segmentation (threshold + 3D connected labelling), 3D Watershed (splits touching objects), 3D Spot Segmentation (tuned for bright blobs/spots).</li>
+<li><strong>3D geometrical measure:</strong> per-object 3D descriptors (volume, surface area, compactness, elongation) via the 3D Manager Measure3D command.</li>
+<li><strong>3D spatial statistics:</strong> inter-object spatial distribution such as nearest-neighbour distances via the 3D Manager distance analysis.</li>
+</ul>
+<h3 id="licensing">Licensing</h3>
+<p>The 3D ImageJ Suite (MCIB3D) is licensed <strong>GPL-3.0-or-later</strong>. This plugin drives it <strong>only as a separate, headless Fiji JVM subprocess</strong>, exchanging data through TIFF and CSV files, and <strong>never</strong> imports MCIB3D or Fiji code into the Dragonfly process. That subprocess boundary is the GPL isolation boundary. The plugin bundles no Fiji or MCIB3D code; you install Fiji yourself.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin targets users who need <strong>true-3D</strong> object segmentation, per-object 3D morphometry, and spatial-distribution analysis on <strong>volumetric data</strong>. Typical scenarios:</p>
+<ul>
+<li>Split touching/connected 3D objects (pores, grains, bubbles, cells) and report each object&#x27;s volume and shape.</li>
+<li>Compute per-object 3D shape descriptors (volume, surface area, compactness, elongation) for morphometric statistics and classification.</li>
+<li>Analyse spatial distribution, e.g. each object&#x27;s distance to its nearest neighbour, to assess dispersion or clustering.</li>
+<li>Combine Dragonfly&#x27;s visualization with the mature 3D object-analysis algorithms of MCIB3D in materials science (CT pores/grains/bubbles) and life sciences (cells, nuclei, spots).</li>
+</ul>
+<p>The plugin only processes an <strong>existing</strong> Dragonfly Channel or binary MultiROI; it does not create the source object for you. Prepare the image Channel or binary segmentation in Dragonfly first.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships in the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the Full Package to any <strong>short</strong> folder (e.g. C:\PL\); avoid deep Downloads paths or a OneDrive-redirected Desktop.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>), then <strong>tick &quot;3D Object Analysis (MCIB3D)...&quot;</strong> in the app list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are discovered only at Dragonfly startup).</p>
+<p>This plugin is <strong>disabled by default</strong> in the Full Package. You must tick it in the installer, or enable it later in the Menu Item Manager, and restart before it appears in the menu.</p>
+<p>After the restart, the menu item appears under <strong>Prototype Apps ▸ 3D Object Analysis (MCIB3D)...</strong> (in the &quot;Measurements &amp; Analysis&quot; group). Clicking it opens a dockable panel.</p>
+<h3 id="changing-your-choice-later">Changing your choice later</h3>
+<p>The easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, find this plugin&#x27;s checkbox in the &quot;Prototype Apps (Full Package)&quot; list, tick to deploy / untick to remove the menu entry, and restart Dragonfly to apply. Disabling <strong>never</strong> deletes your configured Fiji path or your local Fiji install. You may also re-run the installer at any time; it remembers your previous choices as defaults.</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> to remove all Full-Package menu items and plugins. Uninstalling does not delete your local Fiji install or the MCIB3D update site.</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and First-Run Setup</h2>
+<p>This plugin creates <strong>no Python virtual environment (venv), uses no GPU, and needs no WSL</strong>. Its only external dependency is a <strong>locally-installed Fiji/ImageJ</strong> with the <strong>3D ImageJ Suite (MCIB3D)</strong> update site enabled.</p>
+<h3 id="step-1-have-fiji-installed">Step 1: Have Fiji installed</h3>
+<p>If you do not yet have Fiji, download and unzip it from the Fiji website (fiji.sc). The plugin auto-searches common locations (e.g. Fiji.app, Fiji, ImageJ folders); recognised launcher names include ImageJ-win64.exe, fiji-windows-x64.exe, fiji.exe, ImageJ-win32.exe, and ImageJ.exe.</p>
+<h3 id="step-2-point-the-panel-at-the-fiji-launcher">Step 2: Point the panel at the Fiji launcher</h3>
+<p>In the <strong>&quot;Fiji / 3D ImageJ Suite (MCIB3D)&quot;</strong> group of the panel:</p>
+<ul>
+<li>Click <strong>Locate</strong> to auto-detect Fiji; if found, the path is filled into the <strong>Launcher</strong> field and the status line reports whether MCIB3D was detected.</li>
+<li>If auto-detection fails, click <strong>Browse...</strong> to select the Fiji launcher (e.g. ImageJ-win64.exe or fiji-windows-x64.exe).</li>
+<li>You may also pre-set the launcher path via the DF_FIJI_PATH environment variable.</li>
+</ul>
+<p>If you select a Jaunch launcher (e.g. fiji-windows-x64.exe), the plugin prefers the classic ImageJ-win64.exe launcher in the same folder because its headless -batch behaviour is the most reliable.</p>
+<h3 id="step-3-check-install-mcib3d-needs-internet">Step 3: Check / install MCIB3D (needs internet)</h3>
+<p>Click <strong>&quot;Check / Install 3D ImageJ Suite (MCIB3D)&quot;</strong>. The plugin scans the selected Fiji install&#x27;s plugins, jars (and related) folders for jar files whose names contain mcib3d and similar tokens:</p>
+<ul>
+<li><strong>Detected:</strong> a dialog reports the MCIB3D path and the status line shows &quot;MCIB3D detected&quot;.</li>
+<li><strong>Not detected:</strong> a confirmation dialog asks whether to enable the mcib3d update site now. On <strong>Yes</strong>, the plugin runs Fiji&#x27;s updater commands headlessly to add the mcib3d update site (https://sites.imagej.net/mcib3d/) and apply updates.</li>
+</ul>
+<p>Installing/updating MCIB3D <strong>needs internet</strong> and may take a few minutes. After it finishes you usually must <strong>restart Fiji/Dragonfly</strong> for the new commands to load. If the file scan still does not find MCIB3D after install, restart and try again, or enable it manually in Fiji via <strong>Help ▸ Update ▸ Manage update sites ▸ 3D ImageJ Suite</strong>. Normal processing (not install) needs no internet.</p>
+<h3 id="setting-jvm-memory-max-heap">Setting JVM memory (Max heap)</h3>
+<p><strong>Max heap</strong> sets the memory given to the Fiji JVM subprocess; the default is 4096 MB. For large volumes, set it high enough to match your machine&#x27;s available RAM, or Fiji may fail out of memory. 0 passes no --mem flag and uses Fiji&#x27;s default.</p>
+<p>Panel settings (Fiji path, Max heap, MultiROI suffix) are saved in mcib3d_config.json in the plugin&#x27;s code folder and restored next time you open the panel.</p>
+<h2 id="5-interface-reference">5. Interface Reference</h2>
+<p>The panel is laid out top-to-bottom as follows.</p>
+<h3 id="intro">Intro</h3>
+<p>A short description stating that the plugin runs true-3D segmentation, per-object 3D shape descriptors, and 3D spatial statistics on a Dragonfly Channel or binary MultiROI with the 3D ImageJ Suite in Fiji, and imports a 3D label MultiROI plus a measurements table.</p>
+<h3 id="input-channel-or-binary-multiroi">Input (Channel or binary MultiROI)</h3>
+<ul>
+<li><strong>Dropdown:</strong> lists the Channels and MultiROIs available in the current Dragonfly scene; each item is tagged with its type ([Channel ...] / [MultiROI ...]) and shape (Z×Y×X). Currently-selected objects are listed first.</li>
+<li><strong>Refresh:</strong> rescans and refreshes the input list.</li>
+</ul>
+<h3 id="mcib3d-operation">MCIB3D operation</h3>
+<ul>
+<li><strong>Operation dropdown:</strong> three operations — 3D Segmentation -&gt; labels, 3D Geometrical Measure, and 3D Spatial Statistics.</li>
+<li><strong>Dynamic parameter area:</strong> shows the parameter widgets for the selected operation (see Chapter 7); a grey description line updates as you switch operations.</li>
+</ul>
+<h3 id="fiji-3d-imagej-suite-mcib3d">Fiji / 3D ImageJ Suite (MCIB3D)</h3>
+<ul>
+<li><strong>Launcher field + Locate + Browse...:</strong> the Fiji/ImageJ launcher path; Locate auto-detects, Browse selects manually.</li>
+<li><strong>Max heap spinbox:</strong> the Fiji JVM maximum memory in MB, default 4096, step 512, range 0–262144.</li>
+<li><strong>Check / Install 3D ImageJ Suite (MCIB3D) button:</strong> detects whether MCIB3D is present in the selected Fiji and, if not, offers to enable the update site.</li>
+</ul>
+<h3 id="output">Output</h3>
+<p><strong>MultiROI suffix field:</strong> the output naming suffix, default MCIB3D. The final MultiROI name is &lt;input title&gt; - &lt;suffix&gt;.</p>
+<h3 id="run-button-and-results-area">Run button and results area</h3>
+<ul>
+<li><strong>Run MCIB3D + Create MultiROI (blue button):</strong> runs the full workflow.</li>
+<li><strong>Measurements table:</strong> for measure / spatial-statistics operations, shows the per-object/per-pair results after a run (hidden by default; shown when results exist).</li>
+<li><strong>Save measurements as CSV... button:</strong> exports the table to a CSV file (shown when results exist).</li>
+<li><strong>Status line + log:</strong> the status line shows a one-line progress/result; the read-only log below shows detailed progress, Fiji output, the temporary job folder path, and any errors.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>Here is the complete end-to-end flow from input to output.</p>
+<p><strong>1. </strong>In Dragonfly, prepare the <strong>Channel</strong> or <strong>binary MultiROI</strong> to analyse.</p>
+<p><strong>2. </strong>Open the panel: <strong>Prototype Apps ▸ 3D Object Analysis (MCIB3D)...</strong>.</p>
+<p><strong>3. </strong>In the <strong>Input</strong> dropdown, select the input object (click <strong>Refresh</strong> if it is not listed).</p>
+<p><strong>4. </strong>In <strong>MCIB3D operation</strong>, choose the operation and set threshold, min/max size, and connectivity below (see Chapter 7).</p>
+<p><strong>5. </strong>In the <strong>Fiji</strong> group, confirm <strong>Launcher</strong> points at a valid Fiji launcher (use <strong>Locate/Browse</strong> if needed) and adjust <strong>Max heap</strong> as required.</p>
+<p><strong>6. </strong>On first use, click <strong>Check / Install 3D ImageJ Suite (MCIB3D)</strong> to confirm MCIB3D is installed (install and restart if prompted).</p>
+<p><strong>7. </strong>In <strong>Output</strong>, set the <strong>MultiROI suffix</strong> (the default MCIB3D is fine).</p>
+<p><strong>8. </strong>Click <strong>Run MCIB3D + Create MultiROI</strong>. The plugin exports the input to an ImageJ TIFF, runs the Fiji macro headlessly, imports the 3D label TIFF back into Dragonfly as a MultiROI, and shows a measurements table (if the operation produces one).</p>
+<p><strong>9. </strong>Check the log for &quot;Created MultiROI ... with N label(s)&quot; and the job folder path; if a table is present, click <strong>Save measurements as CSV...</strong> to export it.</p>
+<h3 id="input-requirements-and-outputs-per-operation">Input requirements and outputs per operation</h3>
+<ul>
+<li><strong>3D Segmentation -&gt; labels:</strong> input is typically a Channel (intensities kept for thresholding); the chosen method (simple / watershed / spot) produces a 3D label image → MultiROI.</li>
+<li><strong>3D Geometrical Measure:</strong> input is a Channel or binary MultiROI; it is 3D-simple-segmented first, then per-object volume, surface area, compactness and elongation are computed → MultiROI + per-object table.</li>
+<li><strong>3D Spatial Statistics:</strong> input is a Channel or binary MultiROI; it is labelled first, then inter-object nearest-neighbour distances and related statistics are computed → MultiROI + nearest-neighbour table.</li>
+</ul>
+<p>A binary MultiROI is exported as a 0/255 mask; a Channel keeps its intensities (float data is scaled to the 16-bit range) so the threshold parameters remain meaningful.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>Parameters for <strong>3D Segmentation -&gt; labels</strong>:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Method</td><td>3D Simple Segmentation</td><td>3D segmentation method: 3D Simple Segmentation (threshold + connected labelling) / 3D Watershed (splits touching objects) / 3D Spot Segmentation (bright-blob segmentation).</td></tr><tr><td>Threshold (low)</td><td>128</td><td>Low threshold for segmentation; voxels above it are foreground (the upper threshold is fixed at 65535).</td></tr><tr><td>Min size (voxels)</td><td>10</td><td>Minimum voxel count to keep an object; smaller objects are removed.</td></tr><tr><td>Max size (voxels)</td><td>0</td><td>Maximum voxel count to keep an object; 0 means no upper limit.</td></tr><tr><td>Connectivity</td><td>26</td><td>3D connectivity: 6 (face-adjacent) or 26 (face/edge/corner-adjacent).</td></tr></table></div>
+<p>Parameters for <strong>3D Geometrical Measure</strong> and <strong>3D Spatial Statistics</strong> (identical):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Threshold (low)</td><td>128</td><td>Low threshold used for the 3D simple segmentation done before labelling.</td></tr><tr><td>Min size (voxels)</td><td>10</td><td>Minimum voxel count to keep an object.</td></tr><tr><td>Max size (voxels)</td><td>0</td><td>Maximum voxel count to keep an object; 0 means no upper limit.</td></tr><tr><td>Connectivity</td><td>26</td><td>3D connectivity: 6 or 26.</td></tr></table></div>
+<p><strong>Fiji / output settings:</strong></p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Setting</th><th>Default</th><th>Description</th></tr><tr><td>Launcher</td><td>(auto-detected)</td><td>The Fiji/ImageJ launcher path; set via Locate/Browse or the DF_FIJI_PATH environment variable.</td></tr><tr><td>Max heap</td><td>4096 MB</td><td>Maximum memory given to the Fiji JVM; raise it for large volumes; 0 uses Fiji&#x27;s default.</td></tr><tr><td>MultiROI suffix</td><td>MCIB3D</td><td>Output MultiROI naming suffix; the name is &lt;input title&gt; - &lt;suffix&gt;.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>After a run, the plugin produces the following in Dragonfly:</p>
+<ul>
+<li><strong>MultiROI (3D labels):</strong> converted from the Fiji 3D label TIFF, with labels renumbered 1..N and geometry (voxel spacing, origin) restored from the source object where possible. The MultiROI is assigned default colours and published to the scene, visible in the Dragonfly object tree and in the 2D/3D views.</li>
+<li><strong>Per-object measurements table (measure / spatial-statistics operations only):</strong> shown as a table in the panel. 3D geometrical measure reports each object&#x27;s volume, surface area, compactness, elongation, etc.; 3D spatial statistics reports each object&#x27;s nearest-neighbour distance, etc. Click <strong>Save measurements as CSV...</strong> to export it.</li>
+</ul>
+<p>Intermediate files (input TIFF, label TIFF, results CSV, macro file) are written to a job folder under the OS temp directory (the log prints the path, of the form mcib3d_*). On failure, these temp paths are kept in the error text so you can inspect the Fiji output manually.</p>
+<p>The imported MultiROI supports at most 65535 labels (uint16). If segmentation yields more objects than that, the import fails — reduce the object count by raising the threshold or increasing the minimum size.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: I can&#x27;t find &quot;3D Object Analysis (MCIB3D)...&quot; in the menu.</strong></p>
+<p>A: The plugin is disabled by default. Tick it in the Full Package installer, or enable it in <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, then <strong>fully restart Dragonfly</strong> (menus are discovered only at startup).</p>
+<p><strong>Q: It says Fiji was not found / the launcher is not set.</strong></p>
+<p>A: Install Fiji first; then click <strong>Locate</strong> to auto-detect, or <strong>Browse...</strong> to select ImageJ-win64.exe / fiji-windows-x64.exe; you can also set the DF_FIJI_PATH environment variable.</p>
+<p><strong>Q: MCIB3D is still not detected after installing, or a command is reported as unavailable at run time.</strong></p>
+<p>A: After the mcib3d update site is installed you usually must <strong>restart Fiji/Dragonfly</strong> to load the new jars. If it is still not detected, enable the update site manually in Fiji via <strong>Help ▸ Update ▸ Manage update sites ▸ 3D ImageJ Suite</strong>, apply updates and restart. MCIB3D command names/options can differ between Fiji builds; if a command is unavailable, check the Fiji output in the log.</p>
+<p><strong>Q: Runs are slow or fail out of memory.</strong></p>
+<p>A: 3D data is processed in an external Fiji process; large volumes take time and need enough JVM heap. Raise <strong>Max heap</strong> to match your machine&#x27;s available RAM; if needed, crop the data first or raise the minimum-size threshold to reduce the object count.</p>
+<p><strong>Q: The run succeeded but no MultiROI was created or the table is empty.</strong></p>
+<p>A: This usually means the threshold/size parameters left no foreground objects. Lower <strong>Threshold (low)</strong> or <strong>Min size</strong>, and confirm the input object actually contains the target structures. The log prints the job folder path so you can inspect the Fiji intermediate files.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li>The plugin only processes an <strong>existing</strong> Dragonfly Channel or binary MultiROI; it does not create the source object for you.</li>
+<li>Fiji/MCIB3D operations run as an <strong>external process</strong>, so large volumes can be slow and need enough JVM heap.</li>
+<li>The output MultiROI&#x27;s geometry is restored from the source object where possible; the number of imported labels is bounded by the uint16 limit (65535).</li>
+<li>MCIB3D command names and options can vary between Fiji builds; the plugin uses standard command names from current 3D ImageJ Suite installs and reports Fiji stdout/stderr in the log when a command is unavailable.</li>
+<li>MCIB3D is GPL-3.0-or-later, driven only as a separate headless Fiji JVM subprocess and never imported into Dragonfly; the plugin bundles no Fiji/MCIB3D code — you install Fiji yourself.</li>
+<li>Installing/updating MCIB3D needs internet; normal processing needs no internet, GPU or WSL, and creates no Python virtual environment.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Fiji (the ImageJ distribution): https://fiji.sc/</li>
+<li>3D ImageJ Suite (MCIB3D) Fiji update site: https://sites.imagej.net/mcib3d/</li>
+<li>3D ImageJ Suite documentation (mcib3d): available on its project page and in the 3D Manager help within Fiji.</li>
+<li>License: the 3D ImageJ Suite (MCIB3D) is GPL-3.0-or-later.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MCIB3D-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load Images (ITK/SimpleITK) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Load Images (ITK/SimpleITK) - User Manual Dragonfly Prototype Apps · Load Images (ITK/SimpleITK)... Version 1.0 · 2026-07-14 English Manual Contents 1. Int…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Load Images (ITK/SimpleITK)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Load Images (ITK/SimpleITK)...</div>
+    <h1>Load Images (ITK/SimpleITK)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-14</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#setup-tab">Setup tab</a></li><li class="t3"><a href="#load-tab-file-group">Load tab - File group</a></li><li class="t3"><a href="#load-tab-preview-area">Load tab - preview area</a></li><li class="t3"><a href="#load-tab-import-group">Load tab - Import group</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t3"><a href="#first-run-setup">First-run setup</a></li><li class="t3"><a href="#preview-import">Preview &amp; import</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Load Images (ITK/SimpleITK) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Load Images (ITK/SimpleITK)...</p>
+<p>Version 1.0 · 2026-07-14</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Load Images (ITK/SimpleITK)</strong> is a Dragonfly Prototype Apps plugin for opening <strong>scientific/medical volume formats</strong> that Dragonfly cannot load natively, and publishing them as Dragonfly image <strong>Channels</strong>. It wraps two open-source imaging-I/O libraries: mainstream formats go through <strong>SimpleITK</strong> (Apache-2.0), while Scanco bone-microCT formats go through <strong>ITK</strong>&#x27;s itk-ioscanco remote module (Apache-2.0).</p>
+<p>Supported formats include MetaImage (.mha/.mhd), NRRD, NIfTI (.nii/.nii.gz), Analyze (.hdr/.img), GIPL, VTK, MRC, DICOM (.dcm), TIFF, PNG/JPG/BMP, HDF5, plus Scanco microCT .isq/.aim/.rad/.rsq.</p>
+<p><strong>Input</strong> is a single image file on disk; <strong>output</strong> is one or more image <strong>Channels</strong> published into Dragonfly&#x27;s object tree (multi-component/RGB images are split into separate Channels), with voxel spacing written in meters using a user-chosen unit. It complements the Bio-Formats loader (microscopy) by covering the ITK/medical-imaging format family.</p>
+<p>It is <strong>not</strong> a segmentation, registration, or reconstruction tool; it only does &quot;read file → make Channel&quot;. It does no time-axis/4D handling and never writes back to the source file.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Import common medical/scientific volumes such as <strong>NIfTI/NRRD/MetaImage/Analyze/GIPL/VTK</strong> into Dragonfly for downstream visualization and analysis.</li>
+<li>Read <strong>Scanco bone microCT</strong> raw files: .isq/.aim/.rad/.rsq.</li>
+<li><strong>Preview</strong> format, dimensions, X/Y/Z sizes, components, pixel type and voxel spacing before importing, and decide whether/what unit to use.</li>
+<li>Open a <strong>single-file DICOM</strong>, <strong>MRC</strong> electron-microscopy data, or serve as a general entry for 2D images (TIFF/PNG/JPG/BMP).</li>
+<li>Handle <strong>multi-component/RGB</strong> images, auto-split into per-channel Channels.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>This plugin ships in the <strong>Prototype Apps Full Package</strong>. All plugins are <strong>unchecked by default</strong> and must be enabled manually.</p>
+<p>1. Unzip the Full Package to a <strong>short directory</strong> (to avoid Windows MAX_PATH issues), e.g. C:\PL.</p>
+<p>2. Run Install_FullPackage.bat.</p>
+<p>3. In the installer dialog, <strong>check</strong> Load Images (ITK/SimpleITK).</p>
+<p>4. Click Install; it installs under %LOCALAPPDATA% (no admin rights required).</p>
+<p>5. <strong>Fully restart Dragonfly</strong> (the menu is scanned only at startup).</p>
+<p>After restart the item appears under <strong>Prototype Apps &gt; Load Images (ITK/SimpleITK)...</strong> in the <strong>Reconstruction &amp; Imaging(重建与成像)</strong> section. You can later toggle it via <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>; restart Dragonfly after each toggle.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>The plugin&#x27;s compute engine runs in an <strong>isolated venv</strong> (manifest env.kind = venv_in_code), fully separate from Dragonfly&#x27;s own Python. The Dragonfly process only publishes Channels and never imports SimpleITK/itk.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>On first use, open the <strong>Setup</strong> tab and click <strong>Setup Environment (SimpleITK + itk-ioscanco)</strong>. Using Dragonfly&#x27;s own Python (or a Base Python you specify), it creates a venv/ subfolder under the installed code directory and pip installs: numpy, Pillow, SimpleITK, itk-io, itk-ioscanco. These are <strong>all prebuilt wheels</strong> — no Java, no MSVC compiler.</p>
+<ul>
+<li><strong>Internet</strong>: required only for the first Setup to download wheels (manifest needs_internet = true); offline afterward.</li>
+<li><strong>GPU</strong>: not required (needs_gpu = false); pure-CPU reading.</li>
+<li><strong>WSL / external tools</strong>: none (wsl_distro = null).</li>
+<li><strong>venv location</strong>: GenericMenuItems\ITKImageLoader\venv under the installed code directory. On success the venv&#x27;s python.exe is written into the Setup tab&#x27;s <strong>Analysis venv python</strong> field and saved to config.</li>
+<li><strong>Base Python fallback</strong>: leave the <strong>Base Python</strong> field blank to auto-detect Dragonfly/system Python, or use <strong>Browse...</strong> to pick the python.exe used to build the venv.</li>
+<li><strong>Job root</strong>: a scratch directory (default C:\ITKImageLoaderJobs); each Preview/Import creates a timestamped subfolder there for the thumbnail and intermediate .npy files.</li>
+</ul>
+<h2 id="5-interface">5. Interface</h2>
+<p>The panel has a title header, a TabWidget with <strong>Setup</strong> and <strong>Load</strong> tabs, and at the bottom a green status line plus a read-only log box.</p>
+<h3 id="setup-tab">Setup tab</h3>
+<ul>
+<li><strong>Analysis venv python</strong>: the venv Python path; auto-filled by Setup Environment (placeholder &quot;set by Setup Environment&quot;).</li>
+<li><strong>Base Python</strong> + <strong>Browse...</strong>: the base interpreter for building the venv; blank = auto-detect (placeholder &quot;blank = auto-detect Dragonfly/system Python&quot;).</li>
+<li><strong>Job root</strong>: scratch root, default C:\ITKImageLoaderJobs.</li>
+<li><strong>Setup Environment (SimpleITK + itk-ioscanco)</strong> button: creates the venv and installs dependencies.</li>
+</ul>
+<h3 id="load-tab-file-group">Load tab - File group</h3>
+<ul>
+<li><strong>Image file</strong> + <strong>Browse...</strong>: pick a file; the file filter covers all the ITK/SimpleITK extensions. Picking a file auto-fills the Output title with the file name (no extension) if it&#x27;s empty.</li>
+<li><strong>Voxel spacing unit</strong> (combo): millimeter (mm) (default), micrometer (µm), meter (m), as-is / unitless.</li>
+<li><strong>Preview</strong> button: reads header info + a middle-slice thumbnail.</li>
+</ul>
+<h3 id="load-tab-preview-area">Load tab - preview area</h3>
+<ul>
+<li><strong>Thumbnail</strong>: left panel shows a grayscale middle-Z slice (default &quot;No preview&quot;).</li>
+<li><strong>Metadata table</strong> (Property / Value columns): File, Format, Dimensions, Size X/Y/Z, Components, Pixel type, Spacing X/Y/Z.</li>
+</ul>
+<h3 id="load-tab-import-group">Load tab - Import group</h3>
+<ul>
+<li><strong>Output Channel title</strong>: output Channel title; blank = use the file name (placeholder &quot;defaults to the file name&quot;).</li>
+<li><strong>Import -&gt; Publish as Channel(s)</strong> button (blue): reads the full volume and publishes Channel(s).</li>
+</ul>
+<h2 id="6-how-to-use">6. How to use</h2>
+<h3 id="first-run-setup">First-run setup</h3>
+<p>1. Open <strong>Prototype Apps &gt; Load Images (ITK/SimpleITK)...</strong>.</p>
+<p>2. Go to the <strong>Setup</strong> tab and optionally fill Base Python and Job root.</p>
+<p>3. Click <strong>Setup Environment (SimpleITK + itk-ioscanco)</strong> and wait for the online install; the status line shows &quot;Environment ready.&quot; and the venv python field is auto-filled.</p>
+<h3 id="preview-import">Preview &amp; import</h3>
+<p>1. Switch to the <strong>Load</strong> tab and pick a file with <strong>Browse...</strong>.</p>
+<p>2. Choose the <strong>Voxel spacing unit</strong> matching the file&#x27;s real unit (usually mm).</p>
+<p>3. Click <strong>Preview</strong> to inspect the thumbnail and metadata (format, dimensions, sizes, components, pixel type, spacing).</p>
+<p>4. Optionally type a custom <strong>Output Channel title</strong>.</p>
+<p>5. Click <strong>Import -&gt; Publish as Channel(s)</strong>; the full volume is read, spacing is converted to meters using the chosen unit, and Channel(s) are published.</p>
+<p>6. Find the new Channel(s) in Dragonfly&#x27;s object tree; the status line lists the published Channel names.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<p>This plugin is a loader with few tunables; the table lists the key controls and their defaults/values.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Voxel spacing unit</td><td>millimeter (mm)</td><td>mm / µm / m / as-is</td><td>Unit of the file&#x27;s voxel spacing; converted to meters on import (no spacing set for as-is)</td></tr><tr><td>Base Python</td><td>(empty)</td><td>any python.exe path</td><td>Base interpreter for building the venv; blank auto-detects Dragonfly/system Python</td></tr><tr><td>Analysis venv python</td><td>(empty)</td><td>python.exe in venv</td><td>Auto-filled by Setup; required by both Preview and Import</td></tr><tr><td>Job root</td><td>C:\ITKImageLoaderJobs</td><td>any writable dir</td><td>Root for thumbnail and per-channel .npy intermediate files</td></tr><tr><td>Output Channel title</td><td>(file name)</td><td>any string</td><td>Title of the published Channel; blank uses the file name</td></tr><tr><td>Thumbnail max side</td><td>512 px</td><td>fixed in code</td><td>Max size of the preview thumbnail (max_size=512 in code)</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>After <strong>Import</strong>, the plugin first reads the full volume into per-channel .npy files inside the venv subprocess, then publishes them as image <strong>Channels</strong> in the Dragonfly process via createChannelFromNumpyArray.</p>
+<ul>
+<li><strong>Single-component image</strong>: 1 Channel, titled with the Output title (or file name).</li>
+<li><strong>Multi-component/RGB image</strong> (components &gt; 1): split into multiple Channels, titled like &lt;title&gt; [C0], &lt;title&gt; [C1], …</li>
+<li><strong>Geometry/spacing</strong>: X/Y/Z spacing is converted to <strong>meters</strong> (the ORS object-model convention) using the chosen unit; as-is sets no spacing. <strong>Origin is fixed to (0,0,0)</strong>.</li>
+<li><strong>Data type</strong>: uint8/uint16/int8/int16/float32 are preserved as-is; other types (e.g. float64, int32) are cast to <strong>float32</strong>.</li>
+<li><strong>Location</strong>: new Channels appear in Dragonfly&#x27;s object tree/data panel; the status line reports how many Channels were imported and their names.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>&quot;Run Setup first, or set the analysis venv python.&quot;</strong>: no venv yet. Click Setup Environment on the Setup tab, or point the field at an existing venv python.</li>
+<li><strong>Setup failed</strong>: usually no internet or a proxy blocking pip from downloading wheels. Confirm connectivity and retry; you can also specify a clean Base Python. All deps are prebuilt wheels — no Java or MSVC needed.</li>
+<li><strong>&quot;Select a valid image file first.&quot;</strong>: no file selected or the path is invalid; re-pick via Browse.</li>
+<li><strong>Preview / Import failed</strong>: the log box prints the exact error. Common causes: unsupported format, corrupt file, or a paired-file format like Analyze .hdr+.img missing one member.</li>
+<li><strong>Scanco </strong>.isq read errors<strong>: the Scanco path uses </strong>itk.ScancoImageIO; it follows the documented API but is still pending full verification against a real .isq sample — check file integrity if it fails.</li>
+<li><strong>Out of memory</strong>: Import loads the whole volume into memory and writes .npy; very large volumes may exhaust RAM. Preview the size first and ensure the Job root drive has free space.</li>
+<li><strong>Menu item missing</strong>: make sure you checked the plugin in the installer dialog and <strong>fully restarted</strong> Dragonfly.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>Mainstream formats</strong> are validated against real NRRD/MetaImage/NIfTI; <strong>Scanco </strong>.isq<strong> uses the documented API and still needs an end-to-end check with a real sample (live-verify pending).</strong></li>
+<li><strong>4D/time data</strong> is read as a single volume; no explicit time-axis handling yet.</li>
+<li><strong>Installing itk-io alone does not register all mainstream ITK IOs</strong>, so mainstream formats always go through SimpleITK and itk is used only for the Scanco extensions.</li>
+<li><strong>Origin is always written as 0</strong>; any non-zero origin stored in the file is not preserved.</li>
+<li><strong>Multi-component images</strong> are split into grayscale Channels, not composited into an RGB display.</li>
+<li><strong>Voxel unit must be chosen manually</strong>: the file&#x27;s physical unit varies by format (often mm); the wrong choice yields wrong spacing conversion.</li>
+<li>SimpleITK and itk / itk-ioscanco are all <strong>Apache-2.0</strong> and run only in the isolated venv/subprocess, never inside Dragonfly&#x27;s own Python.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li><strong>SimpleITK</strong> (Apache-2.0): https://simpleitk.org/ , docs https://simpleitk.readthedocs.io/</li>
+<li><strong>ITK / Insight Toolkit</strong> (Apache-2.0): https://itk.org/</li>
+<li><strong>itk-ioscanco</strong> (ITK remote module for Scanco microCT): https://github.com/KitwareMedical/ITKIOScanco</li>
+<li>In-plugin docs: DragonflyPlugins/ITKImageLoader-Plugin/README.md and DESIGN.md; engine implementation in itkloader_code/itkloader_core.py.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ITKImageLoader-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

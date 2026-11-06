@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cluster Measurements (UMAP/HDBSCAN) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Cluster Measurements (UMAP/HDBSCAN) - User Manual Dragonfly Prototype Apps · Cluster Measurements (UMAP/HDBSCAN)... Version 1.0 · 2026-07-09 English Manual…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Cluster Measurements (UMAP/HDBSCAN)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Cluster Measurements (UMAP/HDBSCAN)...</div>
+    <h1>Cluster Measurements (UMAP/HDBSCAN)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#internet-gpu-disk-and-paths">Internet, GPU, disk and paths</a></li><li class="t3"><a href="#base-python-and-fallback-if-setup-fails">Base Python and fallback if setup fails</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#input-multiroi">Input MultiROI</a></li><li class="t3"><a href="#feature-scalar-slots-tick-which-to-cluster-on">Feature scalar slots (tick which to cluster on)</a></li><li class="t3"><a href="#clustering-parameters">Clustering parameters</a></li><li class="t3"><a href="#environment-clustering-venv">Environment (clustering venv)</a></li><li class="t3"><a href="#action-buttons-and-output-area">Action buttons and output area</a></li><li class="t2"><a href="#6-usage-steps">6. Usage Steps</a></li><li class="t3"><a href="#end-to-end-workflow">End-to-end workflow</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t3"><a href="#how-to-view-the-results">How to view the results</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Cluster Measurements (UMAP/HDBSCAN) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Cluster Measurements (UMAP/HDBSCAN)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Cluster Measurements (UMAP/HDBSCAN)</strong> is a Dragonfly plugin that performs <strong>unsupervised clustering</strong> of a <strong>MultiROI&#x27;s</strong> per-label measurement table. Once you have computed per-label measurements (volume, surface area, sphericity, shape factor, orientation, ...) on the hundreds or thousands of labels in a MultiROI, those measurements live on the MultiROI as <strong>scalar slots</strong>. This plugin reads the slots you tick, treats each label as a feature vector, automatically sorts the labels into a handful of morphologically or compositionally similar <strong>clusters</strong>, writes the result back as a <strong>NEW MultiROI scalar slot</strong>, and saves a <strong>2D scatter PNG</strong>.</p>
+<p>The pipeline is: read the ticked scalar slots into a feature matrix (one row per label) -&gt; optionally <strong>standardize (StandardScaler)</strong> -&gt; embed to <strong>2D</strong> with <strong>UMAP / t-SNE / PCA</strong> -&gt; cluster with <strong>KMeans (fixed number of clusters)</strong> or <strong>HDBSCAN (minimum cluster size)</strong> -&gt; write each label&#x27;s cluster id back as a new scalar slot -&gt; save a 2D scatter colored by cluster. Afterwards, simply color the MultiROI by that new slot in Dragonfly to see the groups.</p>
+<p><strong>Underlying engines and algorithms (all permissively licensed):</strong> dimensionality reduction and clustering use <strong>scikit-learn</strong> (PCA, t-SNE, KMeans, StandardScaler), <strong>umap-learn</strong> (UMAP reduction) and <strong>hdbscan</strong> (HDBSCAN density clustering); numerics rely on <strong>numpy</strong>; the 2D scatter is drawn with <strong>matplotlib</strong> (Agg head-less backend).</p>
+<p>Licensing: the plugin code follows the DragonflyPrototypeLabs repository&#x27;s terms; every compute engine is permissive -- scikit-learn (BSD-3-Clause), umap-learn (BSD-3-Clause), hdbscan (BSD-3-Clause), matplotlib (PSF/BSD-style), numpy (BSD).</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin is aimed at <strong>grouping particles, pores, grains, or cells</strong> in materials and life science: using per-label measurements (volume, surface area, shape factor, sphericity, orientation, ...) it automatically sorts thousands of labels into a few similar groups for <strong>classification, outlier detection and structural characterization</strong>.</p>
+<ul>
+<li><strong>Particle / pore grouping:</strong> sort CT-segmented pores or particles by volume, sphericity, and shape factor into large/small or spherical/plate-like groups for quantitative classification.</li>
+<li><strong>Grain characterization:</strong> group grains by their morphological measurements to spot anomalous grains or distinct grain families.</li>
+<li><strong>Cell grouping:</strong> in life-science imagery, group cells into morphological categories from volume, shape, etc.</li>
+<li><strong>Outlier detection:</strong> with HDBSCAN, labels that belong to no dense group are flagged as <strong>noise (id -1)</strong>, making it easy to pick out anomalous structures.</li>
+<li><strong>Dimensionality-reduction visualization:</strong> even without strict grouping, the 2D scatter lets you see how the high-dimensional measurements distribute in 2D.</li>
+</ul>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>The plugin ships as part of <strong>Prototype Apps</strong> in the <strong>Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the Full Package to a short folder (e.g. C:\PL\), not a deep Downloads path or a OneDrive-redirected Desktop.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (Fresh / Compatible) and tick the Prototype Apps you want.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully restart Dragonfly</strong> (menus are discovered only at startup).</p>
+<p><strong>This plugin is unchecked by default.</strong> In the installer&#x27;s app list, the light menu items are ON but <strong>all plugins are OFF</strong> -- you must tick &quot;Cluster Measurements (UMAP/HDBSCAN)&quot; for it to be installed.</p>
+<p>After restarting, the menu appears at <strong>Prototype Apps ▸ Cluster Measurements (UMAP/HDBSCAN)...</strong> (under the &quot;Measurements &amp; Analysis&quot; section of that menu). Clicking it opens a dockable floating panel.</p>
+<p><strong>Changing your choices later:</strong> the easiest way is inside Dragonfly -- open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>; the &quot;Prototype Apps (Full Package)&quot; list at the bottom has a checkbox per app: tick = deploy this plugin, untick = remove the menu entry. Restart Dragonfly to apply. Disabling <strong>never</strong> deletes a plugin&#x27;s environment, so re-enabling is instant. You can also re-run the installer at any time (your previous choices become the defaults).</p>
+<h2 id="4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</h2>
+<p>The heavy compute (scikit-learn / umap-learn / hdbscan / matplotlib) runs in a <strong>dedicated virtual environment (venv)</strong>, <strong>never</strong> touching Dragonfly&#x27;s own Python. Before first use you must click <strong>Setup Environment</strong> once in the panel.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>When you click <strong>Setup Environment</strong>, the plugin (1) uses Dragonfly&#x27;s <strong>own Python</strong> as the base interpreter (by default) to build a venv inside the installed plugin code directory; (2) pip-installs scikit-learn + umap-learn + hdbscan + numpy + matplotlib from PyPI; (3) records the resulting venv Python path so the panel&#x27;s &quot;Status&quot; line reads &quot;Ready: &lt;path&gt;&quot;. The dependency versions are left unpinned (pip resolves wheels matching the base CPython).</p>
+<h3 id="internet-gpu-disk-and-paths">Internet, GPU, disk and paths</h3>
+<ul>
+<li><strong>Internet needed once:</strong> only while Setup Environment downloads the dependencies from PyPI; running clustering afterwards needs <strong>no</strong> internet.</li>
+<li><strong>No GPU required:</strong> everything is pure CPU (pure wheels on cp310, no CUDA).</li>
+<li><strong>No WSL and no external application are needed.</strong></li>
+<li><strong>Install location:</strong> the venv is built inside the installed plugin code directory, i.e. %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\ClustersPlotter\venv. Reinstalling or updating the plugin code keeps that venv (it is never clobbered).</li>
+<li><strong>Download size:</strong> depends on the wheels for scikit-learn, scipy, numpy, matplotlib, umap-learn and hdbscan (typically on the order of tens to a couple hundred MB); the exact size varies with the base Python&#x27;s wheels, so no precise figure is given here.</li>
+</ul>
+<h3 id="base-python-and-fallback-if-setup-fails">Base Python and fallback if setup fails</h3>
+<p>The panel&#x27;s <strong>Base Python</strong> field overrides the base interpreter used to build the venv. Blank = this Dragonfly&#x27;s own Python; otherwise enter an absolute path (to a CPython 3.10+ python.exe) or a launcher command (e.g. py -3.11). If building the venv with Dragonfly&#x27;s own Python fails (e.g. pip cannot resolve a wheel), point Base Python at another CPython 3.10+ installed on your machine and retry.</p>
+<p>If Setup Environment fails, the panel log prints the full traceback. The usual causes are no internet access to PyPI on the first build, or the chosen base Python having no matching pre-built wheel. Make sure PyPI is reachable, or switch Base Python to another 3.10+ interpreter and retry.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel is a dockable floating window, laid out top to bottom in the following groups. Each control is described below, matching the code exactly:</p>
+<h3 id="input-multiroi">Input MultiROI</h3>
+<ul>
+<li><strong>MultiROI dropdown:</strong> lists the MultiROIs in the current session that carry measurement scalar slots. Each entry reads &quot;title (N labels, M slots)&quot; -- its label count and slot count; a currently selected object is listed first. If none carry measurements, it shows &quot;(no MultiROI with measurements - create one first)&quot;.</li>
+<li><strong>Refresh button:</strong> rescans the session and updates the MultiROI dropdown.</li>
+</ul>
+<h3 id="feature-scalar-slots-tick-which-to-cluster-on">Feature scalar slots (tick which to cluster on)</h3>
+<ul>
+<li><strong>Slot list:</strong> a checkbox list of every scalar slot on the selected MultiROI (showing each measurement&#x27;s description). <strong>All ticked by default.</strong> Tick the measurements you want to use as clustering features.</li>
+<li><strong>Select all / Select none buttons:</strong> tick or untick every slot at once.</li>
+</ul>
+<h3 id="clustering-parameters">Clustering parameters</h3>
+<ul>
+<li><strong>Standardize features (StandardScaler) checkbox:</strong> zero-mean, unit-variance per feature. <strong>Checked (on) by default.</strong> Recommended when slots have different units/scales.</li>
+<li><strong>Reducer dropdown:</strong> <strong>UMAP / t-SNE / PCA</strong>, default <strong>UMAP</strong>. The 2D embedding used both for the scatter and as the space clustering runs in.</li>
+<li><strong>Clusterer dropdown:</strong> <strong>KMeans / HDBSCAN</strong>, default <strong>KMeans</strong>.</li>
+<li><strong>KMeans n_clusters spinbox:</strong> target number of KMeans clusters, range 1-50, default <strong>3</strong>. Editable only when Clusterer is KMeans.</li>
+<li><strong>HDBSCAN min_cluster_size spinbox:</strong> the smallest group of labels that counts as a cluster, range 2-1000, default <strong>5</strong>; smaller groups become noise (-1). Editable only when Clusterer is HDBSCAN.</li>
+</ul>
+<p>Switching the Clusterer dropdown automatically enables/disables the matching spinbox: with KMeans only n_clusters is editable, with HDBSCAN only min_cluster_size is editable.</p>
+<h3 id="environment-clustering-venv">Environment (clustering venv)</h3>
+<ul>
+<li><strong>Base Python field:</strong> overrides the base interpreter for the venv (blank = this Dragonfly&#x27;s Python; or a path / py -3.11).</li>
+<li><strong>Status label:</strong> shows whether the environment is ready -- &quot;Ready: &lt;venv python path&gt;&quot; when set up, otherwise a prompt to click Setup Environment first.</li>
+</ul>
+<h3 id="action-buttons-and-output-area">Action buttons and output area</h3>
+<ul>
+<li><strong>Setup Environment button:</strong> builds the venv and installs dependencies (one time).</li>
+<li><strong>Cluster Measurements button:</strong> runs clustering with the current MultiROI, ticked slots and parameters.</li>
+<li><strong>Summary label:</strong> after a run, shows a one-line summary (sample count, feature count, the reducer/clusterer actually used, number of clusters, number of noise labels).</li>
+<li><strong>Log text box (read-only):</strong> shows progress and results, including the new scalar-slot index written back and the saved scatter PNG path.</li>
+</ul>
+<h2 id="6-usage-steps">6. Usage Steps</h2>
+<p><strong>Input requirement:</strong> a MultiROI that already has per-label measurements -- that is, at least one scalar slot. If the MultiROI has no measurement slots, the plugin reports &quot;This MultiROI has no scalar (measurement) slots. Compute per-label measurements first.&quot;, so compute per-label measurements on it in Dragonfly beforehand.</p>
+<h3 id="end-to-end-workflow">End-to-end workflow</h3>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Cluster Measurements (UMAP/HDBSCAN)...</strong>.</p>
+<p><strong>2. </strong><strong>(First time)</strong> if Status shows not ready, click <strong>Setup Environment</strong> and wait for the log to read &quot;Environment ready: ...&quot;.</p>
+<p><strong>3. </strong>Pick the target MultiROI in the <strong>MultiROI</strong> dropdown (click <strong>Refresh</strong> if it is not listed, and make sure it has measurement slots).</p>
+<p><strong>4. </strong>In <strong>Feature scalar slots</strong>, tick the measurements to cluster on (use Select all / Select none to toggle quickly).</p>
+<p><strong>5. </strong>Set parameters as needed: <strong>Standardize</strong> (on by default), <strong>Reducer</strong> (UMAP by default), <strong>Clusterer</strong> (KMeans by default); set <strong>n_clusters</strong> (default 3) for KMeans or <strong>min_cluster_size</strong> (default 5) for HDBSCAN.</p>
+<p><strong>6. </strong>Click <strong>Cluster Measurements</strong> to start; watch progress in the log.</p>
+<p><strong>7. </strong><strong>What you get:</strong> on completion, the plugin writes each label&#x27;s cluster id back as a <strong>NEW MultiROI scalar slot</strong> (described as &quot;Cluster id&quot;); the log reports the new slot index and the scatter PNG path, and the summary label reports sample/feature/cluster statistics.</p>
+<p><strong>8. </strong>Back in Dragonfly, color the MultiROI by this new &quot;Cluster id&quot; slot to see the groups; open the saved scatter PNG to view the 2D distribution.</p>
+<p>When there are too few samples (labels) or an optional library is unavailable, the plugin <strong>falls back automatically</strong>: UMAP / t-SNE fall back to PCA, and HDBSCAN falls back to KMeans. The summary&#x27;s &quot;reducer_used / clusterer_used&quot; faithfully reflect what was <strong>actually used</strong>, which may differ from what you chose.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>MultiROI</td><td>first available in session</td><td>The input multi-label ROI; must carry measurement scalar slots (per-label measurements).</td></tr><tr><td>Feature scalar slots</td><td>all ticked</td><td>Which scalar slots to use as clustering features; each ticked slot is one column of the feature matrix. Tick at least one.</td></tr><tr><td>Standardize features</td><td>on (checked)</td><td>Zero-mean, unit-variance per feature (StandardScaler); recommended when slots have different units/scales.</td></tr><tr><td>Reducer</td><td>UMAP</td><td>The 2D embedding method: UMAP / t-SNE / PCA. Falls back to PCA when samples are too few or the library is unavailable.</td></tr><tr><td>Clusterer</td><td>KMeans</td><td>Clustering algorithm: KMeans (fixed count) or HDBSCAN (density, can produce noise). Falls back to KMeans when HDBSCAN is unavailable.</td></tr><tr><td>KMeans n_clusters</td><td>3</td><td>Target number of KMeans clusters, range 1-50. Applies only to KMeans; the effective count is capped at the sample count.</td></tr><tr><td>HDBSCAN min_cluster_size</td><td>5</td><td>Smallest group of labels that counts as a cluster, range 2-1000; smaller groups are labelled noise (-1). Applies only to HDBSCAN.</td></tr><tr><td>Base Python</td><td>blank (= Dragonfly&#x27;s own Python)</td><td>Base interpreter for building the compute venv; can be an absolute path or a launcher command like py -3.11.</td></tr></table></div>
+<p><strong>Additional notes:</strong> t-SNE requires at least 5 samples to run (otherwise it falls back to PCA), and its perplexity is chosen automatically from the sample count; UMAP&#x27;s n_neighbors is also chosen automatically (capped at 15). NaN / inf values in the feature matrix are cleaned to 0 before computing. These are internal adaptive behaviors that need no manual tuning.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful clustering run produces the following:</p>
+<ul>
+<li><strong>New MultiROI scalar slot &quot;Cluster id&quot;:</strong> each label (1..N; background label 0 is excluded) gets an integer cluster id (&gt;=0 for a cluster; -1 for noise, only possible with HDBSCAN). The new slot is appended after the MultiROI&#x27;s existing scalar slots. After writing, the plugin sets the slot&#x27;s window/range and publishes it, so the new slot appears in Dragonfly immediately.</li>
+<li><strong>2D scatter PNG:</strong> a 2D scatter colored by cluster (drawn with matplotlib), with noise points shown as grey &quot;x&quot; markers and each cluster in a distinct color; a legend is included when there are at most 12 clusters. The file is saved in a temporary job directory and its full path is printed to the log.</li>
+<li><strong>Summary:</strong> a one-line text summary with the sample count, feature count, the reducer actually used, the clusterer actually used, and the number of clusters and noise labels.</li>
+</ul>
+<h3 id="how-to-view-the-results">How to view the results</h3>
+<p><strong>1. </strong>Select the MultiROI in Dragonfly and switch its <strong>coloring scalar slot</strong> to the newly written &quot;Cluster id&quot; slot -- the different groups are then colored by value and can be distinguished in the 2D/3D views.</p>
+<p><strong>2. </strong>Open the scatter PNG at the path shown in the log to see how well-separated the groups are in 2D.</p>
+<p><strong>3. </strong>Read the summary line to judge whether the clustering is reasonable (e.g. whether the cluster count matches expectations, whether there is too much noise), and re-run with adjusted parameters if needed.</p>
+<p>The cluster id itself has no physical &quot;size/quality&quot; meaning -- it is only a group label. To interpret what each group represents (morphology or composition), analyze each group&#x27;s original measurements (volume, sphericity, etc.).</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: The MultiROI dropdown is empty / shows &quot;no MultiROI with measurements&quot;.</strong></p>
+<p>A: The session has no MultiROI with measurement scalar slots. Compute per-label measurements on your MultiROI in Dragonfly first (to create scalar slots), then click <strong>Refresh</strong> in the panel.</p>
+<p><strong>Q: Cluster Measurements errors with &quot;This MultiROI has no scalar (measurement) slots&quot;.</strong></p>
+<p>A: The selected MultiROI carries no measurement scalar slots. This plugin clusters existing measurements; it does not compute volume/sphericity itself -- compute per-label measurements in Dragonfly first.</p>
+<p><strong>Q: It says the environment is not set up.</strong></p>
+<p>A: First use requires <strong>Setup Environment</strong> (internet needed once). If you already ran it but it still reports not ready, check the log for the error; you can set <strong>Base Python</strong> to another 3.10+ Python and retry.</p>
+<p><strong>Q: I chose UMAP / HDBSCAN, but the summary shows reducer_used / clusterer_used as PCA / KMeans?</strong></p>
+<p>A: That is the expected <strong>automatic fallback</strong>. When there are too few samples (labels), or umap-learn / hdbscan is unavailable in the environment, UMAP/t-SNE fall back to PCA and HDBSCAN falls back to KMeans. If you truly need UMAP/HDBSCAN, make sure Setup Environment installed those libraries and that there are enough labels.</p>
+<p><strong>Q: HDBSCAN labels most of the labels as noise (-1).</strong></p>
+<p>A: The data has no sufficiently dense groups, or <strong>min_cluster_size</strong> is set too large. Lower min_cluster_size, or switch to KMeans with a fixed cluster count; you can also try toggling standardization or changing the reducer.</p>
+<p><strong>Q: Setup Environment fails to download the dependencies.</strong></p>
+<p>A: Usually PyPI is unreachable (network/proxy) or the chosen base Python has no matching wheel. Make sure PyPI is reachable, or set Base Python to another CPython 3.10+ interpreter and retry.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Clusters existing measurements only:</strong> the plugin does not compute the measurements; the input MultiROI must already carry per-label measurement scalar slots.</li>
+<li><strong>Background excluded:</strong> label 0 (background) does not participate; cluster ids are written back for labels 1..N in order.</li>
+<li><strong>Result written as a new slot:</strong> each run <strong>appends</strong> a new &quot;Cluster id&quot; scalar slot and never overwrites existing measurements; repeated runs accumulate multiple new slots.</li>
+<li><strong>Automatic fallback cannot be disabled:</strong> with too few samples or a missing library it silently falls back to PCA/KMeans, so trust the summary&#x27;s reducer_used / clusterer_used.</li>
+<li><strong>2D embedding:</strong> reduction is fixed to 2D (for plotting and clustering); no higher-dimensional embedding option is offered.</li>
+<li><strong>Internet needed once:</strong> only during Setup Environment; afterwards it runs offline. No GPU, no WSL, no external application required.</li>
+<li><strong>Randomness:</strong> a fixed random seed is used for reproducibility, but methods like t-SNE / UMAP are sensitive to parameters and sample size, so results can vary across datasets.</li>
+<li><strong>Menu discovery:</strong> after enabling/disabling or installing, Dragonfly must be fully restarted before the menu appears or disappears.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>scikit-learn (PCA / t-SNE / KMeans / StandardScaler): https://scikit-learn.org</li>
+<li>UMAP (umap-learn): https://umap-learn.readthedocs.io</li>
+<li>HDBSCAN (hdbscan): https://hdbscan.readthedocs.io</li>
+<li>matplotlib: https://matplotlib.org</li>
+<li>NumPy: https://numpy.org</li>
+<li>General install/enable guidance: see the overview UserManual_用户手册.docx in the Full Package root, and Developer ▸ Prototype Labs... ▸ Menu Item Manager.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ClustersPlotter-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

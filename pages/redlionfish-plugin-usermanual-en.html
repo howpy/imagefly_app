@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Richardson-Lucy Deconvolution (RedLionfish) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Richardson-Lucy Deconvolution (RedLionfish) - User Manual Dragonfly Prototype Apps · Richardson-Lucy Deconvolution (RedLionfish)... Version 1.0 · 2026-07-0…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Richardson-Lucy Deconvolution (RedLionfish)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Richardson-Lucy Deconvolution (RedLionfish)...</div>
+    <h1>Richardson-Lucy Deconvolution (RedLionfish)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#engine-and-algorithm">Engine and algorithm</a></li><li class="t3"><a href="#licensing">Licensing</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t3"><a href="#changing-your-choice-later">Changing your choice later</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-internet-gpu">Download size / internet / GPU</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#fallback-when-setup-fails">Fallback when setup fails</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t2"><a href="#5-1-input-volume-3d-image">5.1 Input volume (3D image)</a></li><li class="t2"><a href="#5-2-point-spread-function-psf">5.2 Point-spread function (PSF)</a></li><li class="t2"><a href="#5-3-deconvolution-parameters">5.3 Deconvolution parameters</a></li><li class="t2"><a href="#5-4-environment-redlionfish-venv">5.4 Environment (RedLionfish venv)</a></li><li class="t2"><a href="#5-5-action-buttons-and-log">5.5 Action buttons and log</a></li><li class="t2"><a href="#6-usage-steps">6. Usage Steps</a></li><li class="t2"><a href="#6-1-using-a-synthetic-gaussian-psf-no-measured-psf">6.1 Using a synthetic Gaussian PSF (no measured PSF)</a></li><li class="t2"><a href="#6-2-using-an-existing-psf-channel">6.2 Using an existing PSF Channel</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Richardson-Lucy Deconvolution (RedLionfish) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Richardson-Lucy Deconvolution (RedLionfish)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Richardson-Lucy Deconvolution (RedLionfish)</strong> is a Dragonfly plugin that performs <strong>3D Richardson-Lucy deconvolution</strong> to remove point-spread-function (PSF) blur and restore image sharpness. It runs as a <strong>dockable panel</strong> inside the Dragonfly window.</p>
+<p>Workflow: pick an image <strong>Channel</strong> as input, specify a point-spread function (PSF) - either an existing <strong>PSF Channel</strong> or a <strong>synthetic Gaussian</strong> generated from per-axis (x/y/z) sigmas; set the iteration count (default 10), choose GPU or CPU, and click <strong>Deconvolve</strong>. The plugin runs RedLionfish&#x27;s doRLDeconvolutionFromNpArrays and publishes the result as a new Channel aligned with the source grid.</p>
+<h3 id="engine-and-algorithm">Engine and algorithm</h3>
+<ul>
+<li><strong>Algorithm: Richardson-Lucy iterative deconvolution.</strong> Given a known PSF, it iteratively recovers the un-blurred signal, improving sharpness and effective resolution.</li>
+<li><strong>Compute engine: RedLionfish (Apache-2.0 license).</strong> It provides a GPU path (via Reikna / PyOpenCL) and a CPU path (scipy fallback); if the GPU path fails or no device is present, it falls back to CPU automatically.</li>
+<li><strong>Array interface: numpy (BSD license)</strong>, used to move volume data between the plugin and the compute environment.</li>
+</ul>
+<h3 id="licensing">Licensing</h3>
+<p>The RedLionfish engine is <strong>Apache-2.0</strong> (permissive); numpy is <strong>BSD</strong>. The plugin code follows the terms of the Dragonfly Prototype Labs repository.</p>
+<p>This plugin supports <strong>3D data only</strong>, and deconvolution <strong>requires a PSF</strong> (either a PSF Channel or a synthetic Gaussian PSF).</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin deblurs 3D images blurred by an optical PSF, and also helps any workflow (e.g. industrial CT) where PSF deconvolution improves resolution.</p>
+<ul>
+<li><strong>Confocal / widefield fluorescence microscopy</strong>: remove axial and lateral blur caused by the point-spread function.</li>
+<li><strong>Light-sheet microscopy</strong>: recover structures stretched by the PSF in a volumetric acquisition.</li>
+<li><strong>Industrial / lab CT</strong>: deconvolve reconstructed volumes blurred by system point spread to make fine detail more visible.</li>
+<li><strong>Any volume with a known PSF</strong>: as long as you can supply a measured/simulated PSF Channel, or describe the PSF with Gaussian sigmas, you can attempt deconvolution.</li>
+</ul>
+<p>Deconvolution is a sharpening operation: more iterations mean a sharper result but also amplified detector noise. Try a moderate iteration count on a representative region first.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships as part of the <strong>Prototype Apps</strong> collection and is installed via the Full Package installer.</p>
+<p><strong>1. </strong>Unzip the Full Package anywhere (a <strong>short path</strong> such as C:\PL\ is recommended to avoid the Windows 260-character path limit).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (Fresh / Compatible) and <strong>tick Richardson-Lucy Deconvolution (RedLionfish)</strong> in the Prototype Apps list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are discovered only at startup).</p>
+<p>By default <strong>all plugins are unchecked</strong> (only the light menu items are on), so you must <strong>tick this plugin</strong> for it to be deployed.</p>
+<p>After the restart, the entry appears under <strong>Prototype Apps ▸ Richardson-Lucy Deconvolution (RedLionfish)...</strong> (in the Filtering &amp; Restoration section). Click it to open the dockable panel.</p>
+<h3 id="changing-your-choice-later">Changing your choice later</h3>
+<p>The easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and use the checkbox for this plugin in the &quot;Prototype Apps (Full Package)&quot; list (ticked = deploy, unticked = remove the menu entry). Restart Dragonfly to apply. Disabling <strong>never</strong> deletes a plugin&#x27;s environment, so re-enabling is instant.</p>
+<p>You may delete the unzipped folder after installing - everything needed later is kept under %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage. To uninstall, double-click <strong>`Uninstall_FullPackage.bat`</strong>; it removes the menu items and plugins but keeps each plugin&#x27;s built environment (venv).</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and First-Run Setup</h2>
+<p>The heavy compute runs in a dedicated Python virtual environment (venv) as a subprocess, isolated from Dragonfly&#x27;s own Python. <strong>You must build this environment once before first use.</strong></p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p><strong>1. </strong>Click the <strong>Setup Environment</strong> button in the panel.</p>
+<p><strong>2. </strong>The plugin creates a venv inside the plugin&#x27;s code directory, using the <strong>default base Python (this Dragonfly&#x27;s own Python)</strong>.</p>
+<p><strong>3. </strong>It upgrades pip / setuptools / wheel in that venv, then pip-installs <strong>RedLionfish</strong> and <strong>numpy</strong> from the official PyPI index.</p>
+<p><strong>4. </strong>It runs an import self-check (confirming numpy and RedLionfish.doRLDeconvolutionFromNpArrays are usable) and records the venv python path in the config.</p>
+<p>When ready, the panel&#x27;s <strong>Status</strong> line shows Ready: &lt;venv python path&gt;; otherwise it shows a &quot;Not set up - click &#x27;Setup Environment&#x27;&quot; hint. The environment is built once and reused thereafter.</p>
+<h3 id="download-size-internet-gpu">Download size / internet / GPU</h3>
+<ul>
+<li><strong>Internet is needed once</strong>: Setup Environment downloads RedLionfish, numpy and their dependencies from PyPI.</li>
+<li><strong>GPU is an optional accelerator</strong>: GPU deconvolution needs a working <strong>OpenCL / PyOpenCL + Reikna</strong> stack; without it the run <strong>falls back to CPU automatically</strong>, with no user action.</li>
+<li><strong>No WSL or external application is required.</strong></li>
+<li><strong>Nothing is installed into Dragonfly&#x27;s own Python</strong>; all dependencies live in the plugin&#x27;s venv.</li>
+</ul>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<p>The venv is created inside the installed code directory, typically %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\RedLionfish\venv. Reinstalling the plugin code never clobbers an existing venv.</p>
+<h3 id="fallback-when-setup-fails">Fallback when setup fails</h3>
+<p>The panel has a <strong>Base Python</strong> field: blank means &quot;use this Dragonfly&#x27;s python&quot;. If Dragonfly&#x27;s Python cannot build a venv (e.g. no venv module), enter the path of another <strong>CPython 3.10 or newer</strong> interpreter (such as C:\Python312\python.exe) or a launch command (such as py -3.11), then click Setup Environment again.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel is divided top-to-bottom into five areas: input volume, PSF, deconvolution parameters, environment, and the action buttons plus log.</p>
+<h2 id="5-1-input-volume-3d-image">5.1 Input volume (3D image)</h2>
+<ul>
+<li><strong>Channel dropdown</strong>: pick the 3D image Channel used as input; each entry shows the Channel name and its size (e.g. name  (z x y x x)).</li>
+<li><strong>Refresh button</strong>: re-reads the list of available Channels from the Dragonfly scene. If there are no Channels, it shows &quot;(no channels - load a volume in Dragonfly)&quot;.</li>
+</ul>
+<h2 id="5-2-point-spread-function-psf">5.2 Point-spread function (PSF)</h2>
+<ul>
+<li><strong>Radio: Use a PSF Channel</strong> - when selected, the <strong>PSF Channel dropdown</strong> below becomes active so you can pick an existing (measured/simulated) PSF Channel from the scene.</li>
+<li><strong>Radio: Synthetic Gaussian PSF (selected by default)</strong> - builds a synthetic Gaussian PSF from the x/y/z sigmas below.</li>
+<li><strong>Gaussian sigma (voxels)</strong>: three numeric fields x / y / z, in voxels, <strong>each defaulting to 2.0</strong>, range 0.0-50.0, step 0.5. A sigma of 0 collapses that axis to a single voxel (delta).</li>
+</ul>
+<p>When &quot;Use a PSF Channel&quot; is selected the three sigma fields are greyed out; when &quot;Synthetic Gaussian PSF&quot; is selected the PSF Channel dropdown is greyed out. The two are mutually exclusive.</p>
+<h2 id="5-3-deconvolution-parameters">5.3 Deconvolution parameters</h2>
+<ul>
+<li><strong>Iterations</strong>: an integer spinbox, <strong>default 10</strong>, range 1-1000. More iterations = sharper but noisier.</li>
+<li><strong>Method</strong>: two radios <strong>GPU (OpenCL)</strong> (default) and <strong>CPU</strong>. GPU uses Reikna / PyOpenCL and falls back to CPU if no compatible device is found.</li>
+</ul>
+<h2 id="5-4-environment-redlionfish-venv">5.4 Environment (RedLionfish venv)</h2>
+<ul>
+<li><strong>Base Python</strong>: a text field; blank = use this Dragonfly&#x27;s python; you can also enter an interpreter path or a launch command (such as py -3.11).</li>
+<li><strong>Status</strong>: shows whether the venv is ready.</li>
+</ul>
+<h2 id="5-5-action-buttons-and-log">5.5 Action buttons and log</h2>
+<ul>
+<li><strong>Setup Environment button</strong>: builds/reuses the venv and installs RedLionfish + numpy (see Chapter 4).</li>
+<li><strong>Deconvolve button</strong>: starts the Richardson-Lucy deconvolution.</li>
+<li><strong>Summary line</strong>: after completion, shows output shape, iterations, the method actually used (GPU/CPU), and the output value range and mean.</li>
+<li><strong>Log area</strong>: a read-only text box that prints progress and messages in real time.</li>
+</ul>
+<h2 id="6-usage-steps">6. Usage Steps</h2>
+<p>Below are the end-to-end workflows. Prerequisites: a 3D image Channel is loaded in Dragonfly, and (on first use) Setup Environment has been completed.</p>
+<h2 id="6-1-using-a-synthetic-gaussian-psf-no-measured-psf">6.1 Using a synthetic Gaussian PSF (no measured PSF)</h2>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Richardson-Lucy Deconvolution (RedLionfish)...</strong>.</p>
+<p><strong>2. </strong>If Status shows not ready, click <strong>Setup Environment</strong> and wait for it to finish.</p>
+<p><strong>3. </strong>In <strong>Input volume</strong>, pick the 3D image to deconvolve from the Channel dropdown (click Refresh if needed).</p>
+<p><strong>4. </strong>In <strong>PSF</strong>, keep <strong>Synthetic Gaussian PSF</strong> and set the x / y / z sigmas (voxels) according to how blurred each axis is.</p>
+<p><strong>5. </strong>In <strong>Deconvolution parameters</strong>, set Iterations (default 10) and choose Method (GPU / CPU).</p>
+<p><strong>6. </strong>Click <strong>Deconvolve</strong> and watch progress in the log.</p>
+<p><strong>7. </strong>When done, the new Channel &lt;name&gt; - RL deconvolved appears directly in the scene (no restart needed).</p>
+<h2 id="6-2-using-an-existing-psf-channel">6.2 Using an existing PSF Channel</h2>
+<p><strong>1. </strong>First load or generate a PSF Channel in Dragonfly (a 3D Channel like the input volume).</p>
+<p><strong>2. </strong>In the panel, click Refresh so both the Channel and PSF dropdowns list it.</p>
+<p><strong>3. </strong>In <strong>PSF</strong>, select <strong>Use a PSF Channel</strong> and choose that PSF in the PSF Channel dropdown.</p>
+<p><strong>4. </strong>Set Iterations and Method, then click <strong>Deconvolve</strong>.</p>
+<p><strong>5. </strong>When done, you again get a &lt;name&gt; - RL deconvolved Channel.</p>
+<p>If &quot;Use a PSF Channel&quot; is selected but no PSF Channel is chosen, or no input Channel is selected, the log reports an error and stops.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Channel</td><td>(none)</td><td>The input 3D image Channel; required.</td></tr><tr><td>PSF source</td><td>Synthetic Gaussian PSF</td><td>One of: Use a PSF Channel (an existing PSF Channel) or Synthetic Gaussian PSF (default).</td></tr><tr><td>PSF Channel</td><td>(none)</td><td>Active only when &quot;Use a PSF Channel&quot; is selected; the Channel used as the PSF.</td></tr><tr><td>Gaussian sigma x / y / z (voxels)</td><td>2.0 / 2.0 / 2.0</td><td>Active only for &quot;Synthetic Gaussian PSF&quot;; per-axis Gaussian sigma, range 0.0-50.0, step 0.5.</td></tr><tr><td>Iterations</td><td>10</td><td>Number of Richardson-Lucy iterations, range 1-1000; larger = sharper but noisier.</td></tr><tr><td>Method</td><td>GPU (OpenCL)</td><td>GPU (OpenCL/Reikna) or CPU; GPU falls back to CPU automatically if no device is available.</td></tr><tr><td>Base Python</td><td>(blank)</td><td>Blank = this Dragonfly&#x27;s python; or a CPython 3.10+ path / launch command (used only to build the environment).</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>When deconvolution finishes, the plugin publishes <strong>one new Channel</strong> to the Dragonfly scene:</p>
+<ul>
+<li><strong>`&lt;source Channel name&gt; - RL deconvolved`</strong>: the deblurred (deconvolved) volume.</li>
+</ul>
+<p>The new Channel is aligned with the source image grid - it inherits the same voxel spacing and origin - so it can be inspected side-by-side with the original in the same view.</p>
+<p>The output Channel appears immediately in Dragonfly&#x27;s object list (no restart). You can treat it like any Channel: display it in 2D/3D views, adjust window/color mapping, segment or measure it further, and export/save it.</p>
+<p>Note: the deconvolved image is floating-point and its intensity range differs from the original. The panel summary line reports the output value range and mean so you can confirm the result.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: The plugin does not appear in the menu.</strong></p>
+<p>A: Make sure you <strong>ticked</strong> this plugin during install (all plugins are off by default), and that you <strong>quit and restarted Dragonfly</strong> afterward (menus are only scanned at startup). You can also confirm it is enabled in Developer ▸ Prototype Labs... ▸ Menu Item Manager.</p>
+<p><strong>Q: Clicking Deconvolve says the environment is not set up.</strong></p>
+<p>A: Click <strong>Setup Environment</strong> first to build the venv. If Dragonfly&#x27;s own python cannot create a venv, enter a CPython 3.10+ path in Base Python and retry. Setup needs internet the first time.</p>
+<p><strong>Q: GPU is not used / the log says it fell back to CPU.</strong></p>
+<p>A: GPU deconvolution needs a working OpenCL / PyOpenCL + Reikna stack and a compatible device. When it is not available the plugin automatically uses the CPU path (same result, just slower); the summary&#x27;s &quot;method used&quot; shows what actually ran.</p>
+<p><strong>Q: I get an out-of-memory error.</strong></p>
+<p>A: Try a <strong>smaller ROI or downsample the volume</strong> before deconvolving. 3D deconvolution on a large volume is memory-heavy.</p>
+<p><strong>Q: It says 3D data / PSF is required.</strong></p>
+<p>A: The plugin supports 3D data only, and the PSF must be 3D (z, y, x). Ensure both the input Channel and any PSF Channel are 3D.</p>
+<p><strong>Q: The result is too noisy or shows obvious artifacts.</strong></p>
+<p>A: Reduce the iteration count, or use a PSF that better matches your imaging (a measured PSF Channel, or more accurate Gaussian sigmas).</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>3D data only</strong>, and deconvolution always requires a PSF.</li>
+<li><strong>First-time environment setup needs internet</strong> (installs RedLionfish + numpy from PyPI).</li>
+<li><strong>GPU is an optional accelerator</strong>: it needs OpenCL / PyOpenCL + Reikna; otherwise the CPU path is used.</li>
+<li>Deconvolution <strong>amplifies noise</strong>; balance the iteration count against your data.</li>
+<li>PSF accuracy directly affects result quality; prefer a measured PSF over a synthetic Gaussian when available.</li>
+<li>Large volumes are memory-heavy; downsample or use a ROI when necessary.</li>
+<li>The environment is isolated from Dragonfly&#x27;s own Python and does not affect Dragonfly itself.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>RedLionfish (upstream project, Apache-2.0): https://github.com/rosalindfranklininstitute/RedLionfish</li>
+<li>numpy (BSD): https://numpy.org</li>
+<li>Prototype Apps install / enable overview: the top-level UserManual_用户手册.docx in the Full Package root (covers both Prototype Labs and all Prototype Apps).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>RedLionfish-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

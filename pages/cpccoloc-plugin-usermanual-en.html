@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Colocalization (CPC) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Object Colocalization (CPC) - User Manual Dragonfly Prototype Apps · Object Colocalization (Spatial Relationship)... Version 1.0 · 2026-07-31 English Manua…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Object Colocalization (CPC)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Object Colocalization (Spatial Relationship)...</div>
+    <h1>Object Colocalization (CPC)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-31</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-typical-scenarios">2. Typical scenarios</a></li><li class="t2"><a href="#3-requirements">3. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Object Colocalization (CPC) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Object Colocalization (Spatial Relationship)...</p>
+<p>Version 1.0 · 2026-07-31</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>What it does: object-based colocalization between 2-5 PUBLISHED label channels (MultiROI/ROI). An object counts as colocalized when its CENTROID falls inside an object of another channel. Every pair is scored BOTH ways (A-in-B and B-in-A are different questions), and each object of the reference channel gets its multi-target COMBINATION PATTERN (which channels it colocalizes with at once). Centroids can optionally be intensity-weighted (centre of mass). Results export to CSV/JSON plus a bar chart, and the reference objects can be published as a new MultiROI coloured colocalized / not.
+
+Ports the rule of CPC (BSD-3-Clause, https://github.com/Jay2owe/CPC). The BSD-3 notice ships in THIRD_PARTY_NOTICES.txt at the package root.
+
+ADDED beyond CPC and labelled as such: an expected-by-chance baseline. A raw coincidence percentage cannot separate association from crowding - if the target fills 40% of the volume, about 40% of centroids land in it either way - so the same centroids are re-scored against randomised copies of the target (circular shift, preserving object sizes and shapes, randomising only position), giving an ENRICHMENT ratio and a permutation p-value. CPC reports no such control.</p>
+<h2 id="2-typical-scenarios">2. Typical scenarios</h2>
+<p>Typical scenarios: synapses and mitochondria, virus particles and host organelles, precipitates and grain boundaries - anything that asks whether these objects sit inside those objects. Always tick the chance baseline: an 80% coincidence rate means nothing if the randomised baseline is 78%.</p>
+<h2 id="3-requirements">3. Requirements</h2>
+<p>Requirements: no GPU, no internet, no admin rights; runs in-process on Dragonfly&#x27;s bundled numpy. All channels must come from the SAME image grid (identical shape). Note that a binary ROI counts as ONE object, which is rarely what an object count should mean - prefer a labelled MultiROI.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CPCColoc-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

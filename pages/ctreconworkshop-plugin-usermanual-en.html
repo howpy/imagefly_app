@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learning about CT Reconstruction (Hands-on Workshop) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Learning about CT Reconstruction (Hands-on Workshop) - User Manual Dragonfly Prototype Apps · Learning about CT Reconstruction... Version 1.0 · 2026-07-26 …">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Learning about CT Reconstruction (Hands-on Workshop)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Learning about CT Reconstruction...</div>
+    <h1>Learning about CT Reconstruction (Hands-on Workshop)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-the-three-tabs">2. The three tabs</a></li><li class="t2"><a href="#3-the-principles-it-teaches">3. The principles it teaches</a></li><li class="t2"><a href="#4-the-most-vivid-lesson">4. The most vivid lesson</a></li><li class="t2"><a href="#5-how-to-use">5. How to use</a></li><li class="t2"><a href="#6-requirements">6. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Learning about CT Reconstruction (Hands-on Workshop) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Learning about CT Reconstruction...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Learning about CT Reconstruction</strong> is a hands-on project that explains, as intuitively as possible, <strong>how CT (computed tomography) works</strong> and <strong>how image reconstruction works</strong>: why rotating around an object and taking many X-ray images lets you compute its internal 3D structure.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. The completion certificate is also unofficial — for personal record only.</p>
+<h2 id="2-the-three-tabs">2. The three tabs</h2>
+<p>1. <strong>Object / phantom</strong> — the thing we &#x27;scan&#x27; is an <strong>attenuation map</strong>. Create a synthetic phantom (rods/spheres/rings multi-material phantoms), load and voxelise a STEP/STL/OBJ/PLY mesh, open the &#x27;Create Synthetic CAD Models (STEP)&#x27; plugin to design your own, or use an existing Channel.</p>
+<p>2. <strong>Forward projection (acquisition)</strong> — set the CT parameters (number of projections / angular range / noise), run the Radon transform (line integrals along the rays) to produce projection images (a sinogram) and publish them. This is the raw data a real CT records.</p>
+<p>3. <strong>Reconstruction</strong> — recover the cross-sections: filtered back-projection (FBP, filters ramp / shepp-logan / cosine / hamming / hann / none) or iterative SART, compared to the ground-truth object via RMSE.</p>
+<h2 id="3-the-principles-it-teaches">3. The principles it teaches</h2>
+<ul>
+<li><strong>Imaging</strong>: X-ray attenuation and the Beer–Lambert law; a projection records a line integral along each ray.</li>
+<li><strong>Acquisition</strong>: the sinogram (Radon transform), parallel/fan/cone geometry, and the effect of the number of angles and the angular range.</li>
+<li><strong>Reconstruction</strong>: why back-projection must be filtered, the sharpness/noise trade-off of the FBP filters, the pros/cons of iterative SART, and common artifacts (undersampling streaks, limited angle, beam hardening).</li>
+</ul>
+<h2 id="4-the-most-vivid-lesson">4. The most vivid lesson</h2>
+<p>On the &#x27;Forward projection&#x27; tab, set a small number of projections and reconstruct — you see clear radial <strong>undersampling streaks</strong>; raise the number and they vanish. Set the filter to <strong>none</strong> (plain back-projection) and it is very blurry; switch back to <strong>ramp</strong> and it is instantly sharp. These two comparisons answer, viscerally, &#x27;why CT takes so many images&#x27; and &#x27;why you must filter&#x27;.</p>
+<h2 id="5-how-to-use">5. How to use</h2>
+<p>1. On &#x27;Object / phantom&#x27; click &#x27;Create synthetic phantom&#x27; (or voxelise a CAD mesh / pick a Channel).</p>
+<p>2. On &#x27;Forward projection&#x27; set the number of projections and range (180° suffices for parallel beam), click &#x27;Generate projections&#x27;, and publish the projections + sinogram.</p>
+<p>3. On &#x27;Reconstruction&#x27; choose the method (FBP / SART) and filter, click &#x27;Reconstruct&#x27;, and read the volume + RMSE.</p>
+<p>4. Try few vs many angles, and ramp vs none, to watch the quality and RMSE change.</p>
+<p>5. Finish on the &#x27;Certificate&#x27; tab by entering your name to generate a completion certificate.</p>
+<h2 id="6-requirements">6. Requirements</h2>
+<p>No install, no internet, no GPU, no venv. The core actions run in-process on Dragonfly&#x27;s own numpy/scikit-image/trimesh (parallel-beam geometry, slice-by-slice Radon transform). <strong>Loading STEP needs Dragonfly 2027.1+</strong> (STL/OBJ/PLY work on all versions).</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CTReconWorkshop-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

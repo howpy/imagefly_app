@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Work Log (Generate Work Log) · Dragonfly Prototype Apps</title>
+<meta name="description" content="AI Work Log (Generate Work Log) - User Manual Dragonfly Prototype Apps · Generate Work Log (AI)... Version 1.0 · 2026-07-26 English Manual Contents 1. Intr…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">AI Work Log (Generate Work Log)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Generate Work Log (AI)...</div>
+    <h1>AI Work Log (Generate Work Log)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-features">2. Features</a></li><li class="t2"><a href="#3-local-llm-model">3. Local LLM model</a></li><li class="t2"><a href="#4-how-to-use">4. How to use</a></li><li class="t2"><a href="#5-session-snapshot-inside-dragonfly">5. Session snapshot (inside Dragonfly)</a></li><li class="t2"><a href="#6-requirements-tips">6. Requirements &amp; tips</a></li></ul></nav>
+  <main class="manual"><p><strong>AI Work Log (Generate Work Log) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Generate Work Log (AI)...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>This plugin uses a <strong>local, offline LLM</strong> (no Ollama / LM Studio or any external software) to turn <strong>Dragonfly&#x27;s session log</strong> into a structured <strong>Markdown work log</strong> — a record of <strong>which files were loaded, which were saved/exported, and the key operations</strong> performed in the session. Everything runs on your machine and <strong>the log never leaves it</strong>.</p>
+<p>Generation has two steps: <strong>(1)</strong> a deterministic pre-filter extracts the key events from Dragonfly&#x27;s <strong>ActionLog</strong> (macro recorder) + <strong>Application</strong> log while dropping noise (view switches, camera pan/rotate, legend/visibility/LUT tweaks); <strong>(2)</strong> the compact event list is handed to the local LLM, which writes Markdown with Summary / Files Loaded / Files Saved / Key Operations / Errors sections. <strong>File paths are kept verbatim by regex — the model only organizes and translates, and never invents facts.</strong></p>
+<p>Why two steps: compressing a big, noisy log into a small, accurate event list first makes it fit the model&#x27;s context window, keeps the summary reliable even with a small model, and guarantees paths/filenames are exact.</p>
+<h2 id="2-features">2. Features</h2>
+<ul>
+<li><strong>Fully local / offline:</strong> once the model is downloaded no internet is needed; the log content is never uploaded, and there is no dependency on Ollama, LM Studio or any external app.</li>
+<li><strong>Deterministic pre-filter:</strong> understands both Dragonfly log formats (ActionLog_*.py macro recorder + Application_*.log), extracts data-file load/save paths and real operations exactly, and drops view/camera/legend UI noise.</li>
+<li><strong>Bilingual output:</strong> the top <strong>Output language</strong> selector chooses <strong>Chinese (default) or English</strong> for the generated Markdown.</li>
+<li><strong>Editable preview:</strong> the right-hand pane renders the result as rich text so you can <strong>edit it before saving</strong>.</li>
+<li><strong>Log-library management:</strong> the <strong>Log Library</strong> field sets a persisted save folder, with <strong>New / Overwrite / Delete</strong> buttons to manage the .md files; point it at an <strong>Obsidian</strong> vault for a searchable, back-linked work-log library.</li>
+<li><strong>GPU-aware:</strong> it detects your VRAM and recommends the right model tier; <strong>Acceleration</strong> lets you pick CPU or NVIDIA CUDA (12.1 / 12.4 / 12.5).</li>
+<li><strong>Session snapshot (inside Dragonfly only):</strong> fold the main-window screenshot, the Multiple-Screenshots panel images, and the list of published objects into the log, and optionally save a .ORSSession file (see below).</li>
+</ul>
+<h2 id="3-local-llm-model">3. Local LLM model</h2>
+<p>Inference runs via <strong>llama-cpp-python</strong> loading a <strong>Qwen3 GGUF</strong> in the plugin&#x27;s own venv (all <strong>Apache-2.0</strong>, Q4_K_M quantization). There are three tiers in the <strong>Model</strong> dropdown; the plugin recommends one from your detected VRAM:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Tier</th><th>Model</th><th>Size (approx.)</th><th>Best for</th></tr><tr><td>light</td><td>Qwen3-4B</td><td>2.5 GB</td><td>Weak machines / CPU-only; fastest</td></tr><tr><td>default</td><td>Qwen3-8B</td><td>5 GB</td><td>Balanced quality/speed; recommended default</td></tr><tr><td>best</td><td>Qwen3-32B</td><td>20 GB</td><td>Highest quality; needs a 24 GB+ GPU (or lots of RAM + patience)</td></tr></table></div>
+<p>The model download folder is user-selectable and persisted under <strong>Model folder</strong> — it defaults to the plugin folder (C: drive) but can point at another drive (e.g. D:\) to save C: space (affects new downloads only; an already-downloaded model keeps working).</p>
+<h2 id="4-how-to-use">4. How to use</h2>
+<p>Open the panel at <strong>Prototype Apps ▸ Reporting &amp; Documentation ▸ Generate Work Log (AI)...</strong> The left column holds all settings and buttons; the right column is the preview + run log.</p>
+<p>1. <strong>First-time setup (one-time, needs internet):</strong> click <strong>1. Setup Environment</strong> to build the venv and install llama-cpp-python + huggingface_hub, then <strong>2. Download / Switch Model</strong> to fetch the chosen Qwen3 GGUF (~2.5–20 GB). Optionally click <strong>Detect GPU &amp; Recommend</strong> first to let the plugin pick a tier by VRAM.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>2. Set the log-library save folder in <strong>Log Library</strong> at the top (point it at an Obsidian vault if you like).</p>
+<p>3. In <strong>Log Source</strong>, choose <strong>Live current Dragonfly session</strong> (auto-locates the running session&#x27;s ActionLog + Application log) or <strong>Pick log file(s) on disk…</strong> (hand-pick log files).</p>
+<p>4. In <strong>Session Snapshot</strong> (visible only inside Dragonfly) tick what to fold in (main-window screenshot / Multiple-Screenshots images / published-objects list / save session file).</p>
+<p>5. In <strong>Generate</strong>, pick the <strong>Output language</strong> (Chinese/English) and click <strong>Generate work log</strong>; the plugin reads and filters the logs, then the local LLM writes the Markdown into the editable preview on the right.</p>
+<p>6. Save with <strong>New</strong> (a new timestamped file), <strong>Overwrite</strong> (the current log), or <strong>Delete</strong> (the current log). Snapshot screenshots are stored in a &lt;logname&gt;.assets sub-folder and embedded with relative links.</p>
+<h2 id="5-session-snapshot-inside-dragonfly">5. Session snapshot (inside Dragonfly)</h2>
+<p>When running inside Dragonfly, a <strong>Session Snapshot</strong> group appears in the left column. It can fold the following pieces of the current session into the work log:</p>
+<ul>
+<li><strong>Main-window screenshot</strong> — a screenshot of the Dragonfly main window.</li>
+<li><strong>Multiple-Screenshots panel images</strong> — every image sitting in Dragonfly&#x27;s built-in screenshots panel, exported one by one.</li>
+<li><strong>Published-objects list</strong> — Channels / ROIs / MultiROIs / Meshes… listed verbatim with names, types and voxel dimensions (generated deterministically; not re-typed by the model).</li>
+<li><strong>Save session file</strong> — when ticked, writes a .ORSSession file beside the log so the exact scene can be reopened later.</li>
+</ul>
+<p>Screenshots are saved into a &lt;logname&gt;.assets sub-folder next to the log and embedded with relative links (Obsidian renders them inline). The object list and screenshot gallery are appended <strong>deterministically</strong> at save time, so the model never fabricates object names or image links.</p>
+<h2 id="6-requirements-tips">6. Requirements &amp; tips</h2>
+<ul>
+<li><strong>Internet is needed twice on first run:</strong> once to build the environment (Setup Environment) and once to download the model (Download Model). Generation afterwards is <strong>fully offline</strong>.</li>
+<li><strong>Runs on CPU</strong> (a one-shot summary is fine on CPU); on NVIDIA GPUs pick a CUDA option under Acceleration for more speed. <strong>No discrete GPU is required.</strong></li>
+<li><strong>Read-only logs:</strong> the plugin only reads Dragonfly&#x27;s own ActionLog / Application logs under %LOCALAPPDATA%\comet\&lt;version&gt;\logs; it never modifies them.</li>
+<li><strong>If you see &#x27;No meaningful events found&#x27;:</strong> the selected log had no log-worthy events (possibly all view/camera noise) — try a session or log file with real operations.</li>
+<li>This plugin is <strong>disabled by default</strong> in the Full Package (default_enabled = false); enable it in the App Store / Menu Item Manager and restart Dragonfly for it to appear in the menu.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>WorkLogGenerator-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

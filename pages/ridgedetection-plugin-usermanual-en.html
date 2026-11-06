@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ridge / Line Detection (Steger) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Ridge / Line Detection (Steger) - User Manual Dragonfly Prototype Apps · Ridge / Line Detection (Steger)... Version 1.0 · 2026-07-09 English Manual Content…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Ridge / Line Detection (Steger)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Ridge / Line Detection (Steger)...</div>
+    <h1>Ridge / Line Detection (Steger)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-install-and-enable">3. Install and enable</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime environment and first-time setup</a></li><li class="t3"><a href="#4-1-locating-fiji-imagej">4.1 Locating Fiji/ImageJ</a></li><li class="t3"><a href="#4-2-check-install-ridge-detection">4.2 Check / install Ridge Detection</a></li><li class="t3"><a href="#4-3-fallbacks-when-installation-fails">4.3 Fallbacks when installation fails</a></li><li class="t2"><a href="#5-interface-guide">5. Interface guide</a></li><li class="t3"><a href="#5-1-input-channel">5.1 Input Channel</a></li><li class="t3"><a href="#5-2-ridge-detection-steger">5.2 Ridge Detection (Steger)</a></li><li class="t3"><a href="#5-3-slice-range-z">5.3 Slice range (Z)</a></li><li class="t3"><a href="#5-4-fiji-ridge-detection">5.4 Fiji / Ridge Detection</a></li><li class="t3"><a href="#5-5-output">5.5 Output</a></li><li class="t3"><a href="#5-6-run-and-log">5.6 Run and log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t3"><a href="#6-1-prerequisites">6.1 Prerequisites</a></li><li class="t3"><a href="#6-2-running-detection">6.2 Running detection</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Ridge / Line Detection (Steger) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Ridge / Line Detection (Steger)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Ridge / Line Detection (Steger)</strong> is a Dragonfly plugin that automatically extracts curvilinear (ridge/line-like) structures from images - for example material cracks, fibers, or vessels and neurites in CT and microscopy images - and estimates each line&#x27;s <strong>width</strong> and <strong>length</strong>. It takes one Dragonfly <strong>Channel (image)</strong>, exports it slice by slice along Z to a locally-installed <strong>Fiji/ImageJ</strong>, runs Fiji&#x27;s <strong>Ridge Detection</strong> command on each slice, then stacks the detected centerline binaries back into Dragonfly as a <strong>MultiROI</strong> and aggregates a per-line width/length results table.</p>
+<p><strong>Underlying engine and algorithm.</strong> Detection is performed by Fiji&#x27;s <strong>Ridge Detection</strong> command, which implements the <strong>Steger sub-pixel curvilinear (ridge) detector</strong>. It is invoked headlessly through the run(&quot;Ridge Detection&quot;, ...) macro command, using the make_binary option to produce a binary mask of the line centerlines and the displayresults option to produce a per-line results table (width/length columns) that this plugin then parses.</p>
+<p><strong>Processing model.</strong> Ridge Detection is a <strong>2D algorithm</strong>. For a volume, the plugin processes it <strong>one Z slice at a time</strong>: each slice is exported as its own TIFF, detected in Fiji individually, and the per-slice centerlines are stacked into a (Z, Y, X) volume that becomes a MultiROI. The slice range is user-selectable.</p>
+<p><strong>Licensing.</strong> Ridge Detection is <strong>GPL-2.0-only</strong>. To respect that license, the plugin <strong>never</strong> imports any Ridge Detection or Fiji code into the Dragonfly process. Instead it drives the user&#x27;s own installed Fiji/ImageJ as a <strong>separate, headless Fiji JVM subprocess</strong>, and Dragonfly exchanges data with it only through <strong>TIFF images and a results CSV</strong>. That separate subprocess is the license isolation boundary. The plugin&#x27;s own code follows the terms of the DragonflyPrototypeLabs repository.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<p>The plugin is for users who need to extract curvilinear targets from 2D images (or a volume processed slice-by-slice) and measure their width and length. Typical uses include:</p>
+<ul>
+<li><strong>Materials science:</strong> extract cracks, scratches, or fibers from CT/microscopy images and quantify their length distribution and width.</li>
+<li><strong>Life sciences:</strong> detect vessels, neurites, or filamentous structures in microscopy or CT images.</li>
+<li><strong>Any line/ridge analysis:</strong> whenever a target appears as a bright or dark line and you want both a centerline mask (MultiROI) and per-line length/width measurements.</li>
+</ul>
+<p>Note: the input must be a Channel that already exists in Dragonfly. The plugin does <strong>not</strong> create or load the source image - open or generate the image in Dragonfly first.</p>
+<h2 id="3-install-and-enable">3. Install and enable</h2>
+<p>The plugin ships with the <strong>Prototype Apps Full Package</strong>. Install and enable it as follows:</p>
+<p><strong>1. </strong>Unzip the Full Package to a short folder (e.g. C:\PL\; avoid deep or OneDrive-redirected paths).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick</strong> <strong>Ridge / Line Detection (Steger)</strong> in the Prototype Apps list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are only scanned at startup).</p>
+<p><strong>Off by default - you must enable it.</strong> In the Full Package all plugins are <strong>off</strong> by default (only the light menu items are on). You must actively tick this plugin in the installer for it to be deployed.</p>
+<p><strong>Where it appears after restart.</strong> Once Dragonfly restarts, the plugin appears at:</p>
+<p>Prototype Apps  &gt;  Ridge / Line Detection (Steger)...</p>
+<p>It sits under the <strong>Detection &amp; Bridges</strong> group of the Prototype Apps menu. Clicking it opens a dockable, floating panel.</p>
+<p><strong>Change your choice later.</strong> You can enable or disable the plugin at any time from inside Dragonfly: open <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>, tick or untick this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then restart Dragonfly. Disabling <strong>never</strong> deletes anything downloaded or configured; re-enabling is instant. You can also re-run the installer at any time.</p>
+<p>Everything is installed per-user (under %LOCALAPPDATA%); no admin rights are needed. Every enable/disable change requires one Dragonfly restart.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime environment and first-time setup</h2>
+<p>This plugin is an <strong>external application (external_app)</strong> type: it creates <strong>no Python virtual environment (venv), needs no GPU, and needs no WSL</strong>. Its only external dependency is a <strong>user-installed Fiji/ImageJ</strong> with the <strong>Ridge Detection</strong> command enabled.</p>
+<h3 id="4-1-locating-fiji-imagej">4.1 Locating Fiji/ImageJ</h3>
+<p>When the panel opens it automatically tries to find a Fiji/ImageJ launcher (e.g. ImageJ-win64.exe, fiji-windows-x64.exe). The search order is: the path already in the panel -&gt; the DF_FIJI_PATH environment variable -&gt; common install locations (%LOCALAPPDATA%, Program Files, the user profile, Desktop, Downloads, and Fiji.app / Fiji / ImageJ under drive roots) -&gt; the system PATH.</p>
+<p>If none is found automatically, click <strong>Locate</strong> to re-search, or <strong>Browse...</strong> to pick the launcher executable yourself. The chosen path is remembered (saved in the plugin config) and pre-filled next time.</p>
+<h3 id="4-2-check-install-ridge-detection">4.2 Check / install Ridge Detection</h3>
+<p>Ridge Detection is not a built-in Fiji command; it is provided by Fiji&#x27;s <strong>Biomedgroup update site</strong>:</p>
+<p>Biomedgroup  -&gt;  https://sites.imagej.net/Biomedgroup/</p>
+<p>Click <strong>Check / Install Ridge Detection</strong>. The plugin scans the selected Fiji install&#x27;s plugins, jars and related folders for a jar whose name contains ridge_detection / ridgedetection / steger. If found, it reports the path; if not, it asks whether to install it now.</p>
+<p>If you confirm, the plugin invokes the Fiji updater headlessly: first add-update-site Biomedgroup to add the update site, then update to apply updates. This <strong>requires internet</strong> and may take a few minutes.</p>
+<p><strong>Download size.</strong> The plugin downloads <strong>nothing</strong> at install time; it only downloads Ridge Detection components (via the Fiji updater) when you first install the command or when a run finds it missing. The size is determined by the Fiji update site (typically a few MB of jar files).</p>
+<h3 id="4-3-fallbacks-when-installation-fails">4.3 Fallbacks when installation fails</h3>
+<p>If automatic installation fails, or the command is still unavailable afterwards, use these fallbacks:</p>
+<ul>
+<li><strong>Enable the update site manually in Fiji:</strong> open Fiji, go to <strong>Help &gt; Update &gt; Manage update sites</strong>, tick (or add) the <strong>Biomedgroup</strong> site, apply/close, run the update, then restart Fiji.</li>
+<li><strong>Restart and retry:</strong> after an update-site install, Fiji often needs a <strong>restart</strong> to load the newly installed jar. Restart Fiji (and Dragonfly if needed), then return to the panel and click <strong>Check / Install Ridge Detection</strong> to confirm it is detected.</li>
+<li><strong>Point at Fiji via env var:</strong> if the panel keeps failing to find Fiji, set the DF_FIJI_PATH environment variable to the launcher path before starting Dragonfly.</li>
+</ul>
+<p>Internet is needed only during install/update; normal detection runs need no internet. If your machine is offline, install Ridge Detection on a connected machine first, then use it offline.</p>
+<h2 id="5-interface-guide">5. Interface guide</h2>
+<p>The panel opens with a short intro paragraph at the top, followed by these groups from top to bottom.</p>
+<h3 id="5-1-input-channel">5.1 Input Channel</h3>
+<ul>
+<li><strong>Channel dropdown:</strong> lists all available Channels (images) in the current Dragonfly session, each showing its title and (Z, Y, X) shape.</li>
+<li><strong>Refresh:</strong> re-scans the current session for Channels. Click it after loading or creating a new image in Dragonfly.</li>
+</ul>
+<h3 id="5-2-ridge-detection-steger">5.2 Ridge Detection (Steger)</h3>
+<ul>
+<li><strong>Operation dropdown:</strong> selects the detection operation. One is provided: <strong>Steger Ridge / Line Detection</strong>.</li>
+<li><strong>Parameter form:</strong> built dynamically for the chosen operation. For Steger detection it contains Sigma, Lower response threshold, Upper response threshold, Estimated line width, Minimum line length, and Detect dark lines (see chapter 7).</li>
+<li><strong>Grey note text:</strong> a description of the current operation is shown beneath the form.</li>
+</ul>
+<h3 id="5-3-slice-range-z">5.3 Slice range (Z)</h3>
+<ul>
+<li><strong>from / to spin boxes:</strong> the Z-slice range to process (inclusive). Switching the input channel auto-resets the range to cover the whole volume (0 to Z-1). For a 2D image the range is a single slice.</li>
+</ul>
+<h3 id="5-4-fiji-ridge-detection">5.4 Fiji / Ridge Detection</h3>
+<ul>
+<li><strong>Launcher:</strong> shows the Fiji/ImageJ launcher path. The <strong>Locate</strong> button auto-searches; <strong>Browse...</strong> selects manually (placeholder text path to ImageJ-win64.exe / fiji-windows-x64.exe).</li>
+<li><strong>Max heap:</strong> the max memory given to the Fiji JVM, in MB (default 4096 MB, step 512, range 0-262144). Increase it for large images.</li>
+<li><strong>Check / Install Ridge Detection:</strong> detects whether Ridge Detection is present in the selected Fiji; if not, offers to install the Biomedgroup update site (see chapter 4).</li>
+</ul>
+<h3 id="5-5-output">5.5 Output</h3>
+<ul>
+<li><strong>MultiROI suffix:</strong> the suffix for the output MultiROI name (default Ridges). The final name is &lt;Channel title&gt; - &lt;suffix&gt;.</li>
+</ul>
+<h3 id="5-6-run-and-log">5.6 Run and log</h3>
+<ul>
+<li><strong>Run Ridge Detection + Create MultiROI (blue button):</strong> starts detection and creates the MultiROI.</li>
+<li><strong>Status label:</strong> shows brief information such as the channel count, detection status, and the completed result.</li>
+<li><strong>Log area (read-only text box):</strong> shows the run log line by line, including the current slice progress, the number of lines detected, and the results-CSV and temporary job-folder paths.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<p>Below is one complete end-to-end detection run.</p>
+<h3 id="6-1-prerequisites">6.1 Prerequisites</h3>
+<p><strong>Input requirements:</strong> a Channel already exists in Dragonfly, and Fiji/ImageJ is installed locally with the Ridge Detection command enabled (otherwise install it first per chapter 4).</p>
+<h3 id="6-2-running-detection">6.2 Running detection</h3>
+<p><strong>1. </strong>Open the panel: <strong>Prototype Apps &gt; Ridge / Line Detection (Steger)...</strong>.</p>
+<p><strong>2. </strong>In <strong>Input Channel</strong>, select the image to process (click <strong>Refresh</strong> first if needed).</p>
+<p><strong>3. </strong>In the <strong>Ridge Detection (Steger)</strong> group, confirm the operation is <strong>Steger Ridge / Line Detection</strong> and adjust the parameters to your image (at least Sigma, Estimated line width, and the lower/upper response thresholds - see chapter 7).</p>
+<p><strong>4. </strong>Set the <strong>Slice range (Z)</strong> to the slices you want (defaults to the whole volume).</p>
+<p><strong>5. </strong>Confirm <strong>Launcher</strong> points to the correct Fiji launcher; if you have not yet confirmed Ridge Detection is available, click <strong>Check / Install Ridge Detection</strong>.</p>
+<p><strong>6. </strong>Adjust <strong>MultiROI suffix</strong> if desired; increase <strong>Max heap</strong> if needed.</p>
+<p><strong>7. </strong>Click <strong>Run Ridge Detection + Create MultiROI</strong>.</p>
+<p><strong>8. </strong>Watch the per-slice progress in the log; when it finishes the status label shows the number of lines detected and a MultiROI is created.</p>
+<p><strong>What you get:</strong> on success, Dragonfly gains a <strong>MultiROI</strong> named &lt;Channel title&gt; - &lt;suffix&gt; (the centerline mask); a summary table ridge_results.csv is written to the job folder; and (on supported Dragonfly builds) a text annotation with the total line count, mean length, and mean width is published.</p>
+<p>You can cancel the current job at any time by closing the panel. A large volume with many slices can take a while and needs enough JVM heap.</p>
+<h2 id="7-parameter-reference">7. Parameter reference</h2>
+<p><strong>Steger detection parameters</strong> (in the Ridge Detection (Steger) parameter form):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Sigma</td><td>1.51</td><td>Gaussian smoothing scale, related to the width of the lines to detect. Wider lines want a larger sigma. Must be &gt; 0 (an invalid value falls back to 1.51).</td></tr><tr><td>Lower response threshold</td><td>0.5</td><td>Lower threshold on the line response: points below it are discarded, to reject weak responses/noise. Must be &gt;= 0.</td></tr><tr><td>Upper response threshold</td><td>1.36</td><td>Upper threshold on the line response: points above it are accepted as line points. The upper threshold is automatically clamped to be &gt;= the lower threshold.</td></tr><tr><td>Estimated line width</td><td>3.5</td><td>Estimated width (in pixels) of the lines to detect. Affects width estimation and sensitivity. Must be &gt; 0 (an invalid value falls back to 3.5).</td></tr><tr><td>Minimum line length</td><td>0.0</td><td>Minimum length of lines kept in the result; shorter lines are dropped. 0 means no length filtering. Must be &gt;= 0.</td></tr><tr><td>Detect dark lines</td><td>False (off)</td><td>When ticked, detects dark lines (dark lines on a bright background); by default bright lines are detected. Maps to the macro&#x27;s darkline option.</td></tr></table></div>
+<p><strong>Fiji run parameters</strong> (in the Fiji / Ridge Detection group):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Launcher</td><td>auto-detected</td><td>Path to the Fiji/ImageJ launcher executable, auto-located or picked manually.</td></tr><tr><td>Max heap</td><td>4096 MB</td><td>Max memory for the Fiji JVM; step 512, range 0-262144 MB. Increase for large images.</td></tr><tr><td>MultiROI suffix</td><td>Ridges</td><td>Suffix for the output MultiROI name; the final name is &lt;Channel title&gt; - &lt;suffix&gt;.</td></tr></table></div>
+<p>The panel sanitises parameters: Sigma and Estimated line width must be positive or they fall back to defaults; the upper threshold is never below the lower; the lower threshold and minimum line length are never below 0. So even invalid entries never crash the run - the corrected values are used instead.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful run produces the following:</p>
+<ul>
+<li><strong>MultiROI (centerline mask):</strong> a MultiROI named &lt;Channel title&gt; - &lt;suffix&gt;, built by stacking each slice&#x27;s binary line centerlines. It inherits the source Channel&#x27;s voxel spacing and origin geometry where possible, so it aligns with the source image. View, colour, and overlay it like any object in Dragonfly&#x27;s object list.</li>
+<li><strong>Summary table `ridge_results.csv`:</strong> written to the run&#x27;s temporary job folder, with columns slice, line_index, length, width - one row per line per slice.</li>
+<li><strong>Text annotation (best-effort):</strong> on supported Dragonfly builds, a text annotation named &lt;Channel title&gt; - &lt;suffix&gt; (results) is published, containing the channel name, slice range, <strong>total line count</strong>, <strong>mean length</strong>, and <strong>mean width</strong>. If the current build does not expose that annotation API it is skipped, but the CSV is always kept on disk.</li>
+</ul>
+<p><strong>How to view.</strong> The MultiROI and text annotation appear in Dragonfly&#x27;s object/data list and can be shown in 2D/3D views like any object. The full path of the summary CSV (and the temporary job folder) is printed in the panel log, and can be opened in any spreadsheet tool for further statistics.</p>
+<p>The temporary input-slice TIFFs, per-slice output TIFFs, and per-slice CSVs are created in a job folder under the OS temp directory. If a run fails, the error message keeps these temp paths so you can inspect Fiji&#x27;s output manually.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and troubleshooting</h2>
+<p><strong>Q1: The panel says it cannot find Fiji/ImageJ. What do I do?</strong></p>
+<p>A: First click <strong>Locate</strong> to re-run the auto-search; if it still fails, click <strong>Browse...</strong> and point at the launcher (e.g. ImageJ-win64.exe or fiji-windows-x64.exe). You can also set the DF_FIJI_PATH environment variable to the launcher before starting Dragonfly. If Fiji is not installed at all, install it first.</p>
+<p><strong>Q2: I installed Ridge Detection but a run still says the command is unavailable.</strong></p>
+<p>A: After the update site is installed, Fiji usually needs a <strong>restart</strong> to load the new jar. Restart Fiji (and Dragonfly if needed), then click <strong>Check / Install Ridge Detection</strong> to confirm detection. If it still fails, enable it manually in Fiji via <strong>Help &gt; Update &gt; Manage update sites</strong>, tick <strong>Biomedgroup</strong>, apply the update, and restart.</p>
+<p><strong>Q3: Installing Ridge Detection fails or times out on the network.</strong></p>
+<p>A: The install/update step needs access to https://sites.imagej.net/Biomedgroup/; make sure your network and proxy settings allow it. You can install Ridge Detection on a connected machine and then use it offline (normal detection needs no internet). Increasing <strong>Max heap</strong> and retrying can also help.</p>
+<p><strong>Q4: Detection returns nothing, or reports that no centerline voxels were produced.</strong></p>
+<p>A: This means no lines were detected with the current parameters. Adjust them: <strong>lower the lower/upper response thresholds</strong> to raise sensitivity; make Sigma and Estimated line width match the real line width; tick <strong>Detect dark lines</strong> if the target is dark lines on a bright background; set Minimum line length to 0 so short lines are not filtered out.</p>
+<p><strong>Q5: Processing a large volume is slow, or Fiji runs out of memory.</strong></p>
+<p>A: Ridge Detection is a 2D algorithm, so a volume is processed slice by slice and many slices take longer. Narrow the <strong>Slice range (Z)</strong> to just the slices you care about, and increase <strong>Max heap</strong>.</p>
+<p><strong>Q6: The length/width columns in the results table are empty.</strong></p>
+<p>A: The Ridge Detection results-table column names vary between Fiji builds. The plugin auto-matches common names (e.g. length / line length / contour length, and line width / mean width / width). If the names differ too much, parsing may miss them - the centerline MultiROI is still created, only the aggregated length/width may be missing. Open the per-slice CSVs in the job folder to see the raw data.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and known limitations</h2>
+<ul>
+<li><strong>2D algorithm:</strong> Ridge Detection runs per Z slice; centerlines are simply stacked along Z into a volume, not a true 3D curve detection.</li>
+<li><strong>Requires an existing Channel:</strong> the plugin does not create the source image; it only processes a Channel already in Dragonfly.</li>
+<li><strong>External-process overhead:</strong> Fiji runs as a separate process, so large volumes take time and need enough JVM heap.</li>
+<li><strong>Best-effort geometry:</strong> the output MultiROI geometry (spacing/origin) is restored from the source Channel where possible.</li>
+<li><strong>Command/parameter names vary by Fiji build:</strong> the macro uses the standard run(&quot;Ridge Detection&quot;, ...) option names; if a command is unavailable in your Fiji, the plugin reports Fiji&#x27;s stdout/stderr in the log.</li>
+<li><strong>License isolation:</strong> Ridge Detection is GPL-2.0-only and runs only as a separate Fiji subprocess, never imported into Dragonfly; the plugin bundles no Fiji or Ridge Detection code.</li>
+<li><strong>No venv / no GPU / no WSL:</strong> the plugin creates no Python virtual environment, uses no GPU, and needs no WSL; it depends only on the user&#x27;s local Fiji.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Fiji / ImageJ official sites: https://fiji.sc/ and https://imagej.net/</li>
+<li>Ridge Detection (Biomedgroup) update site: https://sites.imagej.net/Biomedgroup/</li>
+<li>Steger curvilinear detection (the method behind the Ridge Detection command): C. Steger, &quot;An Unbiased Detector of Curvilinear Structures&quot;.</li>
+<li>Ridge Detection is licensed GPL-2.0-only and is invoked through a separate Fiji/ImageJ subprocess.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>RidgeDetection-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

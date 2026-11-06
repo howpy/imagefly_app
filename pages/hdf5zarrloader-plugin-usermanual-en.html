@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load HDF5 / Zarr (OME-Zarr) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Load HDF5 / Zarr (OME-Zarr) - User Manual Dragonfly Prototype Apps · Load HDF5 / Zarr (OME-Zarr)... Version 1.0 · 2026-07-14 English Manual Contents 1. Int…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Load HDF5 / Zarr (OME-Zarr)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Load HDF5 / Zarr (OME-Zarr)...</div>
+    <h1>Load HDF5 / Zarr (OME-Zarr)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-14</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#setup-tab">Setup tab</a></li><li class="t3"><a href="#load-tab-container-group">Load tab - &quot;Container&quot; group</a></li><li class="t3"><a href="#load-tab-preview-area">Load tab - preview area</a></li><li class="t3"><a href="#load-tab-import-group">Load tab - &quot;Import&quot; group</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Load HDF5 / Zarr (OME-Zarr) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Load HDF5 / Zarr (OME-Zarr)...</p>
+<p>Version 1.0 · 2026-07-14</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Load HDF5 / Zarr (OME-Zarr)</strong> browses the datasets inside a *chunked container* - an <strong>HDF5</strong> file (.h5/.hdf5/.he5/.nxs/...) or a <strong>Zarr / OME-Zarr / N5</strong> directory - lets you preview a chosen dataset, and imports it (optionally downsampled) as a Dragonfly image <strong>Channel</strong>.</p>
+<p>It wraps two open-source readers: <strong>h5py</strong> (HDF5 bindings, BSD license) and <strong>zarr</strong> v3 (Zarr / OME-Zarr / N5, MIT license), with <strong>numpy</strong> and <strong>Pillow</strong> for array handling and thumbnails. All are prebuilt wheels - no Java, no MSVC, no GPU. For <strong>OME-Zarr</strong> the voxel size is read from the top group&#x27;s multiscales metadata (coordinateTransformations scale + axes[].unit) and written to the Channel spacing.</p>
+<p>Input is a <strong>file/folder on disk</strong>; output is a new Dragonfly <strong>Channel</strong>. It is aimed at big / next-generation data (light-sheet, EM, cloud OME-NGFF) that the Bio-Formats and ITK loaders don&#x27;t handle well.</p>
+<p>This is <strong>not</strong> a segmentation, reconstruction, or general microscopy-vendor loader. It reads array data out of HDF5/Zarr containers only - use the <strong>Bio-Formats</strong> / <strong>ITK</strong> loaders for CZI/LIF/DICOM etc., and Dragonfly&#x27;s native import for TIFF stacks.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Opening <strong>light-sheet microscopy</strong> volumes stored as HDF5 or OME-Zarr.</li>
+<li>Loading <strong>cloud / next-generation OME-NGFF (OME-Zarr)</strong> multiscale pyramids, picking a specific resolution level or channel array from the dropdown.</li>
+<li>Reading <strong>electron-microscopy</strong> or simulation results saved as HDF5/NeXus datasets.</li>
+<li>Quickly importing a <strong>low-resolution preview of a very large volume</strong> by setting a Downsample factor before the full read.</li>
+<li>Inspecting a container&#x27;s contents (paths, shapes, dtypes, chunk sizes) before deciding what to import.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>This plugin ships in the <strong>Prototype Apps Full Package</strong>. It is disabled by default and must be checked at install time.</p>
+<p>1. Unzip the Full Package to a <strong>short directory path</strong> (e.g. C:\PrototypeApps) to avoid Windows MAX_PATH issues.</p>
+<p>2. Run Install_FullPackage.bat<strong>.</strong></p>
+<p>3. In the installer dialog, <strong>check &quot;Load HDF5 / Zarr (OME-Zarr)&quot;</strong> (all plugins are unchecked by default).</p>
+<p>4. Click <strong>Install</strong>. Files are copied under %LOCALAPPDATA% - no administrator rights are needed.</p>
+<p>5. <strong>Fully restart Dragonfly</strong> - the menu is scanned only at startup.</p>
+<p>After restart it appears under <strong>Prototype Apps &gt; Load HDF5 / Zarr (OME-Zarr)...</strong> in the <strong>Reconstruction &amp; Imaging</strong> section. You can later enable/disable it from <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>; restart Dragonfly after each toggle.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>The plugin uses an <strong>isolated Python virtual environment</strong> (env.kind = venv_in_code). The Dragonfly process itself never imports h5py or zarr - they run inside the venv via a subprocess (runner/hz_runner.py) with file-based IPC.</p>
+<p>On the <strong>Setup</strong> tab, click <strong>Setup Environment (h5py + zarr)</strong>. This builds a venv from your <strong>Base Python</strong> and pip-installs the exact dependencies from runner/requirements.txt: <strong>numpy, Pillow, h5py, zarr</strong>. The download is small (tens of MB of prebuilt wheels). <strong>Internet is required only for this first setup</strong>; afterwards the plugin runs fully offline.</p>
+<ul>
+<li><strong>GPU:</strong> not required, not used.</li>
+<li><strong>Java / MSVC / WSL / external tools:</strong> none required (all deps are prebuilt wheels).</li>
+<li><strong>Venv location:</strong> a venv folder inside the installed code directory (...\GenericMenuItems\HDF5ZarrLoader\venv). The resolved python path is saved to the <strong>Analysis venv python</strong> field / hz_config.json.</li>
+<li><strong>Base Python field:</strong> leave blank to auto-detect Dragonfly&#x27;s own Python, then the py launcher, python/python3 on PATH, and common Miniconda/Anaconda/Python install locations. Use <strong>Browse...</strong> to point at a specific python.exe if auto-detect picks the wrong one.</li>
+<li>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</li>
+<li><strong>Job root:</strong> working directory for per-run job folders (config/status/results/thumbnail), default C:\HDF5ZarrLoaderJobs.</li>
+</ul>
+<h2 id="5-interface">5. Interface</h2>
+<p>The panel opens as a dockable window with a header line and two tabs (<strong>Setup</strong>, <strong>Load</strong>), a green status line, and a read-only log at the bottom.</p>
+<h3 id="setup-tab">Setup tab</h3>
+<ul>
+<li><strong>Analysis venv python</strong> - path to the venv interpreter; filled in automatically by Setup Environment (placeholder: *set by Setup Environment*).</li>
+<li><strong>Base Python</strong> (+ <strong>Browse...</strong>) - interpreter used to build the venv; blank = auto-detect Dragonfly/system Python.</li>
+<li><strong>Job root</strong> - folder for job outputs; default C:\HDF5ZarrLoaderJobs.</li>
+<li><strong>Setup Environment (h5py + zarr)</strong> - builds the venv and pip-installs the requirements.</li>
+</ul>
+<h3 id="load-tab-container-group">Load tab - &quot;Container&quot; group</h3>
+<ul>
+<li><strong>HDF5 file / Zarr folder</strong> field with <strong>File...</strong> (opens an HDF5 file; filter *.h5 *.hdf5 *.he5 *.nxs) and <strong>Folder...</strong> (opens a Zarr / OME-Zarr / N5 directory). Picking either clears the previous preview and auto-runs List datasets.</li>
+<li><strong>Dataset</strong> dropdown + <strong>List datasets</strong> button - enumerates every array in the container (each entry shows path, shape and dtype).</li>
+<li><strong>Downsample</strong> spin box - range <strong>1-64</strong>, default <strong>1</strong>; tooltip *Read every Nth voxel along the spatial axes (1 = full).*</li>
+<li><strong>Spacing unit</strong> dropdown - *as-is / from OME* (default), *micrometer (µm)*, *millimeter (mm)*, *meter (m)*.</li>
+<li><strong>Preview</strong> button - reads a middle slice/thumbnail and fills the metadata table.</li>
+</ul>
+<h3 id="load-tab-preview-area">Load tab - preview area</h3>
+<ul>
+<li><strong>Thumbnail</strong> pane (left) - shows the rendered preview image, or *No preview*.</li>
+<li><strong>Metadata table</strong> (right, Property/Value) - Container, Dataset, Shape, Dimensions, Data type, Chunks, OME scale (z,y,x), OME unit, Preview downsample.</li>
+</ul>
+<h3 id="load-tab-import-group">Load tab - &quot;Import&quot; group</h3>
+<ul>
+<li><strong>Output Channel title</strong> - name for the created Channel; blank defaults to file [dataset].</li>
+<li><strong>Import -&gt; Publish as Channel</strong> (blue button) - reads the chosen dataset (optionally downsampled) and publishes it as a Dragonfly Channel.</li>
+</ul>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. <strong>First run only:</strong> on the <strong>Setup</strong> tab, click <strong>Setup Environment (h5py + zarr)</strong> and wait for *Environment ready* in the status line.</p>
+<p>2. Switch to the <strong>Load</strong> tab. Click <strong>File...</strong> (for an HDF5 file) or <strong>Folder...</strong> (for a Zarr / OME-Zarr / N5 folder). The datasets are listed automatically.</p>
+<p>3. In the <strong>Dataset</strong> dropdown, choose the array to load (for OME-Zarr, pick the resolution level / channel array you want).</p>
+<p>4. Optionally set a <strong>Downsample</strong> factor for a fast low-resolution import, and a <strong>Spacing unit</strong>.</p>
+<p>5. Click <strong>Preview</strong> to check the thumbnail and metadata (shape, dtype, chunks, OME scale).</p>
+<p>6. Optionally type an <strong>Output Channel title</strong>.</p>
+<p>7. Click <strong>Import -&gt; Publish as Channel</strong>. The dataset is read in the venv and published as a Channel; the status line reports the created Channel name.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<p>This is a loader, so it has few numeric tunables - the key controls are the container/dataset selection plus these options:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Downsample</td><td>1</td><td>1-64 (integer)</td><td>Stride: read every Nth voxel along the last &lt;=3 (spatial) axes. Larger = faster, lower resolution.</td></tr><tr><td>Spacing unit</td><td>as-is / from OME</td><td>none / um / mm / m</td><td>Unit for the voxel spacing. none uses the OME-Zarr embedded unit if present; otherwise interprets the OME scale in the chosen unit.</td></tr><tr><td>Output Channel title</td><td>(blank)</td><td>free text</td><td>Channel name; blank = &lt;filestem&gt; [&lt;dataset&gt;].</td></tr><tr><td>Base Python</td><td>(blank)</td><td>path</td><td>Interpreter to build the venv; blank = auto-detect.</td></tr><tr><td>Job root</td><td>C:\HDF5ZarrLoaderJobs</td><td>path</td><td>Folder for per-run job outputs.</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>Import creates one Dragonfly image <strong>Channel</strong> (via createChannelFromNumpyArray, with a Z axis). It appears in the object list / Data Properties like any imported volume.</p>
+<ul>
+<li><strong>Naming:</strong> the <strong>Output Channel title</strong>, or &lt;filestem&gt; [&lt;dataset&gt;] when left blank (dataset root for a top-level array).</li>
+<li><strong>Dimensionality:</strong> arrays with <strong>&gt;3 dimensions</strong> (e.g. OME-Zarr t,c,z,y,x) are reduced to <strong>(Z,Y,X)</strong> by taking index 0 on the leading axes; a <strong>2D</strong> array becomes <strong>(1,Y,X)</strong>.</li>
+<li><strong>Data type:</strong> uint8/uint16/int8/int16/float32 are kept as-is; any other dtype is cast to <strong>float32</strong>.</li>
+<li><strong>Spacing:</strong> for OME-Zarr the voxel scale is converted to <strong>meters</strong> (ORS convention) and multiplied by the Downsample factor so the physical size stays correct; HDF5 (no embedded scale) uses Dragonfly defaults unless you supply a unit-carrying OME source.</li>
+<li><strong>Origin:</strong> set to (0, 0, 0).</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>&quot;Run Setup first, or set the analysis venv python.&quot;</strong> - the venv hasn&#x27;t been built. Go to the Setup tab and click Setup Environment.</li>
+<li><strong>&quot;Select a valid HDF5 file or Zarr folder first.&quot;</strong> - no container is chosen or the path no longer exists. Re-pick with File.../Folder...</li>
+<li><strong>&quot;List datasets and choose one first.&quot;</strong> - click List datasets and select an entry in the Dataset dropdown before importing.</li>
+<li><strong>Setup fails</strong> - usually no usable Base Python or no internet on first setup. Set Base Python explicitly (Browse... to a python.exe) and check the connection; the log shows the pip output.</li>
+<li><strong>Empty dataset list</strong> - the container may hold only &lt;2D arrays (listing keeps arrays with ndim &gt;= 2), or the format isn&#x27;t readable by h5py/zarr. N5 is best-effort via zarr.</li>
+<li><strong>Out of memory on Import</strong> - a very large single-chunk dataset is read fully into memory. Increase the Downsample factor, or import a lower-resolution OME-Zarr level.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>One dataset per import.</strong> Multi-channel / multiscale OME-Zarr is imported one array at a time - pick each level/channel from the dropdown separately.</li>
+<li><strong>Leading axes are dropped:</strong> for &gt;3D data only index 0 of the time/channel axes is imported (Z,Y,X); other timepoints/channels require separate imports of their own arrays.</li>
+<li><strong>Voxel spacing</strong> is read only from <strong>OME-Zarr</strong> multiscales metadata; plain HDF5/Zarr arrays carry no spacing here.</li>
+<li><strong>N5</strong> is best-effort (via zarr) and may not open every N5 variant.</li>
+<li><strong>Very large single-chunk reads</strong> still load into RAM; downsampling mitigates but doesn&#x27;t eliminate this.</li>
+<li>Validated offline by round-tripping HDF5 (nested datasets) and Zarr / OME-Zarr (5D with multiscales scale); <strong>live in-Dragonfly verification is pending</strong>.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li><strong>h5py</strong> (HDF5 for Python, BSD license) - https://www.h5py.org/</li>
+<li><strong>zarr-python</strong> v3 (Zarr / N5, MIT license) - https://zarr.readthedocs.io/</li>
+<li><strong>OME-NGFF / OME-Zarr</strong> specification - https://ngff.openmicroscopy.org/</li>
+<li><strong>NumPy</strong> (https://numpy.org/) and <strong>Pillow</strong> (https://python-pillow.org/) for array handling and thumbnails.</li>
+<li>Plugin README.md and DESIGN.md in DragonflyPlugins/HDF5ZarrLoader-Plugin/.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>HDF5ZarrLoader-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

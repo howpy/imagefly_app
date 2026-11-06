@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>View/Search Dragonfly Publications · Dragonfly Prototype Apps</title>
+<meta name="description" content="View/Search Dragonfly Publications - User Manual Dragonfly Prototype Apps · View/Search Dragonfly Publications... Version 1.0 · 2026-07-26 English Manual C…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">View/Search Dragonfly Publications</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · View/Search Dragonfly Publications...</div>
+    <h1>View/Search Dragonfly Publications</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-the-interface">2. The interface</a></li><li class="t2"><a href="#3-where-the-papers-come-from-how-to-update">3. Where the papers come from &amp; how to update</a></li><li class="t2"><a href="#4-requirements">4. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>View/Search Dragonfly Publications - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · View/Search Dragonfly Publications...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>View/Search Dragonfly Publications</strong> is a lite-Obsidian viewer for <strong>browsing and full-text searching</strong> a collection of publications that USED Dragonfly. The papers ship as markdown <strong>bundled inside the plugin</strong> and work fully offline.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. The content is auto-summarized; the original text and copyright belong to the respective publishers — refer to each paper&#x27;s DOI for the source.</p>
+<h2 id="2-the-interface">2. The interface</h2>
+<p>1. <strong>Left</strong> — a search box + a relevance filter (All / High / Medium) + a tree of papers <strong>grouped by discipline</strong> (each with a relevance badge 🟢 High / 🟡 Medium; disciplines such as Materials Science &amp; Engineering, Life Sciences &amp; Biology, Medical &amp; Preclinical, Palaeontology &amp; Geoscience, …).</p>
+<p>2. <strong>Right</strong> — the selected paper rendered, with three buttons at the top to switch between <strong>English / 中文 / Full text</strong>.</p>
+<p>3. <strong>Search</strong> — full-text substring matching over title/authors/body; works in any language (Chinese searches directly, e.g. 分割, 孔隙).</p>
+<h2 id="3-where-the-papers-come-from-how-to-update">3. Where the papers come from &amp; how to update</h2>
+<p>The papers come from the <strong>All_Materials_Organized_by_AI</strong> project, which turns each paper into an English summary / Chinese summary / full-text markdown trio and has an LLM rate its <strong>Dragonfly Relevance</strong> (High/Medium/Low/None). This plugin bundles the ~91 papers filtered to <strong>High + Medium</strong>.</p>
+<p><strong>To update</strong>: run export_dragonfly_publications.py in the All_Materials_Organized_by_AI project to re-export, then repackage this project — <strong>the plugin code needs no change</strong>. Only the markdown (~6 MB) is bundled, never the original PDFs/videos.</p>
+<h2 id="4-requirements">4. Requirements</h2>
+<p>No install, no internet, no GPU, no venv. A pure viewer: it reads the bundled markdown under pub_viewer_code\pubs and renders it with Qt&#x27;s native markdown renderer; it does not use the Dragonfly object model.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>DragonflyPublications-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

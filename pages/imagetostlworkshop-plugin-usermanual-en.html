@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Image to STL: The Basics (Hands-on Workshop) · Dragonfly Prototype Apps</title>
+<meta name="description" content="From Image to STL: The Basics (Hands-on Workshop) - User Manual Dragonfly Prototype Apps · From Image to STL: The Basics... Version 1.0 · 2026-07-26 Englis…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">From Image to STL: The Basics (Hands-on Workshop)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · From Image to STL: The Basics...</div>
+    <h1>From Image to STL: The Basics (Hands-on Workshop)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-the-whole-pipeline-4-steps">2. The whole pipeline (4 steps)</a></li><li class="t2"><a href="#3-the-five-tabs">3. The five tabs</a></li><li class="t2"><a href="#4-two-design-features">4. Two design features</a></li><li class="t2"><a href="#5-how-to-use">5. How to use</a></li><li class="t2"><a href="#6-requirements">6. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>From Image to STL: The Basics (Hands-on Workshop) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · From Image to STL: The Basics...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>From Image to STL: The Basics</strong> is a hands-on project for <strong>absolute beginners</strong> that teaches and runs the most basic, most common complete workflow end to end: <strong>from a single 3D image, step by step, to a 3D-printable STL model</strong>.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. The completion certificate is also unofficial — for personal record only.</p>
+<h2 id="2-the-whole-pipeline-4-steps">2. The whole pipeline (4 steps)</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Step</th><th>Input → Output</th><th>In a nutshell</th></tr><tr><td>1. Load image</td><td>file → greyscale volume</td><td>read the 3D image in</td></tr><tr><td>2. Threshold</td><td>greyscale volume → ROI (binary)</td><td>pick the object out by brightness</td></tr><tr><td>3. To a mesh</td><td>ROI → triangle mesh</td><td>wrap a surface around the picked region</td></tr><tr><td>4. Export STL</td><td>mesh → .stl file</td><td>save as a universal 3D format</td></tr></table></div>
+<h2 id="3-the-five-tabs">3. The five tabs</h2>
+<p>1. <strong>Concepts</strong> — the pipeline, pixels/voxels, grey values, resolution &amp; units.</p>
+<p>2. <strong>Load image</strong> — one-click sample image (ball/cylinder/cube-with-hole/dumbbell), or use a loaded Channel.</p>
+<p>3. <strong>Threshold → ROI</strong> — manual range or Otsu auto-threshold; creates and shows a real Dragonfly ROI.</p>
+<p>4. <strong>ROI → Mesh</strong> — marching cubes builds a triangular surface mesh, published as a Dragonfly mesh.</p>
+<p>5. <strong>Export STL</strong> — trimesh writes the .stl file (binary or ASCII).</p>
+<h2 id="4-two-design-features">4. Two design features</h2>
+<ul>
+<li><strong>One-click AND learn-by-hand</strong>: every step has a &#x27;▶ action button&#x27; that actually does it, plus a &#x27;🖱 How to do this in the Dragonfly GUI&#x27; pop-up that walks you through doing the same thing by hand in Dragonfly (menu paths, panels, right-click items).</li>
+<li><strong>As many concept pop-ups as possible</strong>: segmentation, threshold, Otsu, histogram, ROI, surface mesh, marching cubes, voxel-level vs sub-voxel, STL, ASCII vs binary, units pitfalls — each has a short, beginner-friendly &#x27;📖 Learn&#x27; pop-up.</li>
+</ul>
+<h2 id="5-how-to-use">5. How to use</h2>
+<p>1. On &#x27;Load image&#x27; click &#x27;Create a sample image&#x27; (or pick a Channel).</p>
+<p>2. On &#x27;Threshold&#x27; click &#x27;Otsu auto-threshold&#x27; (or set low/high by hand) to make a ROI.</p>
+<p>3. On &#x27;ROI → Mesh&#x27; click &#x27;Convert ROI to a surface mesh&#x27;.</p>
+<p>4. On &#x27;Export STL&#x27; click &#x27;Export STL…&#x27; and choose where to save.</p>
+<p>5. Finish on the &#x27;Certificate&#x27; tab by entering your name to generate a completion certificate.</p>
+<h2 id="6-requirements">6. Requirements</h2>
+<p>No install, no internet, no GPU, no venv. The core actions run in-process on Dragonfly&#x27;s own numpy/scikit-image/trimesh (thresholding makes a real ROI via getAsROIWithinRange, marching cubes builds the mesh, trimesh writes the STL). STL/OBJ/PLY export works on all versions.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ImageToStlWorkshop-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

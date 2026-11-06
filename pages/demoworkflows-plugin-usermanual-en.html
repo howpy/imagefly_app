@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Workflows (Trade-show Demos) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Demo Workflows (Trade-show Demos) - User Manual Dragonfly Prototype Apps · Demo Workflows ▸ Nominal-Actual Comparison (Impeller)... Version 1.0 · 2026-09-1…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Demo Workflows (Trade-show Demos)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Demo Workflows ▸ Nominal-Actual Comparison (Impeller)...</div>
+    <h1>Demo Workflows (Trade-show Demos)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-09-16</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-the-first-demo-nominal-actual-comparison-impeller">2. The first demo: Nominal-Actual Comparison (Impeller)</a></li><li class="t2"><a href="#3-what-the-bundled-dataset-shows-and-what-it-does-not">3. What the bundled dataset shows, and what it does not</a></li><li class="t2"><a href="#4-running-it-at-a-booth">4. Running it at a booth</a></li><li class="t2"><a href="#5-the-demo-workflows-manager">5. The Demo Workflows Manager</a></li><li class="t2"><a href="#6-using-your-own-part">6. Using your own part</a></li><li class="t2"><a href="#7-requirements-and-limits">7. Requirements and limits</a></li></ul></nav>
+  <main class="manual"><p><strong>Demo Workflows (Trade-show Demos) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Demo Workflows ▸ Nominal-Actual Comparison (Impeller)...</p>
+<p>Version 1.0 · 2026-09-16</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Demo Workflows</strong> adds a third top-level menu to Dragonfly&#x27;s menu bar, holding demonstrations that <strong>play themselves, step by step, inside the running Dragonfly</strong>, plus the <strong>Demo Workflows Manager</strong> that configures them. Every step is a real Dragonfly operation on real objects in the session: the objects appear in the object list one by one, the two parts snap together, the colours arrive. Nothing is pre-recorded, screenshotted or pre-baked.</p>
+<p>The narration is two lines drawn on the 3D view itself: the <strong>step number and title</strong> above, and below it what this step is about to do, replaced by what it actually measured once the step finishes. The audience watches the canvas and the presenter watches the panel - they do not have to be the same screen.</p>
+<p>This feature is provided by a third party (Prototype Labs / Prototype Apps), not officially developed or supported by Dragonfly.</p>
+<p><strong>⚠ </strong><strong>Dragonfly 3D World 2027.1 or newer only.</strong><strong> The STEP import and the Automatic Mesh Registration do not exist in 2025.1, where calling them raises AttributeError. The demo checks for them BEFORE it starts and says on the panel what is missing and why it will not run, instead of failing in front of an audience.</strong></p>
+<h2 id="2-the-first-demo-nominal-actual-comparison-impeller">2. The first demo: Nominal-Actual Comparison (Impeller)</h2>
+<p>This is the question industrial-CT metrology is asked most often: <strong>how close is what we made to what we drew?</strong> Seven steps run in order, each leaving the audience time to read the sentence before watching what it describes.</p>
+<p>1. <strong>The opening slide</strong> - the demo names the dataset it is about to run and records the session&#x27;s current visibility and camera, so that it can hand the session back untouched at the end.</p>
+<p>2. <strong>Prepare the readers</strong> - load Dragonfly&#x27;s CAD and mesh reading libraries up front. Measured on a cold session, the first call into the mesh reader took 26.7 s and the first STEP import 6.4 s, while every later call was under 2 s; paying that one-off cost before the audience arrives is what stops the opening step looking like a freeze.</p>
+<p>3. <strong>Load the nominal CAD</strong> - MeshHelper.importSTEPFile brings in the STEP file: the design, exactly as engineering drew it.</p>
+<p>4. <strong>Load the actual part</strong> - Dragonfly&#x27;s mesh reader brings in the part&#x27;s surface <strong>in millimetres</strong>, and both objects are framed together. They are not aligned yet: this is the &quot;before&quot; picture.</p>
+<p>5. <strong>Automatic Mesh Registration</strong> - Dragonfly 2027.1 aligns the two by itself: no landmarks, no manual nudging.</p>
+<p>6. <strong>Signed deviation map</strong> - every vertex of the part is measured against the CAD surface, negative inside it and positive outside it.</p>
+<p>7. <strong>Present the result</strong> - only the coloured result stays visible, the 3D view is maximised and the colour bar is switched on in mm: blue is under the CAD surface, red is over it, green is inside the tolerance band.</p>
+<p>The table below is what was measured in a running Dragonfly 2027.1 on 2026-09-16, on the bundled impeller dataset. <strong>These are measurements of that dataset, not general figures for any part.</strong></p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Step</th><th>What Dragonfly actually ran</th><th>Measured</th></tr><tr><td>Load the nominal CAD</td><td>MeshHelper.importSTEPFile</td><td>189,589 faces, 150 x 60 x 150 mm, 2.7 s</td></tr><tr><td>Load the actual part</td><td>OrsMeshLoader.loadMeshFromFile (mm)</td><td>42,076 faces, 1.1 s; the two centres 106.1 mm apart</td></tr><tr><td>Automatic Mesh Registration</td><td>MeshHelper.registerMeshWithOBB</td><td>centres 106.1 mm -&gt; 0.048 mm, 1.9 s</td></tr><tr><td>Signed deviation map</td><td>computeSignedDeviationMap</td><td>-0.065 to +0.062 mm, RMS 0.027 mm; 94.2% within ±0.05 mm; 0% unmatched; 24,232 vertices, 0.6 s</td></tr><tr><td>Whole run</td><td>all of the above</td><td>6.9 s</td></tr></table></div>
+<p>The <strong>unmatched</strong> figure is worth understanding. A vertex that finds <strong>no CAD face at all within the search distance</strong> comes back as exactly 0.0, and 0.0 is the prettiest green on the colour bar. So the plugin counts the vertices that are exactly 0.0 and <strong>refuses to show the map, with the reason, when too many are</strong> - no picture beats a beautiful wrong one.</p>
+<h2 id="3-what-the-bundled-dataset-shows-and-what-it-does-not">3. What the bundled dataset shows, and what it does not</h2>
+<p><strong>⚠ </strong><strong>The bundled &quot;actual&quot; is a mesh export of the SAME CAD model.</strong><strong> Translate Impeller_150.STL by about (-75, 0, -75) mm and every point of Impeller_150.STEP lands within about 0.03 mm of its surface - which is exactly the CAD-to-mesh tessellation tolerance.</strong></p>
+<ul>
+<li><strong>The registration is real, and it is dramatic.</strong> The two objects start 106.1 mm apart at their centres and end 0.048 mm apart. That step demonstrates Dragonfly 2027.1&#x27;s automatic registration at full strength, with nothing held back.</li>
+<li><strong>The deviation map that follows measures tessellation difference (about 0.03 mm), not manufacturing error.</strong> It is a fair way to show what a signed deviation map looks like and how to read one. It must <strong>never</strong> be described as this part&#x27;s machining deviation or as-built quality.</li>
+</ul>
+<p>The demo says exactly that on the canvas, and the Manager repeats it in the dataset&#x27;s own description. To show true as-built deviation, switch to <strong>Custom dataset</strong> and point it at a genuinely scanned part (CT or optical) - and set the tolerance band to that part&#x27;s real tolerance while you are there.</p>
+<h2 id="4-running-it-at-a-booth">4. Running it at a booth</h2>
+<p>Opening a demo from the <strong>Demo Workflows</strong> menu opens the presenter panel: the demo picker and the dataset description at the top, the step list with its progress marks (✓ / ▶) in the middle, and the last result plus the controls at the bottom.</p>
+<ul>
+<li><strong>Start / Next</strong> - the presenter owns the pace by default. Start runs the first step; every Next advances one step, so you can stop anywhere and talk.</li>
+<li><strong>Auto-play + the pace slider</strong> - tick Auto-play and the demo runs itself, which is the unattended booth loop; the slider stretches or shortens every step&#x27;s dwell together (0.5x to 2.5x). Pause / Resume only means anything while Auto-play is on.</li>
+<li><strong>Restart</strong> - clears the previous round&#x27;s objects, restores the scene, and runs from step one again. This is the button for the next visitor.</li>
+<li><strong>Reset session</strong> - stops the demo, deletes <strong>only the objects this demo published</strong> (recorded one GUID at a time, never an enumeration of your data), restores the visibility and camera it snapshotted at the start, and un-maximises the 3D view. Tick <strong>Keep the created objects when the demo closes</strong> in the Manager and the objects stay in the session for you to work on instead.</li>
+</ul>
+<p>Open a 3D view before you press Start; without one the panel says so rather than starting. The window is <strong>not</strong> frozen while a demo runs: a long Dragonfly operation shows its progress and the window keeps repainting - it just does not accept input for those seconds.</p>
+<p>When a step fails, the picture stays on the <strong>last good frame</strong>, the narration line becomes one plain sentence about what did not complete, and the panel repeats it in its banner. No dialog pops up and no Python traceback is ever put in front of the audience.</p>
+<h2 id="5-the-demo-workflows-manager">5. The Demo Workflows Manager</h2>
+<p><strong>Demo Workflows ▸ Demo Workflows Manager...</strong> manages how the demos BEHAVE at a show, which is a different question from what the App Store manages (what is installed). The left-hand list is the demos, and the tick decides whether a demo appears on the Demo Workflows menu; the right-hand side is that demo&#x27;s data and playback. <strong>Everything is applied and saved immediately</strong> - there is no OK button to forget.</p>
+<ul>
+<li><strong>Dataset</strong> - switch between the datasets the demo offers (the impeller demo offers the bundled one and Custom dataset). Choosing Custom dataset reveals the nominal and actual file pickers.</li>
+<li><strong>Folder</strong> - override the folder the dataset lives in. This is the one field to change when the whole dataset travels on a USB stick.</li>
+<li><strong>Tolerance band (mm)</strong> - the green band of the deviation map, and what the &quot;x% within tolerance&quot; sentence is measured against. Left at its minimum it reads <em>dataset default</em> and the dataset&#x27;s own value is used (0.05 mm for the bundled impeller).</li>
+<li><strong>Pace / Auto-play at the booth / Maximise the 3D view for the result / Keep the created objects</strong> - the persistent version of the panel&#x27;s own switches. Configure once and the next session opens the same way.</li>
+<li><strong>Reset this demo to factory</strong> - forget everything saved for that demo.</li>
+</ul>
+<p>Settings live in %LOCALAPPDATA%\DragonflyPrototypeLabs\demo_workflows\demo_workflows.json - the window shows that path along its bottom edge. It is <strong>shared by every Dragonfly version</strong> and sits outside the plugin folder, so a laptop configured for a show stays configured across a plugin reinstall, an App Store update or a new Dragonfly.</p>
+<p><strong>⚠ Dragonfly builds its menus </strong><strong>once, at startup</strong><strong>. So enabling or disabling a demo here shows on the Demo Workflows menu </strong><strong>after the next restart</strong><strong> - the window says so rather than pretending otherwise. Every other setting (dataset, tolerance, pace, ...) takes effect immediately.</strong></p>
+<h2 id="6-using-your-own-part">6. Using your own part</h2>
+<p>1. Open <strong>Demo Workflows ▸ Demo Workflows Manager...</strong> and select the demo on the left.</p>
+<p>2. Set <strong>Dataset</strong> to <strong>Custom dataset</strong>.</p>
+<p>3. Pick your CAD in <strong>Nominal file</strong>: <strong>STEP / STP needs 2027.1</strong>; STL / OBJ / PLY also work as a nominal.</p>
+<p>4. Pick the scanned surface mesh in <strong>Actual file</strong> (STL / OBJ / PLY).</p>
+<p>5. Set <strong>Tolerance band (mm)</strong> to the part&#x27;s real tolerance; left at its minimum the dataset default of 0.5 mm is used.</p>
+<p>6. Read the status line at the bottom: ✓ means it will run; ⚠ lists exactly what is missing (a file that is not there, a capability this Dragonfly does not have, ...).</p>
+<p><strong>⚠ </strong><strong>STL / OBJ / PLY files carry no units</strong><strong>, and Dragonfly&#x27;s world unit is the </strong><strong>metre</strong><strong>. This plugin always loads such a mesh as </strong><strong>millimetres</strong><strong>, so a 150 mm part is 150 mm and not 150 metres. If your mesh was exported in metres or inches, convert it before importing. </strong><strong>STEP is not affected</strong><strong>: it carries its own LENGTH_UNIT, is already in metres when it arrives, and is never rescaled.</strong></p>
+<p>Registration <strong>moves</strong> the meshes it works on and bakes the transform into the objects themselves, so each run loads both objects from file again rather than re-registering the previous round&#x27;s result. That is why Restart gives exactly the same picture as the first run.</p>
+<h2 id="7-requirements-and-limits">7. Requirements and limits</h2>
+<p><strong>Dragonfly 3D World 2027.1 or newer, and nothing else.</strong> No install, no internet, no GPU, no venv, no admin rights: in-process PyQt6 plus Dragonfly&#x27;s own CAD and mesh readers. The impeller dataset (STEP 3.0 MB + STL 2.1 MB) is bundled with the plugin.</p>
+<ul>
+<li>A <strong>3D view</strong> must be open before you press Start.</li>
+<li>Enabling or disabling a demo needs a <strong>Dragonfly restart</strong> before the menu changes (menus are built at startup).</li>
+<li>The narration is a temporary object drawn on the view. It is <strong>never</strong> saved into a session file, and it is swept away when the demo ends, when the panel closes, and again when the player next starts - so nothing is left burned onto the canvas.</li>
+<li>The bundled dataset&#x27;s deviation figures are <strong>not manufacturing error</strong> (section 3). No customer-facing material may describe them as a real part&#x27;s machining deviation.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>DemoWorkflows-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

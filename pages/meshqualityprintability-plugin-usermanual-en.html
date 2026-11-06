@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesh Element Quality &amp; Printability · Dragonfly Prototype Apps</title>
+<meta name="description" content="Mesh Element Quality &amp; Printability - User Manual Dragonfly Prototype Apps · Mesh Element Quality &amp; Printability... Version 1.0 · 2026-08-01 English Manual…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Mesh Element Quality &amp; Printability</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Mesh Element Quality &amp; Printability...</div>
+    <h1>Mesh Element Quality &amp; Printability</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-08-01</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-setup-source">1. Setup &amp; Source</a></li><li class="t3"><a href="#2-surface-integrity">2. Surface Integrity</a></li><li class="t3"><a href="#3-element-quality">3. Element Quality</a></li><li class="t3"><a href="#4-printability">4. Printability</a></li><li class="t3"><a href="#5-review-repair">5. Review &amp; Repair</a></li><li class="t3"><a href="#6-publish-export">6. Publish &amp; Export</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Mesh Element Quality &amp; Printability - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Mesh Element Quality &amp; Printability...</p>
+<p>Version 1.0 · 2026-08-01</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>This plugin checks a published surface mesh the way a <strong>solver</strong> or a <strong>3D printer</strong> will, optionally together with a volumetric grid loaded from a .vtu / .vtk file. It never modifies your input: every result is either a new scalar slot on the mesh or a newly published object.</p>
+<p>The panel is six numbered steps. A step stays disabled until its inputs exist, and changing anything upstream invalidates the results below it, so an exported number always matches the settings on screen.</p>
+<p>All element-quality metrics follow the <strong>Verdict</strong> definitions (VTK&#x27;s vtkMeshQuality is the reference implementation) and are cross-checked value-by-value by automated tests, so a number here is directly comparable with any other Verdict-based tool.</p>
+<p><strong>Execute All Steps with Current Settings</strong> on the first tab runs the workflow unattended - surface, mesh quality, printability - each step with whatever its own tab shows when you press it. Three steps are tick boxes and all three are OFF by default: the orientation sweep, because it runs up to 512 full overhang analyses, and the two publishing steps, because they write to the session. Every tab stays open so the thresholds and the print settings can be read and changed BEFORE the run; a step whose input does not exist yet refuses when you press ITS button and says which step is missing.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>FEM pre-processing: confirm there are no <strong>inverted cells</strong>, extreme aspect ratios or tiny minimum angles.</li>
+<li>Additive manufacturing: evaluate <strong>overhang area</strong> and <strong>minimum wall thickness</strong> for a build direction, and let the plugin sweep for a better one.</li>
+<li>After segmenting industrial CT: verify the reconstructed mesh is <strong>watertight</strong> and free of <strong>self-intersections</strong> before simulation or printing.</li>
+<li>Locate what to repair: publish a mesh copy containing only the failing elements and see the problem in the 3D view.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install the Prototype Apps package (or tick this plugin in the App Store).</p>
+<p>2. The plugin is <strong>disabled by default</strong> — enable it in the App Store or the Menu Item Manager.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> (plugins are discovered at startup only).</p>
+<p>4. Open it from Prototype Apps ▸ Mesh Element Quality &amp; Printability… (group: Simulation &amp; Meshing).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>Nothing to install or configure.</strong> The plugin runs entirely inside Dragonfly&#x27;s own Python using the VTK 9.4.2 and trimesh it already ships. No internet, no download, no GPU, no virtual environment.</p>
+<p>The <strong>Environment</strong> line at the top of the panel reports three capabilities live: the VTK version, whether scalar write-back is available, and whether wall thickness can be computed (it needs trimesh). Anything unavailable disables the matching feature and says why, rather than returning a wrong answer.</p>
+<h2 id="5-interface">5. Interface</h2>
+<p>A fixed header shows the environment, the current input, the current task, a progress bar and <strong>Cancel</strong>. Long analyses run on a worker thread so the UI stays responsive, and a cancelled or failed run publishes nothing.</p>
+<h3 id="1-setup-source">1. Setup &amp; Source</h3>
+<p>Pick a <strong>published</strong> mesh (the list shows published objects only), optionally point at a .vtu / .vtk volumetric grid, and choose an analysis profile: Surface QA, FEM QA or Additive Manufacturing. The profile supplies the thresholds used in steps 3 and 5.</p>
+<h3 id="2-surface-integrity">2. Surface Integrity</h3>
+<p>Reports vertex/face/edge counts, watertightness, manifoldness, boundary and non-manifold edges, duplicate and degenerate faces, duplicate vertices, orientation consistency, Euler characteristic, genus, surface area and enclosed volume. Ticking self-intersection adds a pairwise triangle test (slow); if the candidate budget is exhausted the result is explicitly marked as truncated and incomplete.</p>
+<h3 id="3-element-quality">3. Element Quality</h3>
+<p>Min/max/mean per metric plus OK / warn / fail counts under the active profile, and the 25 worst elements. When a volumetric grid is loaded, tet and hex volume, scaled Jacobian, dihedral angles and inverted-cell detection are computed too.</p>
+<h3 id="4-printability">4. Printability</h3>
+<p>For the chosen build direction: overhang face count and area, build width/depth/height and footprint, sharp-edge count, and ray-cast wall thickness (minimum and median). The orientation sweep samples directions uniformly on the sphere and ranks them by overhang area then height — the ranking is <strong>deterministic</strong>.</p>
+<h3 id="5-review-repair">5. Review &amp; Repair</h3>
+<p>Lists the elements that fail the active profile and why. This plugin <strong>diagnoses only</strong>: hole filling, remeshing and decimation live in the PyMeshLab plugin and are not duplicated here.</p>
+<h3 id="6-publish-export">6. Publish &amp; Export</h3>
+<p>Write the results back as scalar slots, publish a mesh copy containing only the failing elements, or export CSV, VTP and a self-contained HTML report.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. In step 1 select the mesh and the analysis profile.</p>
+<p>2. In step 2 click Run surface checks. If the mesh is not watertight or has non-manifold edges, note it — volume and printability answers depend on it.</p>
+<p>3. In step 3 click Run element quality and read the fail counts and the worst-element list.</p>
+<p>4. In step 4 set the build direction and overhang limit and click Run printability; click Run orientation sweep to look for a better direction.</p>
+<p>5. In step 5 review the failing elements.</p>
+<p>6. In step 6 write the scalars back, publish the failed-element copy, or export a report.</p>
+<p>You can go back to an earlier step at any time; the plugin clears the results that depended on what you changed and tells you to re-run.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Analysis profile</td><td>Surface QA</td><td>Surface QA / FEM QA / Additive Manufacturing</td><td>Supplies the OK / warn / fail thresholds used in steps 3 and 5</td></tr><tr><td>Check self-intersections</td><td>off</td><td>on / off</td><td>Pairwise triangle intersection test; slow, and marked incomplete if the candidate budget is exhausted</td></tr><tr><td>Build direction</td><td>0, 0, 1</td><td>each component −1…1</td><td>Build-up direction; overhangs and build dimensions are measured relative to it</td></tr><tr><td>Overhang limit</td><td>45</td><td>0…89 deg</td><td>How far a wall may lean from vertical before it needs support</td></tr><tr><td>Sharp edge angle</td><td>80</td><td>0…180 deg</td><td>An edge counts as sharp when the angle between its two face normals exceeds this</td></tr><tr><td>Wall thickness samples</td><td>4000</td><td>0…200000</td><td>Number of faces sampled by the ray cast; 0 skips thickness entirely</td></tr><tr><td>Sweep directions</td><td>64</td><td>4…512</td><td>Directions sampled uniformly on the sphere; more is finer but slower</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<ul>
+<li><strong>Mesh scalar slots</strong>: MQ Aspect Ratio, MQ Min Angle, MQ Scaled Jacobian, MQ Skewness, MQ Face Slope (degrees) and MQ Overhang. Per-face metrics are scattered to vertices with area weighting.</li>
+<li><strong>Failed-element mesh copy</strong>: a newly published mesh containing only the faces that fail the active profile, with vertices compacted. The original mesh is untouched.</li>
+<li><strong>CSV</strong>: every metric per face; if element quality has not been run, the surface-integrity summary is exported instead.</li>
+<li><strong>VTP</strong>: the surface with per-cell scalars, ready to open in ParaView.</li>
+<li><strong>HTML</strong>: a self-contained report containing only the steps that actually ran.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<p><strong>My mesh is not in the list.</strong> The list shows <strong>published</strong> objects only. Publish the mesh, then press Refresh in step 1.</p>
+<p><strong>Wall thickness says not computed.</strong> Either the sample count is 0 or trimesh is missing in this environment; the Environment line at the top says which.</p>
+<p><strong>Enclosed volume shows a dash.</strong> Enclosed volume is only meaningful for a watertight mesh — check step 2 first.</p>
+<p><strong>Self-intersection says the search was truncated.</strong> The candidate budget was exhausted, so the result is incomplete; decimate or check in blocks, and do not read it as &#x27;no self-intersections&#x27;.</p>
+<p><strong>A loaded volumetric grid produced no element quality.</strong> Grids read from file currently support tetrahedra and hexahedra; other cell types are skipped.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>This plugin <strong>diagnoses only</strong> — hole filling, remeshing and decimation belong to the PyMeshLab plugin.</li>
+<li>The distortion metric comes from VTK. It is deliberately not reimplemented here: the Verdict definition needs the full Jacobian, and a look-alike approximation under the same name would not be comparable.</li>
+<li>Hex volume is the sum of five tetrahedra, which is an <strong>estimate</strong> for badly warped cells.</li>
+<li>Wall thickness is a ray cast along the inward face normal to the opposite wall. That is a different definition from VertexMeasurements&#x27; local thickness, and the two are not interchangeable.</li>
+<li>Reading volumetric cell connectivity straight from a Dragonfly object is not available on every build; the plugin says so and asks you to use the .vtu file input instead.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>VTK vtkMeshQuality: https://vtk.org/doc/nightly/html/classvtkMeshQuality.html</li>
+<li>The Verdict geometric quality library (the reference implementation inside VTK)</li>
+<li>Blender 3D-Print Toolbox (used only as a reference for which checks matter; no source was copied): https://docs.blender.org/manual/en/3.6/addons/mesh/3d_print_toolbox.html</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MeshQualityPrintability-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

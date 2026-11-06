@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImageJ / Fiji Bridge · Dragonfly Prototype Apps</title>
+<meta name="description" content="ImageJ / Fiji Bridge - User Manual Dragonfly Prototype Apps · ImageJ / Fiji Bridge... Version 2.0 · 2026-07-31 English Manual Contents 1. Introduction 2. U…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">ImageJ / Fiji Bridge</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · ImageJ / Fiji Bridge...</div>
+    <h1>ImageJ / Fiji Bridge</h1>
+    <div class="meta"><span class="badge">Version 2.0 · 2026-07-31</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#inputs">Inputs</a></li><li class="t3"><a href="#operation">Operation</a></li><li class="t3"><a href="#bring-back">Bring back</a></li><li class="t3"><a href="#running-and-diagnosing">Running and diagnosing</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t3"><a href="#variables-a-macro-can-use">Variables a macro can use</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>ImageJ / Fiji Bridge - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · ImageJ / Fiji Bridge...</p>
+<p>Version 2.0 · 2026-07-31</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>ImageJ / Fiji Bridge</strong> connects Dragonfly to the <strong>Fiji/ImageJ</strong> you already have installed: pick <strong>published</strong> Dragonfly objects in the panel, choose a built-in command or write a macro, and the plugin exports those objects as ImageJ TIFFs, drives your local Fiji <strong>headlessly</strong> to process them, and brings the results back into Dragonfly.</p>
+<p>Since version 2.0 a single run can take <strong>several inputs</strong>, a chosen <strong>range of time points</strong>, and <strong>MultiROI/ROI labels</strong>, and can bring back three things at once: a new <strong>Channel</strong>, a new <strong>MultiROI</strong>, and ImageJ&#x27;s <strong>measurements table</strong>.</p>
+<p>The mechanism is a <strong>job folder</strong>: the plugin creates one folder per run, writes the inputs there under fixed names, and the macro only needs to know that folder.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>File</th><th>Direction</th><th>Meaning</th></tr><tr><td>in_1.tif … in_N.tif</td><td>→ ImageJ</td><td>image inputs, in the order you arranged them</td></tr><tr><td>labels_1.tif …</td><td>→ ImageJ</td><td>a MultiROI (label ids kept) or an ROI (0/255 mask)</td></tr><tr><td>job.json</td><td>→ ImageJ</td><td>titles, voxel spacing, time-point count, data type</td></tr><tr><td>out.tif</td><td>← ImageJ</td><td>result image (may be a 4-D hyperstack) → a Channel</td></tr><tr><td>out_labels.tif</td><td>← ImageJ</td><td>result label image → a MultiROI</td></tr><tr><td>results.csv</td><td>← ImageJ</td><td>the ImageJ Results table → the panel&#x27;s Results tab</td></tr><tr><td>runner_log.txt</td><td>← ImageJ</td><td>everything Fiji printed; the first place to look</td></tr></table></div>
+<p>The older &lt;in&gt;|&lt;out&gt; contract still works exactly as before, so macros you wrote and saved in &quot;My Macros&quot; keep running. Which contract a macro wants is <strong>declared by the macro</strong> (// @protocol job or // @protocol legacy) rather than guessed.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Reusing ImageJ/Fiji&#x27;s huge ecosystem (plugins, macros, algorithms) directly: life-science microscopy, materials image processing.</li>
+<li><strong>Two-input arithmetic</strong>: subtract a background acquisition, divide by a flat field, difference two time points - with Image Calculator.</li>
+<li><strong>Numbers, not pixels</strong>: Analyze Particles per object, or per-slice intensity statistics, shown as a table you can save as CSV.</li>
+<li><strong>Labelled objects</strong>: turn a threshold result into one object per particle and bring it back as a MultiROI for Dragonfly&#x27;s own measurement and display tools.</li>
+<li><strong>Time series</strong>: process only the time points you care about in a 4-D image, saving both memory and time.</li>
+<li><strong>A MultiROI as a mask</strong>: keep only what the labels cover and zero the rest.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>The plugin ships with Prototype Apps. Enable it with the installer (install_prototype_apps.exe) or from the <strong>App Store</strong> inside Dragonfly; the menu entry is <strong>Prototype Apps ▸ Detection &amp; Bridges ▸ ImageJ / Fiji Bridge...</strong>.</p>
+<p>Menus are built when Dragonfly <strong>starts</strong>, so <strong>restart Dragonfly once</strong> after installing or enabling it.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>There is <strong>no</strong> Python virtual environment to build and nothing to download: TIFF I/O uses Dragonfly&#x27;s bundled tifffile (falling back to Pillow). The only external dependency is a <strong>locally installed Fiji/ImageJ</strong>, free from https://fiji.sc.</p>
+<p>1. Open the panel and look at the <strong>Fiji / ImageJ</strong> group. The plugin searches the usual locations, so it is often already filled in.</p>
+<p>2. If not, click <strong>Browse...</strong> and pick the launcher inside your Fiji installation. <strong>Prefer </strong>ImageJ-win64.exe.</p>
+<p>3. Raise <strong>Max heap</strong> (default 4096 MB) for large volumes.</p>
+<p>4. The path and heap size are remembered in imagej_config.json next to the plugin code.</p>
+<p>Why ImageJ-win64.exe matters: the newer Jaunch launcher (fiji-windows-x64.exe / fiji.exe) does <strong>not</strong> run a headless macro - it reports success having done nothing. When the plugin sees a Jaunch launcher it switches to the ImageJ-win64.exe sibling in the same Fiji.app and says so in the log.</p>
+<p>The environment variable DF_FIJI_PATH can also point at the launcher.</p>
+<h2 id="5-interface">5. Interface</h2>
+<h3 id="inputs">Inputs</h3>
+<p>The list at the top is this run&#x27;s inputs. Each row shows which job file it becomes (in_1.tif / labels_1.tif), its type, name, shape, time-point count and label count. The combo below lists every <strong>published</strong> Channel, MultiROI and ROI in the session; <strong>Add</strong> puts one in the list and <strong>Move up/Move down</strong> reorder it - the order decides which object is in_1, which is the contract with the macro. Images and MultiROIs/ROIs are numbered in separate sequences.</p>
+<p>Selecting a 4-D (time series) row enables the <strong>time points</strong> row: <strong>All</strong>, or an explicit from/to range. The range belongs to that input, so selecting another row and coming back keeps what you set.</p>
+<h3 id="operation">Operation</h3>
+<p>Three ways: a <strong>built-in command</strong> (a common ImageJ operation with parameters), a <strong>custom macro</strong> (load a preset from the library and edit it), or a <strong>macro file</strong> (.ijm). A built-in command states how many inputs it needs, whether it needs a MultiROI, and whether it changes the data type.</p>
+<h3 id="bring-back">Bring back</h3>
+<p>Three tick boxes: image → new Channel, labels → new MultiROI, measurements table. Choosing a built-in command <strong>ticks exactly what that command can produce and disables the rest</strong> - a measurement-only command will not pretend it can hand you an image.</p>
+<h3 id="running-and-diagnosing">Running and diagnosing</h3>
+<p><strong>Run in Fiji + Import</strong> starts the run, <strong>Cancel</strong> stops it, and <strong>Open job folder</strong> opens this run&#x27;s folder (the exported inputs, the macro that actually ran, and runner_log.txt). The two tabs below hold the log and the Results table; the table can be saved as CSV.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Prepare your data in Dragonfly and make sure the objects are <strong>published</strong> (unpublished objects are deliberately not offered).</p>
+<p>2. Open <strong>Prototype Apps ▸ Detection &amp; Bridges ▸ ImageJ / Fiji Bridge...</strong>.</p>
+<p>3. Check the Fiji launcher path.</p>
+<p>4. Pick an object in the combo and click <strong>Add</strong>; repeat for a second image or a label input, and reorder if needed.</p>
+<p>5. For a 4-D input, select its row and set the time-point range if you do not want all of them.</p>
+<p>6. Choose a built-in command and its parameters, or switch to a custom macro and load a preset to edit.</p>
+<p>7. Check the <strong>Bring back</strong> ticks and the hint under the input list - it tells you what is still missing.</p>
+<p>8. Click <strong>Run in Fiji + Import</strong>. Output streams into the Log tab while Fiji works.</p>
+<p>9. When it finishes, the new Channel / MultiROI appear in Dragonfly&#x27;s object list and the table appears in the Results tab.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Parameter</th><th>Meaning</th></tr><tr><td>Launcher</td><td>Path to the Fiji/ImageJ launcher. Prefer ImageJ-win64.exe.</td></tr><tr><td>Max heap</td><td>Maximum JVM heap for Fiji in MB; 0 uses the launcher default. Raise it for big volumes.</td></tr><tr><td>Output suffix</td><td>Suffix of the result name, which becomes &lt;input&gt; - &lt;suffix&gt;.</td></tr><tr><td>Time points All / from / to</td><td>Which time points of that input take part (1-based, inclusive).</td></tr><tr><td>Threshold method</td><td>Auto-threshold method (Otsu, Huang, Li, MaxEntropy, Mean, Triangle, Yen, Default), named as in ImageJ.</td></tr><tr><td>Min size (px)</td><td>Smallest object Analyze Particles keeps, in pixels.</td></tr><tr><td>Operation</td><td>The Image Calculator operation: Add, Subtract, Multiply, Divide, AND, OR, XOR, Min, Max, Average, Difference.</td></tr><tr><td>Sigma / Radius / Iterations</td><td>Each filter&#x27;s own parameters, with the same meaning as in the identically named ImageJ command.</td></tr></table></div>
+<h3 id="variables-a-macro-can-use">Variables a macro can use</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Variable</th><th>Meaning</th></tr><tr><td>dir</td><td>the job folder, with a trailing slash</td></tr><tr><td>nIn</td><td>how many in_*.tif image inputs exist</td></tr><tr><td>nLab</td><td>how many labels_*.tif label inputs exist</td></tr><tr><td>saveOut</td><td>1 by default: save the active image as out.tif at the end. Set it to 0 in a measurement-only macro, or when the real result is out_labels.tif</td></tr></table></div>
+<p>If the macro measured anything (nResults &gt; 0) the Results table is saved to results.csv <strong>automatically</strong> - no saveAs line needed.</p>
+<h2 id="8-output">8. Output</h2>
+<ul>
+<li><strong>A new Channel</strong> (from out.tif), named &lt;input&gt; - &lt;suffix&gt;. <strong>Integer results stay integral</strong> (8/16-bit is not forced to float), voxel spacing and origin are carried over where possible, and a 4-D result keeps its time axis.</li>
+<li><strong>A new MultiROI</strong> (from out_labels.tif): labels are renumbered to a consecutive 1..N and given default colours.</li>
+<li><strong>A measurements table</strong> (from results.csv): shown in the Results tab with numeric columns right-aligned, and saveable as CSV.</li>
+<li><strong>The job folder</strong>: the exported inputs, job.json, the macro.ijm that actually ran and runner_log.txt all stay on disk whether the run succeeded or failed - that is what you diagnose from.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<p><strong>Fiji is not found.</strong> Browse to ImageJ-win64.exe yourself, or set DF_FIJI_PATH. If you have no Fiji yet, download it from https://fiji.sc.</p>
+<p><strong>Fiji &quot;succeeds&quot; but produces nothing.</strong> Almost always the Jaunch launcher (fiji-windows-x64.exe). Use ImageJ-win64.exe from the same folder; the log and the error message say so too.</p>
+<p><strong>It says none of out.tif / out_labels.tif / results.csv was produced.</strong> Open the job folder and read runner_log.txt: usually a mistyped command or option, a command that needs a display (unavailable headless), or a missing Fiji plugin.</p>
+<p><strong>A MorphoLibJ preset reports an unknown command.</strong> Enable the <strong>IJPB-plugins</strong> update site in Fiji (Help ▸ Update...), restart Fiji, and try again.</p>
+<p><strong>The imported image looks like one colour only.</strong> A Dragonfly Channel holds one value per voxel, so when ImageJ returns a colour image (e.g. the tagged skeleton of Analyze Skeleton) only channel 1 can be kept, and the log says so. Split the channels in your macro and output them separately if you need all three.</p>
+<p><strong>The label import fails saying there are no labels.</strong> Every voxel in out_labels.tif is 0, i.e. the segmentation found nothing - adjust the threshold method or the minimum size.</p>
+<p><strong>A long time series runs out of memory.</strong> Use the time-point range and process it in batches: export only the frames you need.</p>
+<p><strong>The run is refused because the TIFF library failed its self-test.</strong> Before every run the plugin round-trips known arrays through TIFF; if that fails it stops rather than writing data it cannot read back. Please send us that log section.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>Orientation matrices are not carried</strong>: this version transfers voxel spacing and origin only. If your data has a rotated or sheared orientation, the result&#x27;s orientation is not restored.</li>
+<li>One run brings back at most <strong>one</strong> MultiROI (out_labels.tif) and <strong>one</strong> Channel (out.tif).</li>
+<li><strong>A MultiROI has no time axis</strong>: if the label result is 4-D, only its first time point is used, and the log says so.</li>
+<li>A macro declaring the legacy contract only receives the <strong>first</strong> Channel; rewrite it against the job contract (dir + in_1.tif) to use several inputs.</li>
+<li>An ROI is exported as a <strong>0/255 mask</strong> and a MultiROI as <strong>label ids</strong> - which matches what ImageJ&#x27;s binary commands expect, but is a difference to keep in mind when writing macros.</li>
+<li>ImageJ commands that cannot run headless (needing a window or interaction) cannot run here either.</li>
+<li>The plugin never installs or updates Fiji, and never enables an update site for you.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Fiji / ImageJ: https://fiji.sc ; the ImageJ macro language: https://imagej.net/ij/developer/macro/functions.html</li>
+<li>Particle analysis: https://imagej.net/imaging/particle-analysis</li>
+<li>Image Calculator: https://imagej.net/ij/docs/menus/process.html#calculator</li>
+<li>MorphoLibJ: https://imagej.net/plugins/morpholibj ; Legland et al. 2016, doi:10.1093/bioinformatics/btw413</li>
+<li>Running ImageJ headless: https://imagej.net/learn/headless</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ImageJ-Bridge-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

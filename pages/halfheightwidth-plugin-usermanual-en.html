@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Half-Height Slope Width · Dragonfly Prototype Apps</title>
+<meta name="description" content="Half-Height Slope Width - User Manual Dragonfly Prototype Apps · Half-Height Slope Width... Version 1.2 · 2026-08-10 English Manual Contents 1. Introductio…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Half-Height Slope Width</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Half-Height Slope Width...</div>
+    <h1>Half-Height Slope Width</h1>
+    <div class="meta"><span class="badge">Version 1.2 · 2026-08-10</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-two-ways-to-use-it">2. Two ways to use it</a></li><li class="t2"><a href="#3-algorithm">3. Algorithm</a></li><li class="t2"><a href="#4-requirements">4. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Half-Height Slope Width - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Half-Height Slope Width...</p>
+<p>Version 1.2 · 2026-08-10</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Half-Height Slope Width</strong> measures the width between the two <strong>half-height slope crossings</strong> of the intensity profile along a ruler: the profile is sampled on a selected channel along a selected ruler (100 points), the internal peak or valley is found automatically, the half-height point (midpoint between baseline and extremum, linearly interpolated) is located on each slope, and the width between the two points is reported in millimetres — optionally publishing a new ruler spanning them. This is the Prototype Apps port of the legacy local plugin CalWidthOfHalfHighSlope (计算半高坡宽度).</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. Unlike the legacy plugin, it imports nothing heavy at Dragonfly startup.</p>
+<h2 id="2-two-ways-to-use-it">2. Two ways to use it</h2>
+<ul>
+<li><strong>Panel</strong>: menu Prototype Apps &gt; Half-Height Slope Width..., pick a channel and a ruler, click Calculate; tick the publish option to also create a new ruler at the half-height points (titled &#x27;&lt;ruler&gt; (half-height)&#x27;).</li>
+<li><strong>Right-click (legacy flow)</strong>: select a ruler in the object list &gt; right-click &gt; &#x27;Half-Height Slope Width 半高坡宽度&#x27;: one click computes and shows the result, with an &#x27;OK + new ruler&#x27; option. With multiple channels a picker appears first.</li>
+</ul>
+<p><strong>The right-click entry carries a marker - and this manual quotes its name without one.</strong> On Dragonfly&#x27;s own right-click menu the entry is displayed with one glyph in front of its name, ● by default, so you can see at a glance that Prototype Apps added it and Dragonfly did not; Dragonfly&#x27;s own entries never carry one. So the entry&#x27;s <strong>name</strong> is <em>Half-Height Slope Width 半高坡宽度</em>, and with the default marker it reads ● Half-Height Slope Width 半高坡宽度 on the menu.</p>
+<p><strong>The marker is not a setting of this plugin.</strong> It is one setting shared by all of Prototype Apps, and it lives in a DIFFERENT plugin&#x27;s panel: <strong>Custom Context Menus</strong> ▸ the <em>1 Entries</em> tab ▸ the <strong>Mark our entries on Dragonfly&#x27;s menus</strong> group. There you can pick another glyph (•, ▪, @) or choose <em>no marker</em> to switch the feature off completely, and every marked entry across the plugins changes with it. Dragonfly rebuilds this entry on every right-click, so a change shows at your <strong>next right-click</strong> - no restart. The setting lives in a shared file outside both plugins, so your choice - including <em>no marker</em> - still applies to this entry when Custom Context Menus is not installed or is disabled in the App Store. What you lose in that case is only the place to CHANGE it: there is then no panel offering the choice, and an installation that never made one shows the default marker.</p>
+<h2 id="3-algorithm">3. Algorithm</h2>
+<p>1. Sample 100 equidistant mean-intensity points along the ruler (the same API as Dragonfly&#x27;s profile tool).</p>
+<p>2. Find the internal extremum: compare the internal max/min deviation from the mean of the two end baselines; take the larger (peak or valley).</p>
+<p>3. Left slope: target amplitude = (left baseline + extremum)/2, crossing found by linear interpolation; right slope likewise.</p>
+<p>4. Width = distance between the two half-height points, converted to millimetres from their world coordinates.</p>
+<p>An extremum at a ruler end, a monotonic profile, or fewer than 3 samples produce clear error messages instead of failures. Unit-tested against a triangle profile and a Gaussian (matches the analytic FWHM).</p>
+<h2 id="4-requirements">4. Requirements</h2>
+<p>No install/internet/GPU/venv. Needs at least one Channel and one ruler annotation in the session.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>HalfHeightWidth-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

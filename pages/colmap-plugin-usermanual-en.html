@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo2Mesh: COLMAP · Dragonfly Prototype Apps</title>
+<meta name="description" content="Photo2Mesh: COLMAP - User Manual Dragonfly Prototype Apps · Photo2Mesh: COLMAP... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Typical u…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Photo2Mesh: COLMAP</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Photo2Mesh: COLMAP...</div>
+    <h1>Photo2Mesh: COLMAP</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-typical-use-cases">2. Typical use cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime environment and first-time setup</a></li><li class="t2"><a href="#5-user-interface">5. User interface</a></li><li class="t3"><a href="#5-1-colmap-engine-group">5.1 COLMAP engine group</a></li><li class="t3"><a href="#5-2-photo-input-group">5.2 Photo input group</a></li><li class="t3"><a href="#5-3-options-group">5.3 Options group</a></li><li class="t3"><a href="#5-4-run-controls-and-log-right-pane">5.4 Run controls and log (right pane)</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t3"><a href="#6-1-workflow-a-reconstruct-from-a-dragonfly-image-stack">6.1 Workflow A: reconstruct from a Dragonfly image stack</a></li><li class="t3"><a href="#6-2-workflow-b-reconstruct-from-a-photos-folder">6.2 Workflow B: reconstruct from a photos folder</a></li><li class="t3"><a href="#6-3-cancelling-and-job-files">6.3 Cancelling and job files</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Photo2Mesh: COLMAP - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Photo2Mesh: COLMAP...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Photo2Mesh: COLMAP</strong> is one of the three photogrammetry plugins in the Photo2Mesh family of Dragonfly Prototype Apps (the other two are Photo2Mesh: Meshroom and Photo2Mesh: gsplat). It reconstructs a 3D <strong>surface mesh</strong> of a physical object from a series of ordinary photos taken around it, using the classical <strong>COLMAP</strong> photogrammetry pipeline, and publishes the result directly as a Mesh object in the Dragonfly scene.</p>
+<p>The underlying engine is <strong>COLMAP 4.1.0</strong> (the version the plugin downloads by default; you can also point the panel at any other installed colmap.exe). Reconstruction runs COLMAP&#x27;s automatic_reconstructor command, which executes the full pipeline in one go: feature extraction and matching → incremental structure-from-motion (SfM, sparse reconstruction) → image undistortion → dense PatchMatch multi-view stereo (MVS) → stereo fusion → surface meshing (Poisson or Delaunay). COLMAP is a self-contained Windows binary that runs entirely outside the Dragonfly process; the plugin only prepares the photos, launches the process, parses its progress, and imports the resulting meshed-*.ply mesh into Dragonfly as a published Mesh.</p>
+<ul>
+<li>Two photo sources: the active image stack in Dragonfly (each Z-slice treated as one photo) or a folder of original photo files on disk.</li>
+<li>Four quality levels (low / medium / high / extreme) and two meshing methods (poisson / delaunay).</li>
+<li>The dense reconstruction stage requires an NVIDIA CUDA GPU (see Chapter 4).</li>
+</ul>
+<p>Licensing: COLMAP is released under the <strong>BSD-3-Clause</strong> open-source license and is safe for commercial use; the plugin contains no non-commercial components.</p>
+<p>Important: photogrammetric reconstructions have arbitrary scale and orientation (photos alone cannot determine absolute dimensions). If real-world dimensions matter, rescale and register the mesh in Dragonfly after import.</p>
+<h2 id="2-typical-use-cases">2. Typical use cases</h2>
+<p>Use this plugin whenever you want a digital 3D surface model of a physical object without a CT or laser scanner, for example:</p>
+<ul>
+<li>Documenting and digitizing the outer surface of geological or biological specimens, fossils, industrial parts, casts, or archaeological samples.</li>
+<li>Creating reference surfaces to compare against CT data.</li>
+<li>Reconstructing directly from an existing turntable-style photo sequence loaded into Dragonfly as an image stack.</li>
+</ul>
+<p>It works best on <strong>opaque, well-textured</strong> objects photographed with <strong>good overlap</strong> between neighbouring shots. Transparent, highly reflective, or texture-poor surfaces make feature matching fail and reconstruct poorly.</p>
+<h2 id="3-installation-and-enabling">3. Installation and enabling</h2>
+<p>The plugin is distributed as a component of the <strong>Prototype Labs &amp; Apps Full Package</strong> and is installed through its unified installer:</p>
+<p><strong>1. </strong>Unzip the Full Package archive to any short path (e.g. C:\PL\; avoid deep folders that can trigger the Windows path-length limit).</p>
+<p><strong>2. </strong>Double-click <strong>Install_FullPackage.bat</strong>.</p>
+<p><strong>3. </strong>In the installer dialog, tick <strong>Photo2Mesh: COLMAP...</strong> in the Prototype Apps list. Note: all plugins are <strong>unticked by default</strong>, so you must tick this one explicitly.</p>
+<p><strong>4. </strong>Choose the core install mode (Fresh / Compatible — this affects only the Prototype Labs core blocks and recipes, never any plugin&#x27;s environment or settings), click <strong>Install</strong>, and wait for it to finish.</p>
+<p><strong>5. </strong><strong>Fully restart Dragonfly</strong> (quit completely, then reopen).</p>
+<p>After the restart, the menu entry appears at <strong>Prototype Apps ▸ Photo2Mesh: COLMAP...</strong> (in the Photo2Mesh group, next to the sibling Meshroom and gsplat plugins). Clicking it opens a floating, dockable panel titled &quot;Photo2Mesh: COLMAP&quot;.</p>
+<p>You can enable or disable the plugin later from inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> — the &quot;Prototype Apps (Full Package)&quot; list at the bottom has one checkbox per app. Tick = deploy, untick = remove the menu entry; restart Dragonfly to apply. Disabling <strong>never</strong> deletes the plugin&#x27;s downloaded COLMAP engine or settings — re-enabling restores it instantly. You can also re-run the installer at any time (your previous choices become the new defaults).</p>
+<p>To uninstall the whole Full Package, double-click <strong>Uninstall_FullPackage.bat</strong> (a copy is kept in %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer). It removes all menu items and plugins but keeps every plugin environment (such as this plugin&#x27;s downloaded COLMAP binaries) — their paths are listed at the end so you can delete them manually to reclaim disk space.</p>
+<p>Menus are discovered only at Dragonfly startup: every enable/disable change requires one full Dragonfly restart to take effect.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime environment and first-time setup</h2>
+<p>This plugin has <strong>no Python virtual environment and needs no pip</strong>: COLMAP ships an official self-contained prebuilt Windows release (with CUDA support), and the plugin simply downloads it and calls its colmap.exe. Nothing is downloaded when the Full Package is installed — the engine is provisioned on first use via the <strong>Setup / Download COLMAP</strong> button on the panel.</p>
+<p>Clicking <strong>Setup / Download COLMAP</strong> does the following, in order:</p>
+<p><strong>1. </strong>Checks whether colmap.exe already exists under %LOCALAPPDATA%\Photo2Mesh\COLMAP; if so, it is used directly and the download is skipped.</p>
+<p><strong>2. </strong>Otherwise downloads the <strong>COLMAP 4.1.0 Windows CUDA release</strong> zip (colmap-x64-windows-cuda.zip, roughly <strong>1–2 GB</strong>, internet required) from the official COLMAP GitHub releases page, with progress display; the download can be cancelled with Cancel.</p>
+<p><strong>3. </strong>Extracts it under %LOCALAPPDATA%\Photo2Mesh\COLMAP and deletes the zip.</p>
+<p><strong>4. </strong>Locates colmap.exe automatically, fills its path into the colmap.exe field, and saves it to the configuration.</p>
+<p>Environment requirements at a glance:</p>
+<ul>
+<li><strong>Internet</strong>: needed only for the one-time COLMAP download; reconstruction itself runs fully offline afterwards.</li>
+<li><strong>GPU</strong>: the dense MVS stage (PatchMatch stereo) <strong>requires an NVIDIA CUDA GPU — there is no CPU fallback</strong>; without a GPU no mesh can be produced. Keep Use GPU ticked and use the CUDA build.</li>
+<li><strong>No WSL</strong> and no administrator rights are needed (everything installs under the current user profile).</li>
+<li><strong>Disk</strong>: besides the COLMAP binaries, each reconstruction leaves intermediate files under the job root (default C:\Photo2MeshJobs).</li>
+</ul>
+<p><strong>Alternatives</strong>: if COLMAP is already installed on this machine, use the <strong>…</strong> button next to the colmap.exe field to point directly at the existing colmap.exe — no download needed. If the automatic download fails (restricted network etc.), paste a reachable mirror URL into <strong>Download URL</strong> and click Setup again, or download the release zip manually on another machine, extract it, and point the field at its colmap.exe. The same releases page also offers a no-CUDA build (colmap-x64-windows-nocuda.zip), but without CUDA the dense reconstruction cannot complete, so it is generally not recommended.</p>
+<p>All panel settings (engine path, input mode, quality, etc.) are saved automatically after each change to %LOCALAPPDATA%\Photo2Mesh\colmap_config.json (with a second copy in the plugin&#x27;s code folder) and restored the next time the panel opens.</p>
+<h2 id="5-user-interface">5. User interface</h2>
+<p>The top of the panel shows a blue note summarizing what the plugin does and its GPU requirement. The body is a two-pane layout: the <strong>left</strong> pane holds three parameter groups from top to bottom — COLMAP engine, Photo input, and Options; the <strong>right</strong> pane holds the run buttons, a progress bar, a result line, and the live log.</p>
+<h3 id="5-1-colmap-engine-group">5.1 COLMAP engine group</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Control</th><th>Description</th></tr><tr><td>colmap.exe (text field + … browse button)</td><td>Full path to the COLMAP executable. Normally filled in by Setup; you can also browse to an existing installation manually. Reconstruction cannot start while it is empty.</td></tr><tr><td>Download URL (text field)</td><td>Leave blank to use the default official COLMAP Windows CUDA release URL; if filled, Setup downloads from that address instead (useful for mirrors or other versions).</td></tr><tr><td>Setup / Download COLMAP (button)</td><td>Locates or downloads and extracts COLMAP (see Chapter 4) and fills in the colmap.exe path when done.</td></tr></table></div>
+<h3 id="5-2-photo-input-group">5.2 Photo input group</h3>
+<p>Two mutually exclusive radio buttons choose the photo source:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Control</th><th>Description</th></tr><tr><td>Active image stack (each slice = one photo) (radio, selected by default)</td><td>Exports every Z-slice of the selected Channel as one RGB photo for COLMAP.</td></tr><tr><td>Red / primary (dropdown) + Refresh (button)</td><td>The primary channel for stack mode (required). Refresh re-scans and lists all Channels in the current Dragonfly session.</td></tr><tr><td>Green (optional) / Blue (optional) (dropdowns, default (none))</td><td>Optional second/third grayscale channels, composed with Red into a 3-channel RGB image.</td></tr><tr><td>Photos folder (original images) (radio) + path field + … (browse)</td><td>Uses a folder of original photo files directly, without any Dragonfly export or resizing.</td></tr></table></div>
+<p>Stack mode supports three channel configurations: a <strong>single grayscale channel</strong> (each slice is auto-windowed to 8-bit at the 1st–99th percentile and replicated to RGB); <strong>three grayscale channels</strong> composed as R / G / B into one colour photo per slice (Green / Blue are resized to Red&#x27;s resolution with nearest-neighbour interpolation if they differ); or a <strong>single multi-component (RGB colour) channel</strong>, used directly as colour.</p>
+<h3 id="5-3-options-group">5.3 Options group</h3>
+<ul>
+<li><strong>Job root</strong>: the job root directory. Each reconstruction creates a new timestamped job folder under it for the exported frames and the COLMAP workspace.</li>
+<li><strong>Quality</strong>: the COLMAP quality preset (low / medium / high / extreme); higher presets give more detail and take longer.</li>
+<li><strong>Mesher</strong>: the meshing method. poisson produces a watertight closed surface (may over-close concavities); delaunay hugs the measured points more closely (may leave holes).</li>
+<li><strong>Use GPU (CUDA) — required for dense MVS</strong> (checkbox): the GPU switch. The dense MVS stage requires a CUDA GPU, so keep it ticked.</li>
+<li><strong>Max frame size (stack only, px)</strong> (spin box): upper limit on the longest side of frames exported in stack mode; larger frames are downscaled proportionally. Has no effect in photos-folder mode.</li>
+</ul>
+<p>See the parameter table in Chapter 7 for all default values.</p>
+<h3 id="5-4-run-controls-and-log-right-pane">5.4 Run controls and log (right pane)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Control</th><th>Description</th></tr><tr><td>Reconstruct Mesh (blue button)</td><td>Starts the reconstruction. While running, the button is disabled and Cancel becomes available.</td></tr><tr><td>Cancel (button)</td><td>Requests cancellation: the running COLMAP process is terminated (the Setup download can be cancelled the same way).</td></tr><tr><td>Open Job Folder (button)</td><td>Opens the most recent job folder in Windows Explorer; if no job has run yet, opens the Job root.</td></tr><tr><td>Progress bar</td><td>Advances coarsely from COLMAP&#x27;s stage banners (feature extraction → matching → sparse mapping → undistortion → PatchMatch → fusion → meshing); it is not linear in time.</td></tr><tr><td>Result line</td><td>Shows the imported mesh&#x27;s vertex and face counts on success, or the failure reason.</td></tr><tr><td>Log (read-only text box)</td><td>Full live log including COLMAP&#x27;s raw output — the first place to look when troubleshooting.</td></tr></table></div>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<p>There are two end-to-end workflows; they differ only in the photo source — the COLMAP pipeline and the mesh import are identical.</p>
+<h3 id="6-1-workflow-a-reconstruct-from-a-dragonfly-image-stack">6.1 Workflow A: reconstruct from a Dragonfly image stack</h3>
+<p><strong>Input requirement</strong>: a loaded Channel whose Z-slices are a photo sequence taken around the object from different angles (at least 3 photos, in practice far more, with good overlap between neighbouring shots); grayscale or colour.</p>
+<p><strong>1. </strong>Load the photo sequence into Dragonfly as an image-stack Channel.</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Photo2Mesh: COLMAP...</strong>.</p>
+<p><strong>3. </strong>First time only: click <strong>Setup / Download COLMAP</strong> and wait until the log reports &quot;COLMAP ready&quot; (see Chapter 4).</p>
+<p><strong>4. </strong>Select the <strong>Active image stack</strong> radio button; click <strong>Refresh</strong> and pick the Channel in <strong>Red / primary</strong> (if the photos are stored as three grayscale channels, also set Green and Blue).</p>
+<p><strong>5. </strong>Adjust <strong>Quality / Mesher / Use GPU / Max frame size</strong> as needed.</p>
+<p><strong>6. </strong>Click <strong>Reconstruct Mesh</strong>. The panel first exports each slice as frame_0000.png, frame_0001.png, … into the job folder&#x27;s images subfolder (fewer than 3 frames aborts with an error), then launches the full COLMAP pipeline.</p>
+<p><strong>7. </strong>Watch the progress bar and the log. A typical per-object run takes minutes and grows with the Quality preset.</p>
+<p><strong>8. </strong>When finished, the mesh is imported and published automatically as a Mesh named Photo2Mesh_COLMAP_&lt;HHMMSS&gt;; the result line shows its vertex and face counts.</p>
+<h3 id="6-2-workflow-b-reconstruct-from-a-photos-folder">6.2 Workflow B: reconstruct from a photos folder</h3>
+<p><strong>Input requirement</strong>: a folder containing the original photos. They are handed to COLMAP as-is (no resizing, no conversion). Shooting advice: orbit the object from many angles, keep generous overlap between neighbouring shots, prefer opaque and well-textured objects, and keep the photos in focus.</p>
+<p><strong>1. </strong>Open the panel (complete Setup first if this is the first use).</p>
+<p><strong>2. </strong>Select the <strong>Photos folder (original images)</strong> radio button and choose the folder with the <strong>…</strong> button.</p>
+<p><strong>3. </strong>Adjust the Options as needed (note that Max frame size has no effect in this mode).</p>
+<p><strong>4. </strong>Click <strong>Reconstruct Mesh</strong>; the rest is identical to steps 7–8 of Workflow A.</p>
+<h3 id="6-3-cancelling-and-job-files">6.3 Cancelling and job files</h3>
+<ul>
+<li>Click <strong>Cancel</strong> at any time while running: the COLMAP subprocess is terminated and the result line reports cancelled.</li>
+<li>Each reconstruction leaves &lt;Job root&gt;\&lt;YYYYMMDD_HHMMSS&gt;\ containing images (frames exported in stack mode) and workspace (COLMAP&#x27;s sparse/dense intermediates and the final mesh).</li>
+<li><strong>Open Job Folder</strong> opens that folder directly. Old jobs are never cleaned up automatically — delete them manually to reclaim disk space.</li>
+</ul>
+<h2 id="7-parameter-reference">7. Parameter reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>colmap.exe</td><td>(empty)</td><td>Path to the COLMAP executable; filled by Setup or set manually via …. Clicking Reconstruct with it empty raises an error.</td></tr><tr><td>Download URL</td><td>(empty)</td><td>Blank = the default URL (official COLMAP 4.1.0 Windows CUDA release zip); can be set to a mirror or another version.</td></tr><tr><td>Photo input</td><td>Active image stack</td><td>Photo source: Active image stack or Photos folder.</td></tr><tr><td>Red / primary</td><td>(none selected)</td><td>Primary channel for stack mode, required; grayscale or RGB colour channels both work.</td></tr><tr><td>Green / Blue (optional)</td><td>(none)</td><td>Optional 2nd/3rd grayscale channels for a 3-channel RGB composite; resolution mismatches are resized automatically (nearest neighbour).</td></tr><tr><td>Photos folder</td><td>(empty)</td><td>The original-photos directory for folder mode; must be a valid folder.</td></tr><tr><td>Job root</td><td>C:\Photo2MeshJobs</td><td>Job root directory; each run creates a timestamped subfolder under it.</td></tr><tr><td>Quality</td><td>medium</td><td>One of low / medium / high / extreme; higher = finer results and longer runtimes.</td></tr><tr><td>Mesher</td><td>poisson</td><td>poisson = watertight Poisson surface (may over-close); delaunay = Delaunay mesh (hugs the points, may have holes).</td></tr><tr><td>Use GPU (CUDA)</td><td>ticked</td><td>Keep ticked: the dense MVS stage requires a CUDA GPU with no CPU fallback.</td></tr><tr><td>Max frame size (stack only, px)</td><td>2400</td><td>Range 512–8192, step 256. Frames exported in stack mode whose longest side exceeds this are downscaled proportionally (nearest neighbour); stack mode only.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p><strong>In Dragonfly</strong>: a successful reconstruction creates a published <strong>Mesh</strong> object named Photo2Mesh_COLMAP_&lt;HHMMSS&gt;. It appears in the object list and can be displayed in the 3D view, measured, or exported like any other Mesh. Import prefers Dragonfly&#x27;s native mesh loader (one fast, robust call); if that loader is unavailable it falls back to a per-vertex rebuild (noticeably slower for very large meshes). The result line also shows the vertex and face counts.</p>
+<p><strong>On disk</strong> (the job folder, reachable via Open Job Folder):</p>
+<ul>
+<li>&lt;Job root&gt;\&lt;timestamp&gt;\images\frame_####.png — the RGB frames exported in stack mode (absent in photos-folder mode, which uses the originals directly).</li>
+<li>&lt;Job root&gt;\&lt;timestamp&gt;\workspace\ — the COLMAP workspace with the sparse model and dense-reconstruction intermediates.</li>
+<li>workspace\dense\&lt;i&gt;\meshed-poisson.ply or meshed-delaunay.ply — the final surface-mesh file; this is what gets imported into Dragonfly.</li>
+</ul>
+<p>The mesh has arbitrary scale and orientation: rescale and register it before taking dimensional measurements.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and troubleshooting</h2>
+<p><strong>Q: I clicked Setup and the download failed.</strong></p>
+<p>A: The log shows &quot;Download failed&quot;. Check your network first; or paste a reachable mirror address into <strong>Download URL</strong> and retry. You can also download the release zip manually on a machine with internet access, extract it, and use the <strong>…</strong> button next to the colmap.exe field to point directly at its colmap.exe — the path is remembered and Setup is no longer needed.</p>
+<p><strong>Q: The Red / primary dropdown is empty.</strong></p>
+<p>A: Click <strong>Refresh</strong> to re-scan, and make sure at least one Channel is loaded in Dragonfly. The dropdown lists all Channels in the current session.</p>
+<p><strong>Q: Error &quot;need &gt;= 3 photos; stack has N slice(s)&quot;.</strong></p>
+<p>A: The selected channel has fewer than 3 Z-slices, which is not enough for multi-view reconstruction. Make sure you selected the <strong>photo-sequence</strong> stack rather than a single image; a real reconstruction needs plenty of well-overlapping views.</p>
+<p><strong>Q: COLMAP finished but reports &quot;colmap finished but no meshed-*.ply found&quot;.</strong></p>
+<p>A: The most common cause is that the dense stage (PatchMatch MVS) had no usable NVIDIA CUDA GPU — that stage has <strong>no CPU fallback</strong>, so without a GPU no mesh is produced. Verify the machine has an NVIDIA GPU, that you are using the CUDA build of COLMAP, and that <strong>Use GPU</strong> is ticked; then check the log around the dense/meshing stage for the specific error.</p>
+<p><strong>Q: Error &quot;colmap exited with code N&quot;.</strong></p>
+<p>A: The COLMAP process itself failed; the full reason is in the log on the right. Frequent triggers are insufficient overlap between photos, too little texture, or reflective/transparent surfaces breaking feature matching. Improve the capture (more angles, more overlap, diffuse lighting, opaque surfaces) and retry.</p>
+<p><strong>Q: The imported mesh has the wrong size or orientation.</strong></p>
+<p>A: This is inherent to photogrammetry — photos cannot determine absolute scale or orientation, so the reconstruction&#x27;s scale and pose are arbitrary. Rescale and rotate the Mesh in Dragonfly against features of known size.</p>
+<p><strong>Q: Should I pick poisson or delaunay?</strong></p>
+<p>A: poisson yields a watertight closed surface — good when a closed surface is needed downstream, but it may &quot;seal over&quot; concavities; delaunay follows the measured points more faithfully but may leave holes. The default is poisson; feel free to try both — each run&#x27;s output stays in its job folder.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and known limitations</h2>
+<ul>
+<li>Reconstructions have <strong>arbitrary scale and orientation</strong>; rescale after import whenever real dimensions matter.</li>
+<li><strong>Dense MVS requires an NVIDIA CUDA GPU with no CPU fallback</strong>; without a GPU no mesh can be produced.</li>
+<li>Best results on opaque, well-textured objects with generous photo overlap; transparent, reflective, or textureless surfaces reconstruct poorly.</li>
+<li>A per-object run typically takes minutes and grows with the Quality preset.</li>
+<li>Poisson meshes may over-close concavities; Delaunay meshes may contain holes.</li>
+<li>Job folders (default C:\Photo2MeshJobs) are never cleaned up automatically; dense-reconstruction intermediates can use considerable disk space — delete old jobs manually.</li>
+<li>The first Setup downloads roughly 1–2 GB and needs internet; everything afterwards runs offline.</li>
+<li>The panel UI is in English.</li>
+<li>Enabling/disabling the menu entry requires a full Dragonfly restart.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>COLMAP project home (source and documentation): https://github.com/colmap/colmap</li>
+<li>COLMAP Windows release downloads: https://github.com/colmap/colmap/releases — the plugin defaults to colmap-x64-windows-cuda.zip of version 4.1.0 (a no-CUDA colmap-x64-windows-nocuda.zip is on the same page).</li>
+<li>COLMAP license: BSD-3-Clause (commercial use permitted).</li>
+<li>Sibling plugins: Photo2Mesh: Meshroom and Photo2Mesh: gsplat (both in the Photo2Mesh group of the Prototype Apps menu).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>COLMAP-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

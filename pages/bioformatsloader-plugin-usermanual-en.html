@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load Images (Bio-Formats) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Load Images (Bio-Formats) - User Manual Dragonfly Prototype Apps · Load Images (Bio-Formats)... Version 1.0 · 2026-07-14 English Manual Contents 1. Introdu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Load Images (Bio-Formats)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Load Images (Bio-Formats)...</div>
+    <h1>Load Images (Bio-Formats)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-14</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#setup-tab">Setup tab</a></li><li class="t2"><a href="#6-interface-continued">6. Interface (continued)</a></li><li class="t3"><a href="#load-tab-file-group">Load tab — File group</a></li><li class="t3"><a href="#load-tab-preview-area">Load tab — preview area</a></li><li class="t3"><a href="#load-tab-import-group">Load tab — Import group</a></li><li class="t2"><a href="#7-how-to-use">7. How to use</a></li><li class="t2"><a href="#8-parameters">8. Parameters</a></li><li class="t2"><a href="#9-output">9. Output</a></li><li class="t2"><a href="#10-faq-troubleshooting">10. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#11-notes-known-limitations">11. Notes &amp; known limitations</a></li><li class="t2"><a href="#12-references">12. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Load Images (Bio-Formats) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Load Images (Bio-Formats)...</p>
+<p>Version 1.0 · 2026-07-14</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Load Images (Bio-Formats)</strong> opens image files that Dragonfly does not read natively — roughly <strong>150 microscopy / vendor / digital-pathology formats</strong> such as CZI, LIF, ND2, OIB/OIF/OIR, OME-TIFF, LSM, VSI, SVS/NDPI/SCN, IMS and many more — and publishes them as Dragonfly image <strong>Channel(s)</strong>.</p>
+<p>It wraps the open-source <strong>Bio-Formats</strong> reader from the OME project (the formats-gpl JAR shipped by the bioformats_jar wheel, <strong>GPL</strong> licensed). The JVM is bridged from Python with <strong>jpype + scyjava + bioformats_jar</strong> — all pure wheels — so the environment installs with no compiler (no MSVC) and no manually installed JDK; a small Java runtime is auto-provisioned on first read.</p>
+<p>The reader logic is carried over from the <strong>UnitedVision</strong> project&#x27;s uv_engine Bio-Formats implementation; the only change is swapping the JVM bridge from python-bioformats + javabridge (which needs a JDK and MSVC to build) to the pure-wheel jpype/scyjava stack.</p>
+<p><strong>Input</strong> is a file on disk (chosen with a file picker), <strong>not</strong> an existing Dragonfly object. <strong>Output</strong> is one or more image Channels. This is a file loader — it does not segment, mesh, register, or measure; it only reads pixels + geometry and publishes Channels.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Importing <strong>confocal / widefield fluorescence</strong> stacks (CZI, LIF, ND2, OIB, LSM) into Dragonfly for 3D visualization or downstream analysis.</li>
+<li>Loading <strong>light-sheet</strong> and other proprietary microscope acquisitions that Dragonfly cannot open directly.</li>
+<li>Opening <strong>whole-slide digital-pathology</strong> images (SVS, NDPI, VSI, SCN) and <strong>OME-TIFF</strong> datasets.</li>
+<li>Quickly <strong>inspecting</strong> a file&#x27;s dimensions and metadata (format, series count, X/Y/Z, channels, timepoints, pixel type, physical voxel size) via Preview before deciding which series/channel to import.</li>
+<li>Recovering <strong>voxel spacing</strong> from OME physical pixel-size metadata so the imported Channel is correctly scaled in real-world units.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>This plugin ships in the <strong>Prototype Apps Full Package</strong>. It is not installed on its own — you enable it through the Full Package installer.</p>
+<p>1. Unzip the Full Package to a <strong>short directory path</strong> (e.g. C:\PrototypeApps) to stay within Windows path-length limits.</p>
+<p>2. Run Install_FullPackage.bat<strong>.</strong></p>
+<p>3. In the installer dialog, <strong>tick </strong>Load Images (Bio-Formats)<strong> — all plugins are unchecked by default.</strong></p>
+<p>4. Click <strong>Install</strong>. Files are copied under %LOCALAPPDATA% (no administrator rights needed).</p>
+<p>5. <strong>Fully restart Dragonfly</strong> — the menu is scanned only at startup, so a running instance will not show the new item.</p>
+<p>After restart it appears under <strong>Prototype Apps &gt; Load Images (Bio-Formats)...</strong> in the Reconstruction &amp; Imaging(重建与成像)<strong> section.</strong></p>
+<p>You can later enable or disable it from <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>. Toggling requires another Dragonfly restart to take effect.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>Environment kind: venv_in_code<strong>. Bio-Formats runs in an </strong>isolated Python venv<strong> as a subprocess, never inside Dragonfly&#x27;s own Python (Bio-Formats is GPL and needs a JVM). Dragonfly&#x27;s process only publishes the resulting numpy volumes as Channels.</strong></p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>On the <strong>Setup</strong> tab, click Setup Environment (jpype + scyjava + Bio-Formats)<strong>. This builds a venv from a base Python and pip-installs </strong>numpy, Pillow, jpype1, scyjava, and bioformats_jar — all <strong>prebuilt wheels</strong>, so there is no compilation, no MSVC, and no manual JDK.</p>
+<ul>
+<li><strong>Internet:</strong> required, but <strong>only for this one-time setup</strong> (downloading wheels) and for the first read (downloading the Java runtime).</li>
+<li><strong>Java runtime:</strong> on the first *read*, scyjava/cjdk auto-downloads a small JRE (~40 MB) to %LOCALAPPDATA%\cjdk. No system Java is needed.</li>
+<li><strong>GPU:</strong> not used. <strong>WSL / external tools (Fiji, ImageJ):</strong> not required.</li>
+<li><strong>venv location:</strong> a venv folder inside the installed code directory (GenericMenuItems\BioFormatsLoader\venv). The detected venv python path is stored in bioformats_config.json and shown in the read-only Analysis venv python<strong> field.</strong></li>
+<li><strong>Base Python fallback:</strong> leave the Base Python<strong> field blank to auto-detect a suitable Python (Dragonfly&#x27;s own, then </strong>py launcher, PATH, common Miniconda/Anaconda/system locations). Set it explicitly with <strong>Browse...</strong> if auto-detection picks the wrong interpreter.</li>
+</ul>
+<h2 id="5-interface">5. Interface</h2>
+<p>The panel opens as a dockable window titled <strong>Load Images (Bio-Formats)</strong> with two tabs — <strong>Setup</strong> and <strong>Load</strong> — plus a status line and a read-only log pane at the bottom.</p>
+<h3 id="setup-tab">Setup tab</h3>
+<ul>
+<li><strong>Analysis venv python:</strong> path to the venv interpreter; populated by Setup (placeholder &quot;set by Setup Environment&quot;).</li>
+<li><strong>Base Python</strong> + <strong>Browse...</strong>: interpreter used to build the venv; blank = auto-detect.</li>
+<li><strong>Job root:</strong> working directory for per-job temp files; defaults to C:\BioFormatsLoaderJobs.</li>
+<li><strong>Setup Environment (jpype + scyjava + Bio-Formats)</strong> button: builds the venv and installs dependencies, streaming pip output to the log.</li>
+</ul>
+<h2 id="6-interface-continued">6. Interface (continued)</h2>
+<h3 id="load-tab-file-group">Load tab — File group</h3>
+<ul>
+<li><strong>Image file:</strong> + <strong>Browse...</strong>: pick the input file (filter lists common Bio-Formats extensions; &quot;All files&quot; is always available). Picking a file auto-fills the Output title with the base file name.</li>
+<li><strong>Series:</strong> spin box (range 0–100000, default 0); its maximum is clamped to the file&#x27;s series count after Preview.</li>
+<li><strong>Timepoint:</strong> spin box (range 0–100000, default 0); its maximum is clamped to the selected series&#x27; T count after Preview.</li>
+<li><strong>Preview</strong> button: reads headers + a thumbnail without loading full pixel data.</li>
+</ul>
+<h3 id="load-tab-preview-area">Load tab — preview area</h3>
+<ul>
+<li><strong>Thumbnail panel:</strong> shows a scaled preview image (middle Z, channel 0) or &quot;No preview&quot;.</li>
+<li><strong>Metadata table:</strong> a Property / Value table (File, Format, Series count, Selected series, Size X/Y/Z, Channels (C), Timepoints (T), RGB channels, Pixel type, Little endian, Physical size X/Y/Z).</li>
+</ul>
+<h3 id="load-tab-import-group">Load tab — Import group</h3>
+<ul>
+<li><strong>Output Channel title:</strong> base title for published Channels (defaults to the file name).</li>
+<li><strong>Import → Publish as Channel(s)</strong> button: reads the chosen series/timepoint and publishes the Channel(s).</li>
+</ul>
+<h2 id="7-how-to-use">7. How to use</h2>
+<p>1. <strong>First run only:</strong> open the <strong>Setup</strong> tab and click <strong>Setup Environment (jpype + scyjava + Bio-Formats)</strong>; wait for &quot;Environment ready.&quot;</p>
+<p>2. Switch to the <strong>Load</strong> tab and <strong>Browse...</strong> to your image file.</p>
+<p>3. Click <strong>Preview</strong> to see the thumbnail and metadata; note the series count and dimensions.</p>
+<p>4. If the file has multiple series or timepoints, set <strong>Series</strong> and <strong>Timepoint</strong>.</p>
+<p>5. Optionally edit <strong>Output Channel title</strong> (defaults to the file name).</p>
+<p>6. Click <strong>Import → Publish as Channel(s)</strong>. Progress streams to the log; on success the status line lists the Channel name(s) created.</p>
+<p>Each Preview and each Import is a fresh subprocess (hence a fresh JVM), because jpype cannot restart a JVM within one process. Re-running is safe.</p>
+<h2 id="8-parameters">8. Parameters</h2>
+<p>This is a loader, so the tunable inputs are the file selection and the series/timepoint choice, plus the setup fields:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Series</td><td>0</td><td>0 – (series count − 1)</td><td>Which image series within the file to read (multi-scene / multi-region files).</td></tr><tr><td>Timepoint</td><td>0</td><td>0 – (T − 1)</td><td>Which timepoint to read; one timepoint is imported per run.</td></tr><tr><td>Output Channel title</td><td>file name</td><td>free text</td><td>Base title of the published Channel(s).</td></tr><tr><td>Base Python</td><td>blank (auto-detect)</td><td>any python.exe</td><td>Interpreter used to build the venv.</td></tr><tr><td>Job root</td><td>C:\BioFormatsLoaderJobs</td><td>any path</td><td>Folder for per-job config/status/results and .npy temp files.</td></tr></table></div>
+<p>The Analysis venv python field is set automatically by Setup and is normally not edited by hand. The internal thumbnail size cap is 512 px.</p>
+<h2 id="9-output">9. Output</h2>
+<p>Import creates one or more Dragonfly image <strong>Channel(s)</strong>, published into the current session&#x27;s object tree (Data Properties).</p>
+<ul>
+<li><strong>Naming:</strong> a single-channel, single-series file is titled with the base title. When there is more than one output, Channels are suffixed: &lt;title&gt; [S&lt;series&gt; C&lt;c&gt;] (or ... comp&lt;k&gt; for packed-RGB components), and &lt;title&gt; [S&lt;series&gt;] for a single output of a non-zero series.</li>
+<li><strong>Multi-channel:</strong> each effective channel becomes its own <strong>grayscale</strong> Channel; packed-RGB is split into per-component Channels (not a single composite).</li>
+<li><strong>Geometry:</strong> voxel <strong>spacing</strong> (X/Y/Z) is set from the OME physical pixel size, converted to <strong>meters</strong> (the ORS convention). <strong>Origin</strong> is set to (0, 0, 0). Volumes are stored as (Z, Y, X).</li>
+<li><strong>Data types:</strong> uint8/uint16/int8/int16/float32 are preserved; any other pixel type is cast to float32 before publishing.</li>
+</ul>
+<h2 id="10-faq-troubleshooting">10. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>&quot;Run Setup first, or set the analysis venv python.&quot;</strong> — The venv is not built yet. Go to the Setup tab and click Setup Environment.</li>
+<li><strong>Setup fails / &quot;No base Python found&quot;.</strong> — Auto-detection could not find a usable Python with venv + ensurepip. Set <strong>Base Python</strong> explicitly via Browse... (e.g. Dragonfly&#x27;s own python.exe or a Miniconda python) and retry.</li>
+<li><strong>Setup times out or a wheel fails to download.</strong> — Setup needs internet. Check connectivity/proxy and re-run; pip output is in the log pane.</li>
+<li><strong>First read is slow or seems to hang.</strong> — On the first read, scyjava/cjdk downloads a ~40 MB Java runtime; subsequent reads are fast.</li>
+<li><strong>&quot;Select a valid image file first.&quot;</strong> — The file path is empty or does not exist; use Browse... to pick a real file.</li>
+<li><strong>Preview or Import fails on a specific file.</strong> — The format may be unsupported or the file corrupt; the error category and message are shown in the status line and log. Try &quot;All files&quot; in the picker if the extension was filtered out.</li>
+<li><strong>Out-of-memory on a very large file.</strong> — The whole series is read into memory before publishing. Import a smaller series/timepoint, or a machine with more RAM.</li>
+</ul>
+<h2 id="11-notes-known-limitations">11. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>One timepoint per import</strong> (selectable). A full T-series loop is future work.</li>
+<li><strong>Multi-channel is published as separate grayscale Channels</strong>, not a single composite/RGB channel.</li>
+<li><strong>Whole-file read:</strong> very large / pyramidal images are read fully into memory before publishing; tiled/lazy reading is not yet implemented.</li>
+<li><strong>Bio-Formats (</strong>formats-gpl) is GPL.<strong> It runs only in the isolated venv/subprocess, never inside Dragonfly&#x27;s own Python.</strong></li>
+<li><strong>Physical size:</strong> if the file has no OME physical pixel-size metadata, spacing defaults are left unset (unit spacing); origin is always (0, 0, 0).</li>
+<li><strong>Validation status:</strong> the reader engine was validated offline on a real CZI file; end-to-end verification of the Channel publish step inside a live Dragonfly session is still pending.</li>
+</ul>
+<h2 id="12-references">12. References</h2>
+<ul>
+<li><strong>Bio-Formats (OME)</strong> — reader library. Home: https://www.openmicroscopy.org/bio-formats/ ; docs: https://bio-formats.readthedocs.io/ . License: GPL (formats-gpl).</li>
+<li><strong>bioformats_jar</strong> (PyPI) — ships the Bio-Formats JAR + get_loci(): https://pypi.org/project/bioformats-jar/</li>
+<li><strong>scyjava / cjdk</strong> — JVM bridge and auto-provisioned JRE: https://github.com/scijava/scyjava</li>
+<li><strong>JPype (jpype1)</strong> — Python-to-JVM bridge: https://jpype.readthedocs.io/</li>
+<li>Plugin docs in the repo: DragonflyPlugins/BioFormatsLoader-Plugin/README.md and DESIGN.md.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>BioFormatsLoader-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

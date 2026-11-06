@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full Workflow using Cellpose · Dragonfly Prototype Apps</title>
+<meta name="description" content="Full Workflow using Cellpose - User Manual Dragonfly Prototype Apps · Full Workflow using Cellpose... Version 1.0 · 2026-09-23 English Manual Contents 1. I…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Full Workflow using Cellpose</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Full Workflow using Cellpose...</div>
+    <h1>Full Workflow using Cellpose</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-09-23</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-step-1-preview-and-configure-optional">2. Step 1: Preview and Configure (optional)</a></li><li class="t3"><a href="#why-the-two-sides-stay-perfectly-in-step">Why the two sides stay perfectly in step</a></li><li class="t2"><a href="#3-step-2-segment-the-full-volume">3. Step 2: Segment the full volume</a></li><li class="t2"><a href="#4-step-3-compute-measurements">4. Step 3: Compute measurements</a></li><li class="t2"><a href="#5-step-4-build-the-report">5. Step 4: Build the report</a></li><li class="t2"><a href="#6-run-everything-unattended">6. Run everything unattended</a></li><li class="t2"><a href="#7-requirements">7. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Full Workflow using Cellpose - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Full Workflow using Cellpose...</p>
+<p>Version 1.0 · 2026-09-23</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Dragonfly already ships the <strong>Cellpose-SAM</strong> model, but getting value out of it means moving between several panels: tune parameters, run the segmentation, compute measurements, build a report. This plugin turns that chain into <strong>one four-step wizard</strong>, a tab per step, meant to be walked in order.</p>
+<p>It does <strong>not</strong> train models and needs no virtual environment - it calls the cellpose that Dragonfly bundles. To train a custom model, use the <strong>Train Custom Model: Cellpose</strong> plugin.</p>
+<p>This feature is provided by a third party (Prototype Labs / Prototype Apps), not officially developed or supported by Dragonfly. Use at your own risk.</p>
+<h2 id="2-step-1-preview-and-configure-optional">2. Step 1: Preview and Configure (optional)</h2>
+<p>The point: <strong>spend seconds on a small volume instead of gambling the whole one</strong>.</p>
+<p>The tab is three panes: <strong>left = all settings</strong> (image picker, sub-volume, Cellpose parameters, the run list, the progress bar), <strong>middle = the original image</strong> (xy / yz / xz top to bottom) and <strong>right = the segmentation</strong> (the same three views). The two image panes are independent widgets that share one zoom/pan state, so they are always aligned.</p>
+<p>1. Pick a PUBLISHED image Channel in the drop-down (&quot;↻ Refresh&quot; re-enumerates).</p>
+<p>2. Set N (default 100). The sub-volume is taken from the CENTRE of the volume; move it with the Z/Y/X offsets. The line underneath always states the sub-volume&#x27;s coordinate ranges, its voxel count, and what percentage of the full volume that is.</p>
+<p>3. Press &quot;Load preview&quot;. The MIDDLE pane stacks the xy / yz / xz 2D views: the whole image dimmed, the sub-volume at full brightness inside a dashed box, so it is obvious which part is being tested.</p>
+<p>4. Choose a parameter preset (or edit diameter / flow threshold / cell probability / Z stitch threshold / true-3D / GPU by hand) and press &quot;▶ Run this preset on the sub-volume&quot;.</p>
+<p>5. To compare every preset in one go, tick <strong>&quot;Compute all presets&quot;</strong>: each preset runs in turn and joins the run list as it finishes, the progress bar reports preset i/N and slice j/K, and &quot;Stop&quot; cancels the current run along with the rest of the queue.</p>
+<p>6. The result appears in the RIGHT pane, in the same three views, with each label colour-coded over the image.</p>
+<p>7. Each run adds a line to the run list (parameter summary + label count + measured time). Click any line to bring that result back for comparison.</p>
+<p>8. Select the line you like and press &quot;Use this preset in step 2 →&quot;; the parameters and the timing baseline both carry over.</p>
+<h3 id="why-the-two-sides-stay-perfectly-in-step">Why the two sides stay perfectly in step</h3>
+<p>Both sides render the SAME picture in the SAME coordinate system; the right one merely blends label colours inside the sub-volume. So they are necessarily identical in size, and zoom and pan are exactly synchronised: <strong>wheel to zoom</strong> (around the cursor), <strong>drag to pan</strong>, <strong>double-click to reset</strong>, or press &quot;Reset zoom/pan&quot;. Zoom applies to all six views; panning is shared per row, because xy, yz and xz have different extents and axes and a common pan would be meaningless.</p>
+<h2 id="3-step-2-segment-the-full-volume">3. Step 2: Segment the full volume</h2>
+<p>This step deliberately shows <strong>no images</strong>: a full-volume run can take a long time, and what you need at this moment is confirmation of the parameters and an expectation of the duration, not another look at the data.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Field</th><th>Meaning</th></tr><tr><td>Preset / Values</td><td>the parameters carried over from step 1 (or step 1&#x27;s current fields if you skipped the preview)</td></tr><tr><td>Measured on the sub-volume</td><td>the REAL duration of that step-1 run, and its voxel count</td></tr><tr><td>Estimated for the full volume</td><td>that duration extrapolated by voxel count</td></tr></table></div>
+<p>The extrapolation is linear in voxels: with do_3D=False the cost is per-slice area x slices, and with do_3D=True cellpose still walks the whole grid - both are proportional to the voxel count. It excludes model loading (cached by then), which is exactly why the estimate must come from a REAL run rather than a formula, and it assumes the same hardware and parameters.</p>
+<p>Press &quot;▶ Segment the full volume&quot;; the confirmation lists the image, the parameters and the estimate. Dragonfly stays usable while it runs (inference is on a worker thread), the progress bar advances per slice, and &quot;Cancel&quot; stops after the current slice. The result is published as a <strong>MultiROI</strong> named &quot;&lt;image&gt; - Cellpose&quot;, and the panel stays where you are - only an unattended run moves the tab, so it follows the step it is working on.</p>
+<h2 id="4-step-3-compute-measurements">4. Step 3: Compute measurements</h2>
+<p>This uses <strong>Dragonfly&#x27;s own per-label measurement engine</strong> - the one behind the Compute measurements dialog - so the choices are exactly Dragonfly&#x27;s (Basic Measurements, 2D measurements, Radiomics and so on, depending on the object and your licence).</p>
+<p>1. Pick the MultiROI (the one from step 2 is selected automatically).</p>
+<p>2. Tick the measurements to compute. &quot;Select the common ones&quot; ticks a sensible default set (voxel count, volume, equivalent spherical diameter, surface area, sphericity, centroid).</p>
+<p>3. Press &quot;▶ Compute measurements&quot;. The results become measurements ON the object, so they show up in Dragonfly&#x27;s object properties and in the step-4 report.</p>
+<p>Dragonfly performs this computation on the UI thread, so with many measurements or many labels the window may not repaint for a while. That is normal.</p>
+<h2 id="5-step-4-build-the-report">5. Step 4: Build the report</h2>
+<p>Step 4 <strong>embeds the Report tab of the installed &quot;Multi-ROI Export&quot; plugin</strong> (which replaced the retired &quot;Create a Report from MultiROI&quot;) rather than carrying a second copy of the report code. It is embedded as a window with that one tab, bringing its own Multi-ROI picker, time step and Refresh. Any improvement there - the share-on-the-web link and QR code, the temporary link - is available here immediately, and the two can never drift apart.</p>
+<p>Pick the MultiROI from step 2, choose the output format (Excel / PowerPoint / Word / PDF) and whether to include 3D screenshots, and generate; after the screenshots the layout, the visibility, the colouring, the legends and the camera are put back as they were. To share it, open &quot;Share the report on the web&quot; or &quot;Temporary link&quot; below the report. If the plugin is not installed or is disabled, this tab says so; enable it in the App Store and reopen this window.</p>
+<h2 id="6-run-everything-unattended">6. Run everything unattended</h2>
+<p>Tab 1 carries one more button: <strong>&quot;Execute All Steps with Current Settings&quot;</strong>. It runs the wizard&#x27;s steps in order - load the preview sub-volume, rehearse Cellpose-SAM on it, carry the chosen preset into step 2, segment the WHOLE volume and publish it as a MultiROI, then compute the ticked measurements on that MultiROI - each step with whatever ITS OWN tab shows at the moment you press it. The panel follows the step that is working, so a glance says where the run is, and the one-line summary underneath the button reports the elapsed time and what was produced.</p>
+<p>Three of those steps cost real time or write to the session, so each is a check box beside the button, <strong>all ticked by default</strong>: rehearse on the sub-volume (step 1), segment the full volume and publish it (step 2), compute the measurements (step 3). An unticked step is written into the log as skipped - it is never passed over silently. Pressing this button IS the confirmation for the full-volume run, so the usual confirmation dialog is not asked.</p>
+<p><strong>Step 4 (Report) is deliberately not part of the run.</strong> It is another plugin&#x27;s panel and its export opens a file dialog, which an unattended run cannot answer; generate the report by hand when the run is done.</p>
+<p>With &quot;Compute all presets&quot; ticked, the rehearsal runs every preset - and the run will then NOT choose between them. It says so and step 2 falls back to the parameter fields of step 1, rather than quietly committing the whole volume to whichever preset happened to finish last.</p>
+<p>Every tab is open and editable from the start, including before anything has run: an unattended run is only worth leaving if you could set every tab first. A step whose input does not exist yet <strong>refuses at its own button</strong> and names the step that has to run first - for example, &quot;Compute measurements&quot; with no MultiROI selected says to run step 2 first instead of doing nothing at all.</p>
+<h2 id="7-requirements">7. Requirements</h2>
+<p>No venv and no admin rights. It uses the cellpose package and Cellpose-SAM model Dragonfly bundles; on FIRST use cellpose downloads the ~1 GB cpsam weights once (offline afterwards). A CUDA GPU makes it much faster but is not required - untick GPU to run on the CPU (noticeably slower). Needs at least one PUBLISHED image Channel in the session.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>FullWorkflowCellpose-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

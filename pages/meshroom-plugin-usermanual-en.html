@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo2Mesh: Meshroom · Dragonfly Prototype Apps</title>
+<meta name="description" content="Photo2Mesh: Meshroom - User Manual Dragonfly Prototype Apps · Photo2Mesh: Meshroom... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use C…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Photo2Mesh: Meshroom</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Photo2Mesh: Meshroom...</div>
+    <h1>Photo2Mesh: Meshroom</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</a></li><li class="t3"><a href="#4-1-first-time-setup-setup-download-meshroom">4.1 First-time setup (Setup / Download Meshroom)</a></li><li class="t3"><a href="#4-2-hardware-and-network-requirements">4.2 Hardware and network requirements</a></li><li class="t3"><a href="#4-3-paths">4.3 Paths</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#5-1-meshroom-engine-group">5.1 Meshroom engine group</a></li><li class="t3"><a href="#5-2-photo-input-group">5.2 Photo input group</a></li><li class="t3"><a href="#5-3-options-group">5.3 Options group</a></li><li class="t3"><a href="#5-4-run-controls-right-side">5.4 Run controls (right side)</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-workflow-a-reconstruct-from-a-loaded-image-stack">6.1 Workflow A: reconstruct from a loaded image stack</a></li><li class="t3"><a href="#6-2-workflow-b-reconstruct-from-a-photos-folder-best-quality">6.2 Workflow B: reconstruct from a photos folder (best quality)</a></li><li class="t3"><a href="#6-3-cancelling-and-the-job-folder">6.3 Cancelling and the job folder</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Photo2Mesh: Meshroom - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Photo2Mesh: Meshroom...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Photo2Mesh: Meshroom</strong> is one of the <strong>Photo2Mesh</strong> family of Dragonfly Prototype Apps. It reconstructs a textured 3D <strong>surface mesh</strong> of a real object from a series of ordinary multi-angle photographs using the classic <strong>Meshroom / AliceVision</strong> photogrammetry pipeline, and publishes the result directly into your Dragonfly scene as a <strong>Mesh</strong> object.</p>
+<p>Photos can come from two sources: an <strong>image stack already loaded in Dragonfly</strong> (a Channel — each Z-slice becomes one photo), or a <strong>folder of original full-resolution photos</strong> (best quality). When you click <strong>Reconstruct Mesh</strong>, the plugin launches Meshroom&#x27;s command-line program meshroom_batch outside Dragonfly, which runs feature extraction, sparse reconstruction (SfM), dense reconstruction (MVS), meshing and texturing; the resulting OBJ mesh is then imported and published as a Dragonfly Mesh.</p>
+<p><strong>Engine</strong>: the official Meshroom Windows release <strong>2023.3.0</strong> — a fully self-contained binary with its own Python runtime and AliceVision CUDA binaries, so nothing needs to be pip-installed on the Dragonfly side. <strong>License</strong>: Meshroom / AliceVision are <strong>MPL-2.0</strong>, safe for commercial use.</p>
+<p>Important: photogrammetric reconstructions have <strong>arbitrary scale and orientation</strong> (no real physical units) — rescale and reorient the imported mesh in Dragonfly as needed. Opaque, well-textured objects photographed with good overlap give the best results.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>Use this plugin whenever you need a <strong>3D digital model of a physical sample without a CT scan</strong>, for example:</p>
+<ul>
+<li>Digitizing geological or biological specimens into 3D digital archives;</li>
+<li>Archiving the outer shape of industrial parts or failure samples;</li>
+<li>Comparing an object&#x27;s outer surface mesh with its CT-scanned interior in the same scene;</li>
+<li>Creating textured meshes for visualization, teaching and presentations;</li>
+<li>Reconstructing directly from a turntable / orbit photo sequence already loaded in Dragonfly as an image stack.</li>
+</ul>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>The plugin is installed through the <strong>Prototype Labs &amp; Apps Full Package</strong> installer:</p>
+<p><strong>1. </strong>Unzip the package to any short path (e.g. C:\PL\; avoid deep folders to stay clear of the Windows 260-character path limit).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the component list, tick <strong>Photo2Mesh: Meshroom...</strong>. Note: all plugins are <strong>unticked by default</strong> — you must enable it explicitly.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p>After the restart, the menu entry appears at <strong>Prototype Apps ▸ Photo2Mesh: Meshroom...</strong> (in the Photo2Mesh section). Clicking it opens a dockable floating panel titled Photo2Mesh: Meshroom.</p>
+<p><strong>Enable / disable later</strong>: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and use the checkbox for this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom; restart Dragonfly to apply. Disabling <strong>never</strong> deletes the downloaded Meshroom engine — re-enabling is instant. You can also re-run the installer at any time (%LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat); your previous choices are remembered as defaults.</p>
+<p><strong>Uninstall</strong>: double-click Uninstall_FullPackage.bat to remove all Full Package menu items and plugins. The downloaded Meshroom engine (~2 GB) is kept at %LOCALAPPDATA%\Photo2Mesh\Meshroom; the uninstaller lists this path at the end so you can delete it manually to reclaim disk space.</p>
+<p>Everything installs per-user (%LOCALAPPDATA%); no administrator rights are needed.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</h2>
+<p>The engine is of the <strong>binary_download</strong> kind: the official Meshroom release ships its own complete runtime, so <strong>no Python venv, no pip installs, and no WSL</strong> are needed. Dragonfly only launches it as an external subprocess.</p>
+<h3 id="4-1-first-time-setup-setup-download-meshroom">4.1 First-time setup (Setup / Download Meshroom)</h3>
+<p><strong>1. </strong>Open the panel and click <strong>Setup / Download Meshroom</strong> in the <strong>Meshroom engine</strong> group.</p>
+<p><strong>2. </strong>The plugin first looks for an existing meshroom_batch.exe under %LOCALAPPDATA%\Photo2Mesh\Meshroom; if found, it is used directly with no re-download.</p>
+<p><strong>3. </strong>Otherwise it downloads the <strong>Meshroom 2023.3.0 win64 zip (~2 GB)</strong> from the official GitHub release page, showing live progress (downloaded / total MB) in the log, then extracts it to that folder and deletes the zip.</p>
+<p><strong>4. </strong>On success the <strong>meshroom_batch</strong> field is filled with the full path to meshroom_batch.exe and saved to the config file, so it is restored automatically next time.</p>
+<p>The default download URL is https://github.com/alicevision/Meshroom/releases/download/v2023.3.0/Meshroom-2023.3.0-win64.zip. If that source is unreachable, enter a custom mirror URL in the <strong>Download URL</strong> field before clicking Setup — or skip downloading entirely: if Meshroom is already installed on this machine, use the <strong>…</strong> button next to <strong>meshroom_batch</strong> to browse to the existing meshroom_batch.exe. The download can be aborted with <strong>Cancel</strong>.</p>
+<h3 id="4-2-hardware-and-network-requirements">4.2 Hardware and network requirements</h3>
+<ul>
+<li><strong>Internet</strong>: needed only for the one-time engine download (~2 GB); reconstruction itself runs fully offline.</li>
+<li><strong>GPU</strong>: an <strong>NVIDIA CUDA GPU is required</strong> — Meshroom&#x27;s dense DepthMap stage runs on CUDA only.</li>
+<li><strong>WSL</strong>: not needed.</li>
+<li><strong>Disk</strong>: ~2 GB for the engine, plus per-job image frames, cache (MeshroomCache) and output meshes in the job folder.</li>
+</ul>
+<h3 id="4-3-paths">4.3 Paths</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Content</th><th>Path</th></tr><tr><td>Meshroom engine (download / extract location)</td><td>%LOCALAPPDATA%\Photo2Mesh\Meshroom</td></tr><tr><td>Panel configuration file</td><td>%LOCALAPPDATA%\Photo2Mesh\meshroom_config.json (a copy is also kept in the plugin code folder)</td></tr><tr><td>Job root (default, editable in the panel)</td><td>C:\Photo2MeshJobs</td></tr></table></div>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel is a two-column layout: a blue note at the top (summarizing the function and caveats); the <strong>left</strong> side is a scrollable settings area with three groups — Meshroom engine, Photo input, and Options; the <strong>right</strong> side holds the run controls (button row, progress bar, result line and log window).</p>
+<h3 id="5-1-meshroom-engine-group">5.1 Meshroom engine group</h3>
+<ul>
+<li><strong>meshroom_batch</strong>: full path to meshroom_batch.exe. Normally filled by Setup; you can also browse manually with the <strong>…</strong> button (placeholder: path to meshroom_batch.exe (set by Setup)).</li>
+<li><strong>Download URL</strong>: URL of the Meshroom Windows release zip; <strong>leave blank to use the official default</strong> (Meshroom 2023.3.0 win64).</li>
+<li><strong>Setup / Download Meshroom</strong> button: locates or downloads the engine (see Chapter 4).</li>
+</ul>
+<h3 id="5-2-photo-input-group">5.2 Photo input group</h3>
+<p>Two mutually exclusive radio buttons select the photo source:</p>
+<ul>
+<li><strong>Active image stack (each slice = one photo)</strong> (default): uses a loaded image-stack Channel; each Z-slice is exported as one photo. Below it are three Channel dropdowns: <strong>Red / primary</strong> (required), <strong>Green (optional)</strong> and <strong>Blue (optional)</strong> (both default (none)). With a single grayscale channel, the grayscale is replicated to RGB; adding Green/Blue composes three grayscale channels into RGB colour photos slice by slice; if Red itself is a multi-component RGB channel, it is used as colour directly. The <strong>Refresh</strong> button rescans all Channels in the current scene and repopulates the dropdowns.</li>
+<li><strong>Photos folder (original images)</strong>: point at a folder of original full-resolution photos (browse via <strong>…</strong>); the photos are passed to Meshroom as-is — <strong>best quality</strong>.</li>
+</ul>
+<h3 id="5-3-options-group">5.3 Options group</h3>
+<ul>
+<li><strong>Job root</strong>: root folder for jobs, default C:\Photo2MeshJobs. Each reconstruction creates a new timestamped subfolder there.</li>
+<li><strong>Pipeline</strong>: dropdown with photogrammetry (default, the standard full pipeline) or draft (a faster draft pipeline, passed to meshroom_batch --pipeline).</li>
+<li><strong>Max frame size (stack only, px)</strong>: spinbox, range 512–8192, step 256, default <strong>2400</strong>. Stack mode only: exported frames whose longest side exceeds this value are downscaled proportionally.</li>
+</ul>
+<h3 id="5-4-run-controls-right-side">5.4 Run controls (right side)</h3>
+<ul>
+<li><strong>Reconstruct Mesh</strong> (blue button): starts the whole reconstruction.</li>
+<li><strong>Cancel</strong>: requests cancellation of the current download or reconstruction (enabled only while running).</li>
+<li><strong>Open Job Folder</strong>: opens the most recent job folder in Windows Explorer (or the job root if no job has run yet).</li>
+<li><strong>Progress bar</strong>: 0–100%, advanced coarsely by the Meshroom processing nodes (CameraInit, FeatureExtraction, ..., Texturing).</li>
+<li><strong>Result line</strong>: shows the current stage or the final result (e.g. Done. Mesh: N verts, M faces (published).).</li>
+<li><strong>Log</strong>: read-only log window streaming meshroom_batch output plus the plugin&#x27;s own status messages — your first stop for troubleshooting.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-workflow-a-reconstruct-from-a-loaded-image-stack">6.1 Workflow A: reconstruct from a loaded image stack</h3>
+<p><strong>1. </strong>Take a series of multi-angle photos around the object (ensure generous overlap between neighbouring shots) and load them into Dragonfly as an image stack (a Channel).</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Photo2Mesh: Meshroom...</strong>; on first use complete the Setup from Chapter 4.</p>
+<p><strong>3. </strong>In <strong>Photo input</strong>, keep <strong>Active image stack</strong> selected, click <strong>Refresh</strong>, and pick the stack in the <strong>Red / primary</strong> dropdown. A grayscale stack needs nothing else; if your photos were loaded as separate R/G/B grayscale channels, select all three dropdowns accordingly.</p>
+<p><strong>4. </strong>Adjust the <strong>Options</strong> (job root, pipeline, max frame size) if needed.</p>
+<p><strong>5. </strong>Click <strong>Reconstruct Mesh</strong>. The plugin first exports each slice as an RGB PNG frame (frame_0000.png onwards; the stack must have <strong>at least 3 slices</strong>), then runs Meshroom node by node with live progress and log output. Expect minutes per object (GPU dense reconstruction).</p>
+<p><strong>6. </strong>When finished, the textured mesh is imported and published as a <strong>Mesh</strong> object named Photo2Mesh_Meshroom_&lt;HHMMSS&gt;; the result line reports vertex and face counts.</p>
+<h3 id="6-2-workflow-b-reconstruct-from-a-photos-folder-best-quality">6.2 Workflow B: reconstruct from a photos folder (best quality)</h3>
+<p><strong>1. </strong>Put the original full-resolution photos into one folder (no need to load them into Dragonfly).</p>
+<p><strong>2. </strong>In <strong>Photo input</strong>, select <strong>Photos folder (original images)</strong> and browse to that folder with <strong>…</strong>.</p>
+<p><strong>3. </strong>Click <strong>Reconstruct Mesh</strong>. The photos go to Meshroom unmodified (no rescaling); everything else matches Workflow A.</p>
+<h3 id="6-3-cancelling-and-the-job-folder">6.3 Cancelling and the job folder</h3>
+<p>You can click <strong>Cancel</strong> at any time to terminate the Meshroom subprocess (the log reports cancelled). All intermediate products of each run live under job root\&lt;YYYYMMDD_HHMMSS&gt; — images\ holds the exported photo frames (not created in Photos-folder mode) and output\ holds Meshroom&#x27;s results plus the MeshroomCache cache. Click <strong>Open Job Folder</strong> to inspect it; delete the whole folder afterwards to reclaim disk space.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>meshroom_batch</td><td>(empty; filled by Setup)</td><td>Full path to Meshroom&#x27;s command-line program meshroom_batch.exe; can also be set manually via the … button. Reconstruction refuses to start while unset.</td></tr><tr><td>Download URL</td><td>(empty = official default)</td><td>URL of the Meshroom Windows release zip; blank uses the official Meshroom 2023.3.0 win64 GitHub release (~2 GB).</td></tr><tr><td>Photo input mode</td><td>Active image stack</td><td>Either Active image stack (each slice = one photo) or Photos folder (original full-resolution photos, best quality).</td></tr><tr><td>Red / primary</td><td>(must be selected)</td><td>The primary Channel (required). A grayscale channel is replicated to RGB; a multi-component RGB channel is used as colour directly.</td></tr><tr><td>Green / Blue (optional)</td><td>(none)</td><td>Optional second/third grayscale channels, composed with Red into RGB colour photos slice by slice; resampled to Red&#x27;s size if they differ.</td></tr><tr><td>Photos folder</td><td>(empty)</td><td>Path to the photo folder; used only in Photos-folder mode and must be an existing directory.</td></tr><tr><td>Job root</td><td>C:\Photo2MeshJobs</td><td>Root folder for jobs; each run creates a timestamped subfolder holding frames, cache and outputs.</td></tr><tr><td>Pipeline</td><td>photogrammetry</td><td>Pipeline name passed to meshroom_batch --pipeline: photogrammetry = standard full pipeline; draft = faster draft pipeline.</td></tr><tr><td>Max frame size (stack only, px)</td><td>2400</td><td>Range 512–8192, step 256. Stack mode only: exported frames with a longest side above this value are downscaled, limiting GPU memory use and runtime.</td></tr></table></div>
+<p>All settings are saved automatically to the configuration file (%LOCALAPPDATA%\Photo2Mesh\meshroom_config.json) and restored the next time the panel opens.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>A successful reconstruction produces the following objects and files:</p>
+<ul>
+<li><strong>A Mesh object</strong> named Photo2Mesh_Meshroom_&lt;HHMMSS&gt;, published into Dragonfly&#x27;s object list — display it in the 3D view, measure it, or overlay it with other data. Import prefers Dragonfly&#x27;s native mesh loader (fast and robust); if unavailable, the plugin falls back to its built-in OBJ/PLY parser and rebuilds the mesh vertex by vertex (slower for very large meshes).</li>
+<li><strong>A job folder</strong> (Job root\&lt;timestamp&gt;\): images\ contains the exported photo frames (absent in Photos-folder mode); output\ contains Meshroom&#x27;s final output — preferring texturedMesh.obj, then mesh.obj, then any other OBJ, then PLY — plus the MeshroomCache intermediate cache. The OBJ file can be reused in other 3D software.</li>
+</ul>
+<p>The result line reports the imported mesh&#x27;s vertex and face counts; the log also records the full disk path of the output mesh.</p>
+<p>Reminder: the mesh has arbitrary scale and orientation (no physical units). To compare it with CT data, rescale / register the Mesh in Dragonfly first.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q1: Setup reports Download failed / Setup FAILED. What now?</strong></p>
+<p>A: Check your internet connection first (the one-time download is ~2 GB; timeouts or dropped connections fail it). Then either (a) enter a reachable mirror URL in <strong>Download URL</strong> and retry, or (b) download the Meshroom win64 zip manually in a browser, extract it anywhere, and point the <strong>meshroom_batch</strong> field at the extracted meshroom_batch.exe via the <strong>…</strong> button — the automatic download is optional.</p>
+<p><strong>Q2: The log says `ERROR: set meshroom_batch (click &#x27;Setup / Download Meshroom&#x27;).`</strong></p>
+<p>A: The <strong>meshroom_batch</strong> path is empty. Complete the Setup from Chapter 4, or browse to meshroom_batch.exe manually.</p>
+<p><strong>Q3: Error `need &gt;= 3 photos; stack has N slice(s).`</strong></p>
+<p>A: Photogrammetry needs at least 3 photos from different angles; the selected Channel has fewer than 3 slices. Make sure you picked the right image stack (click <strong>Refresh</strong> and re-select), or switch to <strong>Photos folder</strong> mode.</p>
+<p><strong>Q4: Meshroom fails mid-run with `meshroom_batch exited with code ...`.</strong></p>
+<p>A: Read Meshroom&#x27;s own error lines in the log window. The most common cause is the <strong>lack of an NVIDIA CUDA GPU</strong> — the dense DepthMap stage strictly requires CUDA. Next most common are photo-quality problems: shiny, textureless or transparent objects, or insufficient overlap, make SfM matching fail. Improve the capture (more angles, more overlap, diffuse lighting) and retry.</p>
+<p><strong>Q5: The Channel dropdowns are empty.</strong></p>
+<p>A: No Channel is available in the current scene. Load your image stack into Dragonfly first, then click <strong>Refresh</strong>.</p>
+<p><strong>Q6: The reconstructed mesh is tiny / oriented wrongly.</strong></p>
+<p>A: This is inherent to photogrammetry — results carry no real scale or canonical orientation. Rescale and rotate the imported Mesh in Dragonfly; for accurate dimensions, calibrate the scale against a known length on the object.</p>
+<p><strong>Q7: The log says `meshroom finished but no OBJ/PLY mesh found in ...`.</strong></p>
+<p>A: Meshroom exited normally but produced no mesh file — usually the reconstruction degenerated before meshing (too few valid cameras). Click <strong>Open Job Folder</strong> to inspect output\ and MeshroomCache, and improve the input photos following the advice in Q4.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li>Reconstructions have <strong>arbitrary scale and orientation</strong> (no metric units) — rescale / register after import as needed.</li>
+<li>Works best on <strong>opaque, well-textured objects with good photo overlap</strong>; shiny, textureless or transparent objects reconstruct poorly.</li>
+<li>An <strong>NVIDIA CUDA GPU is mandatory</strong> (hard requirement of the DepthMap stage); machines without a discrete NVIDIA GPU cannot complete the full pipeline.</li>
+<li>Runtime is <strong>minutes per object</strong> (GPU dense reconstruction); more and higher-resolution photos take longer.</li>
+<li>In image-stack mode photos are re-encoded as 8-bit RGB PNGs and capped by Max frame size; for maximum quality use <strong>Photos folder</strong> mode with the original photos.</li>
+<li>Job folders (frames + cache + outputs) can consume substantial disk space; clean them up manually after reconstruction.</li>
+<li>Menu enable/disable changes take effect only at Dragonfly startup — restart once after each change.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Meshroom (AliceVision) project page and source code: https://github.com/alicevision/Meshroom</li>
+<li>Engine release used by this plugin: Meshroom 2023.3.0 win64 (https://github.com/alicevision/Meshroom/releases/download/v2023.3.0/Meshroom-2023.3.0-win64.zip)</li>
+<li>License: Meshroom / AliceVision are MPL-2.0 (commercially usable).</li>
+<li>Sibling Photo2Mesh plugins: Photo2Mesh: COLMAP, Photo2Mesh: gsplat, Photo2Mesh: SAM3D (see their own user manuals).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Meshroom-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EBSD Grains (DefDAP) · Dragonfly Prototype Apps</title>
+<meta name="description" content="EBSD Grains (DefDAP) - User Manual Dragonfly Prototype Apps · EBSD Grains (DefDAP)... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use c…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">EBSD Grains (DefDAP)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · EBSD Grains (DefDAP)...</div>
+    <h1>EBSD Grains (DefDAP)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime environment and first-time setup</a></li><li class="t2"><a href="#5-user-interface">5. User interface</a></li><li class="t3"><a href="#5-1-input-group-input-ebsd-map-2d-one-slice">5.1 Input group (Input EBSD map (2D / one slice))</a></li><li class="t3"><a href="#5-2-parameter-group-grain-segmentation">5.2 Parameter group (Grain segmentation)</a></li><li class="t3"><a href="#5-3-output-group-publish-channels">5.3 Output group (Publish channels)</a></li><li class="t3"><a href="#5-4-environment-group-action-buttons-and-result-area">5.4 Environment group, action buttons and result area</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>EBSD Grains (DefDAP) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · EBSD Grains (DefDAP)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>EBSD Grains (DefDAP)</strong> is a materials-science plugin in Dragonfly Prototype Apps for EBSD (electron backscatter diffraction) grain analysis. It reads <strong>one 2D indexed EBSD orientation-map file</strong> (or a single slice of a 3D dataset), detects grain boundaries at the misorientation tolerance you set, segments neighbouring pixels of similar crystal orientation into distinct grains, and publishes per-pixel result maps into the current Dragonfly session as <strong>Channels</strong>:</p>
+<ul>
+<li><strong>Grain ID</strong> - an integer label per pixel (0 = unindexed / boundary); colour it with a categorical LUT to see the individual grains;</li>
+<li><strong>KAM (Kernel Average Misorientation)</strong> - in degrees; the local orientation gradient, highlighting deformation and sub-structure;</li>
+<li><strong>GROD (Grain Reference Orientation Deviation)</strong> - in degrees; each pixel&#x27;s deviation from its grain&#x27;s mean orientation;</li>
+<li><strong>Image Quality / Confidence Index</strong> - indexing-quality metrics taken from the input file (published only if present in the file).</li>
+</ul>
+<p>The panel additionally shows <strong>per-grain statistics</strong> (grain count, mean/median grain size, mean grain area, mean KAM) and a <strong>grain / IPF (inverse pole figure) preview picture</strong>.</p>
+<p>The engine is the open-source <strong>DefDAP</strong> library (MechMicroMan/DefDAP; the plugin pins <strong>defdap 1.2.1</strong>), licensed <strong>Apache-2.0</strong> (permissive, safe to distribute). Its dependencies - numpy (BSD), scipy (BSD), scikit-image (BSD), matplotlib (PSF/BSD-like) - are all permissive. Computation runs as a subprocess in the plugin&#x27;s own isolated Python virtual environment (venv), leaving Dragonfly&#x27;s bundled Python untouched.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>This plugin accepts <strong>2D input only</strong> (one EBSD map, i.e. one slice). DefDAP works on a single map; for a 3D EBSD dataset, run it one slice at a time.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li><strong>Grain size and morphology statistics</strong>: grain count, mean and median grain size (pixels), and mean grain area for polycrystalline materials such as metals and alloys;</li>
+<li><strong>Deformation and orientation-gradient analysis</strong>: KAM and GROD maps are commonly used to assess local plastic deformation, dislocation-density distribution and sub-grain structure;</li>
+<li><strong>EBSD data quality checks</strong>: inspect the Image Quality / Confidence Index channels, then continue with Dragonfly&#x27;s visualization and measurement tools;</li>
+<li><strong>Integration with Dragonfly workflows</strong>: results are ordinary Channels, so all of Dragonfly&#x27;s LUTs, histograms, ROIs and measurements apply.</li>
+</ul>
+<p>Typical inputs: .ctf / .cpr / .crc files exported from Oxford/Bruker systems and .ang files from EDAX systems.</p>
+<h2 id="3-installation-and-enabling">3. Installation and enabling</h2>
+<p>The plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong> and is installed by its unified installer:</p>
+<p><strong>1. </strong>Unzip the Full Package to any short path (e.g. C:\PL\; avoid deep folders that hit the Windows 260-character path limit);</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>;</p>
+<p><strong>3. </strong>In the installer dialog, <strong>tick &quot;EBSD Grains (DefDAP)...&quot;</strong> in the Prototype Apps list. Note: all plugins are <strong>unticked by default</strong> - if you leave it unticked it will not be installed;</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish;</p>
+<p><strong>5. </strong><strong>Fully restart Dragonfly</strong> (quit completely, then reopen).</p>
+<p>After the restart, the menu entry appears at <strong>Prototype Apps &gt; EBSD Grains (DefDAP)...</strong> (in the &quot;EBSD &amp; Crystallography&quot; group of the menu). It opens a dockable floating panel titled &quot;EBSD Grains (DefDAP)&quot;.</p>
+<p><strong>Changing your choice later</strong>: the easiest way is inside Dragonfly - open <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong> and tick/untick this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then restart Dragonfly. Disabling <strong>never</strong> deletes the plugin&#x27;s built environment; re-enabling is instant. Alternatively re-run the installer anytime (your previous choices are the new defaults); even after deleting the zip you can run %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat.</p>
+<p><strong>Uninstall</strong>: double-click Uninstall_FullPackage.bat (also kept in the installer folder above). It removes all Full Package menu items and plugins but keeps every plugin environment (venv etc.); the paths are listed at the end so you can delete them manually to reclaim disk space.</p>
+<p>Everything is per-user (%LOCALAPPDATA%); no admin rights are needed. Menus are discovered only at Dragonfly startup, so every enable/disable change needs one restart.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime environment and first-time setup</h2>
+<p>The compute engine runs in the plugin&#x27;s own Python virtual environment (venv). <strong>Before first use you must click the panel&#x27;s &quot;Setup Environment&quot; button once</strong>; this step needs <strong>internet access once</strong>. Everyday use afterwards is fully offline. <strong>No GPU and no WSL are required.</strong></p>
+<p>What Setup Environment actually does:</p>
+<p><strong>1. </strong>Creates a venv from a <strong>base Python</strong>. The default base is <strong>Dragonfly&#x27;s own bundled Python</strong> (a full CPython 3.10 with working stdlib venv + pip), so <strong>no separate Python install is needed</strong>; the panel&#x27;s &quot;Base Python&quot; field can point to another interpreter (any CPython 3.10+ with venv + pip works);</p>
+<p><strong>2. </strong>Upgrades pip / setuptools / wheel inside the venv, then pip-installs defdap==1.2.1 and matplotlib from the default PyPI index (defdap pulls in numpy, scipy, scikit-image, pandas, networkx). All are pure wheels on CPython 3.10 - no CUDA, no source builds - and the install typically takes <strong>about a minute</strong>;</p>
+<p><strong>3. </strong>Runs a smoke test (imports numpy and defdap, prints their versions); on success the venv&#x27;s Python path is recorded and the panel&#x27;s Status shows <strong>Ready</strong>.</p>
+<p><strong>Where the environment lives</strong>: the venv is created inside the plugin&#x27;s code folder, i.e. %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\DefDAPEbsd\venv. The plugin&#x27;s settings (Base Python and venv path) are stored next to it in defdap_config.json. Full Package code updates and disable/re-enable cycles preserve the venv and the settings - no rebuild needed.</p>
+<p><strong>Clicking Setup Environment again</strong> is safe: an existing venv whose pip still works is reused; a broken one is deleted and rebuilt automatically.</p>
+<p><strong>If setup fails</strong>: if the log shows venv creation failed or requirements install failed, check that the machine can reach PyPI (corporate networks may need a proxy), or enter the full path of a locally installed CPython interpreter (e.g. C:\Python312\python.exe) in &quot;Base Python&quot; and retry; defdap needs CPython 3.10+ (numpy/scipy wheels exist for 3.10-3.12 on Windows).</p>
+<h2 id="5-user-interface">5. User interface</h2>
+<p>From top to bottom the panel contains a title row, four group boxes, two action buttons, a preview area, a summary line and a log. Several round <strong>&quot;?&quot; help buttons</strong> open explanations of the key concepts (about the plugin, the segmentation parameters, the result channels). While a job is running (setup or compute) both action buttons are disabled and re-enabled when it finishes.</p>
+<h3 id="5-1-input-group-input-ebsd-map-2d-one-slice">5.1 Input group (Input EBSD map (2D / one slice))</h3>
+<ul>
+<li>File label: initially the grey text &quot;(no file selected)&quot;; shows the chosen file name afterwards;</li>
+<li><strong>Choose map file...</strong> button: opens a file dialog filtered to &quot;EBSD maps (*.ctf *.cpr *.ang *.crc)&quot; (an All-files filter is also available). Exactly <strong>one</strong> 2D EBSD map file can be selected.</li>
+</ul>
+<h3 id="5-2-parameter-group-grain-segmentation">5.2 Parameter group (Grain segmentation)</h3>
+<ul>
+<li><strong>Boundary tolerance</strong> (with a &quot;?&quot; help button): spin box, range 0.5-45.0, default <strong>8.0 deg</strong>. An orientation jump between neighbouring pixels larger than this counts as a grain boundary; typical values are 5-10 degrees. Lower = more, smaller grains; higher = fewer, larger grains;</li>
+<li><strong>Min grain size</strong>: integer spin box, range 1-100000, default <strong>10 px</strong>. Grains smaller than this are discarded as noise/artefacts; raise it for noisy maps;</li>
+<li><strong>In-plane spacing</strong>: spin box, range 0.0001-100000 (4 decimals), default <strong>1.0</strong>. Used as the X/Y voxel spacing of the published Channels; enter the map&#x27;s real scan step size.</li>
+</ul>
+<h3 id="5-3-output-group-publish-channels">5.3 Output group (Publish channels)</h3>
+<p>Under &quot;Choose result channels:&quot; (with a &quot;?&quot; help button) four checkboxes select which Channels are published after the compute:</p>
+<ul>
+<li><strong>Grain ID</strong> - checked by default;</li>
+<li><strong>KAM (kernel average misorientation)</strong> - checked by default;</li>
+<li><strong>GROD (grain reference orientation deviation)</strong> - unchecked by default;</li>
+<li><strong>Image quality / confidence index</strong> - unchecked by default; when ticked, both an Image Quality and a Confidence Index channel are published (only if the file contains the data).</li>
+</ul>
+<h3 id="5-4-environment-group-action-buttons-and-result-area">5.4 Environment group, action buttons and result area</h3>
+<ul>
+<li><strong>Environment (DefDAP venv)</strong> group: the &quot;Base Python&quot; text field (placeholder: &quot;blank = this Dragonfly&#x27;s python; or a path&quot;; leave blank to use Dragonfly&#x27;s own Python) and a &quot;Status&quot; label showing <strong>Ready</strong> or <strong>Not set up - click &#x27;Setup Environment&#x27;.</strong>;</li>
+<li><strong>Setup Environment</strong> button: builds / reuses the venv (see chapter 4);</li>
+<li><strong>Segment + Publish</strong> button: runs grain segmentation on the chosen file and publishes the selected Channels;</li>
+<li><strong>Preview area</strong>: initially &quot;Grain/IPF preview appears here after Compute.&quot;; after a run it shows the IPF map (with grain boundaries) or a grain-ID picture;</li>
+<li><strong>Summary label</strong>: shows &quot;Grains: N | mean size: ... px | mean grain area: ... | mean KAM: ... deg&quot;;</li>
+<li><strong>Log box</strong> (read-only): scrolling progress and error messages for setup and compute.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<p><strong>First use (one-time)</strong>:</p>
+<p><strong>1. </strong>Open <strong>Prototype Apps &gt; EBSD Grains (DefDAP)...</strong>;</p>
+<p><strong>2. </strong>(Optional) enter a custom interpreter path in &quot;Base Python&quot;; normally leave it blank;</p>
+<p><strong>3. </strong>Click <strong>Setup Environment</strong> and watch the log until &quot;Environment ready: ...&quot; appears and Status turns <strong>Ready</strong> (about a minute; internet required).</p>
+<p><strong>Everyday analysis workflow</strong>:</p>
+<p><strong>1. </strong>Click <strong>Choose map file...</strong> and select one indexed 2D EBSD map (.ctf / .cpr / .ang / .crc); for 3D data, first export a single slice from your acquisition/pre-processing software;</p>
+<p><strong>2. </strong>Set <strong>Boundary tolerance</strong> (typically 5-10 degrees; default 8) and <strong>Min grain size</strong> (default 10 px);</p>
+<p><strong>3. </strong>Enter the map&#x27;s scan step size in <strong>In-plane spacing</strong> (used as the X/Y spacing of the result Channels);</p>
+<p><strong>4. </strong>Tick the desired result channels under <strong>Publish channels</strong>;</p>
+<p><strong>5. </strong>Click <strong>Segment + Publish</strong>. The log prints a line like &quot;=== Segment: file (tol=8.0 deg, min=10 px) ===&quot;; the computation runs as a subprocess in the plugin venv, so the Dragonfly UI stays responsive;</p>
+<p><strong>6. </strong>When it finishes: the selected channels are published as &quot;file name - Grain ID&quot;, &quot;file name - KAM (deg)&quot;, etc.; the panel shows the grain-statistics summary and the grain/IPF preview; the log lists &quot;Published channels: ...&quot;;</p>
+<p><strong>7. </strong>View the results in Dragonfly: drag the new Channels into a view; <strong>colour the Grain ID channel with a categorical LUT</strong> to distinguish the grains; view KAM/GROD with a continuous colormap.</p>
+<p>Clicking Segment + Publish before the environment is set up logs &quot;ERROR: environment not set up. Click &#x27;Setup Environment&#x27; first.&quot;; with no file chosen it logs &quot;ERROR: choose an EBSD map file first.&quot;.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Boundary tolerance</td><td>8.0 deg (range 0.5-45.0)</td><td>Grain-boundary misorientation tolerance: an orientation jump between neighbouring pixels above this angle counts as a boundary. Typical 5-10 deg. Lower = more, smaller grains; higher = fewer, larger grains.</td></tr><tr><td>Min grain size</td><td>10 px (range 1-100000)</td><td>Minimum grain size in pixels: smaller grains are discarded as noise/artefacts. Raise it for noisy maps.</td></tr><tr><td>In-plane spacing</td><td>1.0 (range 0.0001-100000, 4 decimals)</td><td>In-plane scan step of the EBSD map; used as the X and Y voxel spacing of the published Channels (Z spacing is fixed at 1.0).</td></tr><tr><td>Grain ID (checkbox)</td><td>checked</td><td>Publish the grain-ID channel (integer label per pixel; 0 = unindexed/boundary).</td></tr><tr><td>KAM (checkbox)</td><td>checked</td><td>Publish the Kernel Average Misorientation channel, in degrees.</td></tr><tr><td>GROD (checkbox)</td><td>unchecked</td><td>Publish the Grain Reference Orientation Deviation channel, in degrees.</td></tr><tr><td>Image quality / confidence index (checkbox)</td><td>unchecked</td><td>Publish the Image Quality and Confidence Index channels from the file (only if the input file contains the data).</td></tr><tr><td>Base Python</td><td>blank</td><td>Blank = build the venv from Dragonfly&#x27;s own Python; or enter the path of any CPython 3.10+ interpreter.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>On success the plugin publishes the selected results as <strong>Dragonfly Channels</strong> into the current session (visible in the object list), named &quot;input file name - result name&quot;:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Channel name suffix</th><th>Meaning</th><th>Unit</th></tr><tr><td>Grain ID</td><td>Integer grain label per pixel; 0 = unindexed pixel / boundary. Colour with a categorical LUT.</td><td>-</td></tr><tr><td>KAM (deg)</td><td>Kernel Average Misorientation: local orientation gradient, highlights deformation / sub-structure.</td><td>deg</td></tr><tr><td>GROD (deg)</td><td>Deviation of each pixel from its grain&#x27;s mean orientation.</td><td>deg</td></tr><tr><td>Image Quality</td><td>Image-quality metric from the input file (if present).</td><td>-</td></tr><tr><td>Confidence Index</td><td>Confidence index from the input file (if present).</td><td>-</td></tr></table></div>
+<p>All result channels are single-slice (1 x height x width) float32 data; the X/Y voxel spacing comes from &quot;In-plane spacing&quot;, the data unit of the KAM/GROD channels is set to deg, and NaN values are replaced by 0.</p>
+<p>The panel also shows a <strong>summary</strong> (grain count, mean grain size in pixels, mean grain area converted with the step size squared, mean KAM) and a <strong>preview picture</strong> (preferably the IPF orientation map with grain boundaries, otherwise a coloured grain-ID map).</p>
+<p>Intermediate files (.npy arrays, results.json, status.json, the preview PNG) are written to a job folder starting with defdap_ in the system temp directory and are only used for that run; <strong>the durable output is the Channels published into Dragonfly</strong> - save them in Dragonfly as needed.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and troubleshooting</h2>
+<p><strong>Q: I cannot find &quot;EBSD Grains (DefDAP)...&quot; in the menu.</strong>
+A: The plugin is <strong>unticked by default</strong> in the Full Package installer. Re-run Install_FullPackage.bat and tick it, or tick it in <strong>Developer &gt; Prototype Labs... &gt; Menu Item Manager</strong>, then <strong>restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p><strong>Q: Segment + Publish logs &quot;ERROR: environment not set up&quot;.</strong>
+A: The runtime environment has not been built yet. Click <strong>Setup Environment</strong> first and wait until Status shows Ready (needs internet once; about a minute).</p>
+<p><strong>Q: Setup Environment fails (the log shows venv creation failed / requirements install failed).</strong>
+A: Make sure the machine can reach PyPI (corporate networks may need a proxy). If it still fails, enter the full path of a locally installed CPython 3.10+ (e.g. C:\Python312\python.exe) in &quot;Base Python&quot; and retry; on Windows, numpy/scipy wheels exist for CPython 3.10-3.12. Clicking Setup Environment again is safe: a venv with working pip is reused, a broken one is rebuilt automatically.</p>
+<p><strong>Q: The Grain ID channel looks like a smooth grey gradient - I cannot see grains.</strong>
+A: Grain ID is an integer label map, so a continuous grey LUT naturally renders as a gradient. Apply a <strong>categorical LUT</strong> to that channel and each label becomes a distinct colour.</p>
+<p><strong>Q: Can I analyse a 3D EBSD dataset directly?</strong>
+A: No. DefDAP works on a single 2D map, and the plugin accepts one file (one slice). Export the slices of a 3D dataset and run them one at a time.</p>
+<p><strong>Q: I ticked Image quality / confidence index but no such channels appeared.</strong>
+A: These channels come <strong>from the input file itself</strong>; if your .ang/.ctf file does not contain those columns, the plugin silently skips them - this is not an error.</p>
+<p><strong>Q: I get far too many small grains, or too few large ones.</strong>
+A: Tune the two segmentation parameters: too fragmented - raise Boundary tolerance or Min grain size; over-merged - lower Boundary tolerance. Typical tolerance is 5-10 degrees.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and known limitations</h2>
+<ul>
+<li><strong>2D only</strong>: one EBSD map (or one slice of a 3D dataset) per run;</li>
+<li><strong>Input formats</strong>: the file picker lists indexed maps in .ctf / .cpr / .crc (Oxford/Bruker) and .ang (EDAX);</li>
+<li><strong>Grain ID is published as a Channel</strong>, not a MultiROI; exporting grains as individually selectable MultiROI objects is a planned enhancement;</li>
+<li><strong>Geometry is entered manually</strong>: the X/Y spacing comes from the &quot;In-plane spacing&quot; field and the Z spacing is fixed at 1.0 - enter the correct scan step yourself;</li>
+<li><strong>KAM/GROD are in degrees</strong> (the plugin converts DefDAP&#x27;s radian output to degrees);</li>
+<li>Every Segment + Publish creates <strong>new</strong> Channels; repeated runs on the same file produce multiple objects with the same names - tidy up as needed;</li>
+<li>The engine version is pinned to defdap==1.2.1 for reproducible results;</li>
+<li>Internet is needed once for the environment setup; everyday computation is fully offline, with no GPU and no WSL required.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>DefDAP documentation: https://defdap.readthedocs.io (open-source project MechMicroMan/DefDAP, Apache-2.0 license; this plugin uses defdap 1.2.1);</li>
+<li>Dependencies: numpy (BSD), scipy (BSD), scikit-image (BSD), matplotlib (PSF/BSD-like), pandas, networkx (pulled in by defdap);</li>
+<li>Full Package installation guide: the bilingual README shipped inside the Full Package zip, covering install, enable/disable, uninstall and the Windows &quot;path too long&quot; issue.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>DefDAP-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

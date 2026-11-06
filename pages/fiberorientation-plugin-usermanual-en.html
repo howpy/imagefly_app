@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiber Orientation (structure tensor) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Fiber Orientation (structure tensor) - User Manual Dragonfly Prototype Apps · Fiber Orientation (structure tensor)... Version 1.0 · 2026-07-04 English Manu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Fiber Orientation (structure tensor)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Fiber Orientation (structure tensor)...</div>
+    <h1>Fiber Orientation (structure tensor)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#1-1-how-the-algorithm-works">1.1 How the algorithm works</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-run-setup">4. Runtime environment and first-run setup</a></li><li class="t2"><a href="#5-user-interface">5. User interface</a></li><li class="t3"><a href="#5-1-input-volume">5.1 Input volume</a></li><li class="t3"><a href="#5-2-structure-tensor-parameters">5.2 Structure-tensor parameters</a></li><li class="t3"><a href="#5-3-publish-result-channels">5.3 Publish result channels</a></li><li class="t3"><a href="#5-4-environment-group-and-action-buttons">5.4 Environment group and action buttons</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t3"><a href="#6-1-first-time-setup-once">6.1 First-time setup (once)</a></li><li class="t3"><a href="#6-2-computing-fiber-orientation-end-to-end">6.2 Computing fiber orientation (end to end)</a></li><li class="t3"><a href="#6-3-display-tips">6.3 Display tips</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Fiber Orientation (structure tensor) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Fiber Orientation (structure tensor)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Fiber Orientation (structure tensor)</strong> is a Dragonfly Prototype Apps plugin that computes the <strong>per-voxel local orientation</strong> of fibrous or tubular structures in 3D CT data using the <strong>structure-tensor</strong> method. Pick an image Channel, set the two structure-tensor Gaussian scales (noise scale sigma and integration scale rho) plus a coherence threshold, and click Compute Fiber Orientation; the plugin solves the dominant orientation per voxel and publishes orientation-angle, principal-direction, and coherence (degree of anisotropy) scalar fields back into Dragonfly as new Channels, exactly aligned with the source grid, ready for colormap display to reveal fiber directions and alignment.</p>
+<p>The compute engine is the open-source library <strong>structure-tensor</strong> (Skielex/structure-tensor, pinned version <strong>0.3.4</strong>, <strong>MIT license</strong>), with <strong>numpy</strong> (BSD) and <strong>scipy</strong> (BSD). All licenses are permissive. The heavy computation runs as a separate subprocess inside a dedicated Python virtual environment (venv), so it never destabilizes the Dragonfly host and installs nothing into Dragonfly&#x27;s own Python.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h3 id="1-1-how-the-algorithm-works">1.1 How the algorithm works</h3>
+<p>The structure-tensor pipeline: the volume is smoothed at the derivative (noise) scale <strong>sigma</strong> before computing intensity gradients; the gradient outer products form the structure tensor, which is then averaged over a neighborhood at the integration scale <strong>rho</strong>; finally an eigen-decomposition is performed per voxel. Intensity varies least along a fiber, so the <strong>eigenvector of the smallest eigenvalue is the fiber axis</strong>.</p>
+<ul>
+<li><strong>Coherence</strong> = (mu3 - mu1) / (mu3 + mu1), in [0, 1] (mu1 &lt;= mu2 &lt;= mu3 are the eigenvalues). High on well-aligned fibers, low in isotropic or noisy regions - a per-voxel &quot;degree of anisotropy&quot; map.</li>
+<li><strong>Azimuth</strong> = atan2(vy, vx), folded to [0, 180) degrees - an orientation is a line, not an arrow, so 0 and 180 degrees are equivalent.</li>
+<li><strong>Elevation</strong> = asin(|vz|), in [0, 90] degrees; 0 means the fiber lies in the XY plane, 90 means along Z.</li>
+<li><strong>vx, vy, vz (optional)</strong> - unit fiber-direction components per voxel, sign-folded so that vz &gt;= 0 (the sign of a line orientation is meaningless).</li>
+</ul>
+<p>Voxels whose coherence falls below the coherence threshold are treated as non-fiber: their angles are blanked (NaN internally, written as 0 on import into Dragonfly), so only genuine fiber voxels carry an orientation. After the run, the panel shows a one-line summary: fiber-voxel count and fraction, mean coherence, mean azimuth/elevation, and degree of anisotropy.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<p>The plugin targets <strong>fiber-orientation characterization</strong> in materials science and industrial CT, and directional structures in life science:</p>
+<ul>
+<li>Fiber-reinforced composites (FRP): checking fiber alignment and mapping local orientation in glass-fiber / carbon-fiber parts;</li>
+<li>Nonwovens, wood, and paper fibers - orientation-distribution analysis;</li>
+<li>Quantifying the degree of anisotropy of a material from a CT scan;</li>
+<li>Life-science directional structures such as collagen or muscle fibers.</li>
+</ul>
+<p>The output is a <strong>per-voxel orientation field</strong>, not individually segmented fibers. For per-fiber counts or length statistics, pair it with a dedicated fiber-segmentation tool.</p>
+<h2 id="3-installation-and-enabling">3. Installation and enabling</h2>
+<p>The plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong> and installs through a graphical installer into every Dragonfly version on the PC. Everything is per-user (%LOCALAPPDATA%); no admin rights are needed.</p>
+<p><strong>1. </strong>Unzip the package anywhere with a short path (e.g. C:\PL\; avoid deep Downloads folders or a OneDrive-redirected Desktop).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong> to open the installer dialog.</p>
+<p><strong>3. </strong>In the Prototype Apps list, <strong>tick `Fiber Orientation (structure tensor)...`</strong> - all plugins are unticked by default, so this plugin must be ticked explicitly.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>After the restart the entry appears under <strong>Prototype Apps ▸ Fiber Orientation (structure tensor)...</strong> (in the Measurements &amp; Analysis section). Clicking it opens a <strong>floating, dockable panel</strong> that can be moved, docked, or left floating, and is savable with the workspace.</p>
+<p><strong>Enable/disable later:</strong> open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>; the &quot;Prototype Apps (Full Package)&quot; list at the bottom has a checkbox per app - tick = deploy, untick = remove the menu entry; restart Dragonfly to apply. <strong>Disabling never deletes the plugin&#x27;s environment (venv)</strong> - re-enabling is instant. You can also re-run the installer anytime (it remembers your previous choices); even after deleting the unzipped folder, run %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat.</p>
+<p><strong>Uninstall:</strong> double-click <strong>`Uninstall_FullPackage.bat`</strong> (also kept in the installer folder above). It removes all Full-Package menu items and plugins but keeps every plugin environment; the paths are listed at the end so you can delete them manually to reclaim disk space.</p>
+<h2 id="4-runtime-environment-and-first-run-setup">4. Runtime environment and first-run setup</h2>
+<p>Nothing is downloaded at install time. Before first use, click <strong>`Setup Environment`</strong> once in the panel to build the plugin&#x27;s dedicated Python virtual environment. If the Status label in the Environment group reads &quot;Not set up - click &#x27;Setup Environment&#x27;...&quot;, the environment is missing; once built it reads &quot;Ready: &lt;path to the venv&#x27;s python&gt;&quot;.</p>
+<p><strong>What Setup Environment actually does:</strong> using a base Python (by default <strong>Dragonfly&#x27;s own Python</strong> - the full CPython 3.10 at Python_env\python.exe inside the Dragonfly installation, so no separate Python install is needed), it creates a venv inside the plugin&#x27;s code folder, upgrades pip/setuptools/wheel, then pip-installs structure-tensor==0.3.4 + numpy + scipy from the default PyPI index (pure wheels on CPython 3.10 - no CUDA, no source builds), runs an import smoke test, and records the venv&#x27;s Python path for later runs. If a working venv already exists, clicking again reuses it instead of rebuilding.</p>
+<ul>
+<li><strong>Download size:</strong> roughly tens of MB; typically finishes in seconds;</li>
+<li><strong>Internet:</strong> needed only for this one-time setup; fully offline afterwards;</li>
+<li><strong>GPU:</strong> not required; <strong>WSL:</strong> not required;</li>
+<li><strong>Isolation:</strong> nothing is installed into Dragonfly&#x27;s own Python or the base interpreter.</li>
+</ul>
+<p><strong>Where things live:</strong> the venv is created inside the installed code folder: %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\FiberOrientation\venv. Panel settings (e.g. Base Python) persist in fiber_config.json in the same folder. Both the venv and the settings survive plugin-code updates. Each Dragonfly version has its own code folder, so run Setup Environment once per Dragonfly version.</p>
+<p><strong>Base Python override:</strong> leave the Base Python field blank to use Dragonfly&#x27;s own Python, or enter a full path to a python.exe, or a command like py -3.11. If the default base interpreter has no working pip, the plugin automatically searches for another CPython (the py launcher -3.12/-3.11/-3.10, python on PATH, %LOCALAPPDATA%\Programs\Python, C:\Python3x, Program Files, and common miniconda/anaconda/miniforge locations), probing each with pip and using the first that works.</p>
+<p>Fallback if setup fails: install any CPython 3.10-3.12 (the official Windows installer includes venv and pip), put its full python.exe path into Base Python, and click Setup Environment again. structure-tensor requires CPython &gt;= 3.10 with numpy/scipy wheels (3.10-3.12 on Windows).</p>
+<h2 id="5-user-interface">5. User interface</h2>
+<p>The panel is a single page. From top to bottom: input group, parameter group, output-selection group, environment group, action buttons, then a summary line and a log window. Every control is documented below.</p>
+<h3 id="5-1-input-volume">5.1 Input volume</h3>
+<ul>
+<li><strong>Channel combo box</strong>: lists every image Channel in the current Dragonfly session as &quot;name  (Z x Y x X size)&quot;. When no data is available it shows &quot;(no channels - load a volume in Dragonfly)&quot;.</li>
+<li><strong>Refresh button</strong>: re-scans the session&#x27;s Channel list (click after loading new data in Dragonfly).</li>
+</ul>
+<h3 id="5-2-structure-tensor-parameters">5.2 Structure-tensor parameters</h3>
+<ul>
+<li><strong>sigma (noise scale)</strong>: derivative (noise) scale - Gaussian smoothing before the gradient; larger = more noise suppression. Spin box, range 0.1-20.0, step 0.5, default <strong>1.5</strong>.</li>
+<li><strong>rho (integration scale)</strong>: integration (neighborhood) scale - over how large a region the orientation is averaged; roughly the fiber spacing. Range 0.1-40.0, step 0.5, default <strong>4.0</strong>.</li>
+<li><strong>coherence threshold</strong>: voxels below this coherence get no orientation (kept as background) - filters out non-fiber regions. Range 0.0-1.0, step 0.05, default <strong>0.2</strong>.</li>
+</ul>
+<h3 id="5-3-publish-result-channels">5.3 Publish result channels</h3>
+<ul>
+<li><strong>Coherence (anisotropy, 0-1)</strong> - checked by default;</li>
+<li><strong>Azimuth (in-plane angle, 0-180 deg)</strong> - checked by default;</li>
+<li><strong>Elevation (out-of-plane angle, 0-90 deg)</strong> - checked by default;</li>
+<li><strong>Direction components vx, vy, vz (3 channels)</strong> - unchecked by default; when ticked, three direction-component Channels are published in one run.</li>
+</ul>
+<h3 id="5-4-environment-group-and-action-buttons">5.4 Environment group and action buttons</h3>
+<ul>
+<li><strong>Base Python field</strong>: blank = this Dragonfly&#x27;s Python; or a python.exe path, or a command such as py -3.11 (placeholder text: &quot;blank = this Dragonfly&#x27;s python; or a path / &#x27;py -3.11&#x27;&quot;).</li>
+<li><strong>Status label</strong>: environment state - &quot;Ready: &lt;path&gt;&quot; or &quot;Not set up - click &#x27;Setup Environment&#x27;...&quot;.</li>
+<li><strong>Setup Environment button</strong>: one-time environment build/reuse (see chapter 4).</li>
+<li><strong>Compute Fiber Orientation button</strong>: starts the computation. Both buttons are disabled while a job is running to prevent double starts.</li>
+<li><strong>Summary line</strong>: one line of statistics after a run (selectable with the mouse for copying).</li>
+<li><strong>Log window</strong>: read-only; streams setup output, per-stage progress percentages, published-channel names, and full error details.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<h3 id="6-1-first-time-setup-once">6.1 First-time setup (once)</h3>
+<p><strong>1. </strong>Make sure the machine has internet access (needed only this once).</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Fiber Orientation (structure tensor)...</strong>.</p>
+<p><strong>3. </strong>(Optional) enter a CPython of your choice in Base Python; normally leave it blank.</p>
+<p><strong>4. </strong>Click <strong>`Setup Environment`</strong> and watch the venv creation and pip output in the log.</p>
+<p><strong>5. </strong>Wait for &quot;Environment ready: ...&quot; in the log; the Status label switches to &quot;Ready: ...&quot;.</p>
+<h3 id="6-2-computing-fiber-orientation-end-to-end">6.2 Computing fiber orientation (end to end)</h3>
+<p><strong>1. </strong>Load or select a 3D grayscale volume (a CT Channel) in Dragonfly.</p>
+<p><strong>2. </strong>Open the panel; if the volume is missing from the combo box, click <strong>Refresh</strong>, then select it in the <strong>Channel</strong> dropdown (the Z x Y x X size in parentheses helps confirm the right one).</p>
+<p><strong>3. </strong>Set <strong>sigma</strong> (start around 1-2 voxels; increase for noisy data) and <strong>rho</strong> (start around 3-6 voxels, roughly the fiber spacing; larger = smoother, more robust orientation but less local detail).</p>
+<p><strong>4. </strong>Set the <strong>coherence threshold</strong> (default 0.2; raise it to keep only voxels with a very well-defined orientation).</p>
+<p><strong>5. </strong>Tick the desired outputs under <strong>Publish result channels</strong> (Coherence, Azimuth, and Elevation are published by default).</p>
+<p><strong>6. </strong>Click <strong>`Compute Fiber Orientation`</strong>. The log prints &quot;=== Compute fiber orientation (sigma=..., rho=..., coh&gt;=...) ===&quot;, then the volume read and per-stage progress percentages (structure tensor -&gt; eigen-decomposition -&gt; orientation + coherence -&gt; summary statistics).</p>
+<p><strong>7. </strong>When the run finishes, the selected results appear as new Channels in the current scene immediately (<strong>no restart needed</strong>); the log lists &quot;Published channels: ...&quot; and the summary line shows the statistics.</p>
+<h3 id="6-3-display-tips">6.3 Display tips</h3>
+<p><strong>1. </strong>Apply a cyclic/rainbow-style colormap to the <strong>Azimuth</strong> Channel in Dragonfly - fibers with different in-plane directions light up in different colors.</p>
+<p><strong>2. </strong>Use the <strong>Coherence</strong> Channel as a reliability map: orientation is trustworthy where coherence is high and meaningless where it approaches 0 (pores, matrix, noise).</p>
+<p><strong>3. </strong>For quantitative direction work, re-run with <strong>Direction components vx, vy, vz</strong> ticked to get per-voxel unit direction vectors.</p>
+<p>Voxels removed by the threshold are written as 0 in the angle Channels (NaN internally). A 0 in an angle map can therefore mean either &quot;truly 0 degrees&quot; or &quot;no orientation / background&quot; - always read angle maps together with the Coherence Channel, or raise the threshold.</p>
+<h2 id="7-parameter-reference">7. Parameter reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Description</th></tr><tr><td>Channel</td><td>(first list entry)</td><td>-</td><td>The 3D grayscale input volume; the dropdown shows name plus Z x Y x X size; Refresh re-scans the list.</td></tr><tr><td>sigma (noise scale)</td><td>1.5</td><td>0.1-20.0, step 0.5</td><td>Derivative (noise) scale: Gaussian smoothing before the gradient. Larger suppresses more noise but can erase thin fibers. Start around 1-2 voxels.</td></tr><tr><td>rho (integration scale)</td><td>4.0</td><td>0.1-40.0, step 0.5</td><td>Integration (neighborhood) scale: how large a region the orientation is averaged over, roughly the fiber spacing. Larger = smoother and more robust, less local detail. Start around 3-6 voxels.</td></tr><tr><td>coherence threshold</td><td>0.2</td><td>0.0-1.0, step 0.05</td><td>Voxels below this coherence carry no orientation (angles blanked, imported as 0) - filters out pores, matrix, and noise.</td></tr><tr><td>Coherence checkbox</td><td>checked</td><td>-</td><td>Publish the coherence (degree-of-anisotropy) Channel, values 0-1.</td></tr><tr><td>Azimuth checkbox</td><td>checked</td><td>-</td><td>Publish the in-plane angle Channel, 0-180 degrees.</td></tr><tr><td>Elevation checkbox</td><td>checked</td><td>-</td><td>Publish the out-of-plane angle Channel, 0-90 degrees.</td></tr><tr><td>Direction components checkbox</td><td>unchecked</td><td>-</td><td>Publish the vx, vy, vz unit direction-component Channels (3 at once).</td></tr><tr><td>Base Python</td><td>(blank)</td><td>-</td><td>Base interpreter for building the venv. Blank = Dragonfly&#x27;s own Python; or a python.exe path, or a command like py -3.11.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>Results are published as new <strong>Channels</strong> in the current Dragonfly scene, named &quot;<strong>&lt;source Channel name&gt; - &lt;result name&gt;</strong>&quot;, all exactly aligned with the source grid (voxel spacing and origin copied from the source) so they overlay and link with the original data:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Result Channel</th><th>Value range</th><th>Unit</th><th>Meaning</th></tr><tr><td>&lt;source&gt; - Fiber coherence</td><td>0 - 1</td><td>-</td><td>Coherence / degree of anisotropy; high = well-aligned fiber regions, low = isotropic or noisy regions.</td></tr><tr><td>&lt;source&gt; - Fiber azimuth (deg)</td><td>0 - 180 (0 below threshold)</td><td>deg</td><td>In-plane angle (orientation is a line, so 0 and 180 degrees are equivalent).</td></tr><tr><td>&lt;source&gt; - Fiber elevation (deg)</td><td>0 - 90 (0 below threshold)</td><td>deg</td><td>Out-of-plane angle; 0 = in the XY plane, 90 = along Z.</td></tr><tr><td>&lt;source&gt; - Fiber vx / vy / vz</td><td>-1 - 1 (vz: 0 - 1)</td><td>-</td><td>Unit fiber-direction components, sign-folded so vz &gt;= 0; published when Direction components is ticked.</td></tr></table></div>
+<p>The <strong>summary line</strong> additionally reports whole-volume statistics: fiber voxels / total voxels (percentage), mean coherence, mean azimuth (axial circular mean), mean elevation, and degree of anisotropy. All means are coherence-weighted and computed over fiber voxels only (those passing the threshold).</p>
+<p>Each run writes its intermediate files into a fiber_-prefixed job folder under the Windows temp directory (config.json, status.json, results.json, plus the fiber_*.npy arrays). Besides the summary, results.json contains a 36-bin, coherence-weighted azimuth histogram (0-180 degrees) - handy raw data for rose plots and further post-processing.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and troubleshooting</h2>
+<p><strong>Q1: The plugin is missing from the Prototype Apps menu.</strong>
+A: The plugin is <strong>unticked by default</strong> in the Full Package installer - make sure it was ticked during installation. Menus are scanned only at Dragonfly startup, so every enable/disable change needs a full restart. You can also tick it under <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and restart.</p>
+<p><strong>Q2: Setup Environment fails with &quot;No base Python found to build the venv&quot; or a pip error.</strong>
+A: The default base interpreter is unusable and the automatic search found no working CPython. Install CPython 3.10-3.12 (the official installer includes venv and pip), enter its full python.exe path into Base Python, and click Setup Environment again. Also verify the machine can reach PyPI (internet is required for this one-time setup).</p>
+<p><strong>Q3: Clicking Compute logs &quot;ERROR: environment not set up. Click &#x27;Setup Environment&#x27; first.&quot;</strong>
+A: The compute environment has not been built (or was deleted). Click <strong>`Setup Environment`</strong> and wait for the Status label to read &quot;Ready: ...&quot; before computing.</p>
+<p><strong>Q4: The Channel dropdown shows &quot;(no channels - load a volume in Dragonfly)&quot;.</strong>
+A: The session has no usable image Channel. Load a 3D volume in Dragonfly first, then click <strong>Refresh</strong>.</p>
+<p><strong>Q5: The run fails with &quot;Out of memory - try a smaller ROI or downsample the volume.&quot;</strong>
+A: The volume is too large for the available RAM - the whole volume is loaded and the structure tensor is computed in floating point, which multiplies the memory footprint. Crop a region of interest or downsample the volume in Dragonfly, then re-run.</p>
+<p><strong>Q6: Large areas of the azimuth map read 0 degrees - are all fibers aligned the same way?</strong>
+A: Not necessarily. Angles of voxels below the coherence threshold are blanked and imported as 0, so background and pores also show 0 degrees. Overlay the <strong>Coherence</strong> Channel: only high-coherence 0-degree voxels are real orientations. Raise the coherence threshold if the non-fiber regions are too noisy.</p>
+<p><strong>Q7: Do I need a GPU? Does it need internet every time?</strong>
+A: Neither. The computation is pure CPU (numpy/scipy). Internet is needed only for the one-time Setup Environment download (tens of MB); afterwards the plugin works fully offline.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and known limitations</h2>
+<ul>
+<li>An orientation is a line, not an arrow: azimuth is folded to 0-180 degrees, elevation to 0-90 degrees, and the direction components are sign-folded to vz &gt;= 0; directions 180 degrees apart are the same orientation.</li>
+<li>The output is a per-voxel orientation field - the plugin does <strong>not segment individual fibers</strong>, so per-fiber counts or length distributions require a separate segmentation tool.</li>
+<li>The whole volume is read at once and processed in floating point (the structure tensor has multiple components), so memory usage is a significant multiple of the volume size; crop a ROI or downsample if you hit out-of-memory errors.</li>
+<li>Zeros in the angle Channels are ambiguous (true 0 degrees vs. thresholded background) - always interpret them together with the Coherence Channel (see section 6.3).</li>
+<li>Parameter sensitivity: too large a sigma erases thin fibers; too small a rho gives noisy orientations, too large loses local variation. Tune the parameters on a small ROI first.</li>
+<li>The runtime environment is per Dragonfly version (the venv lives inside each version&#x27;s plugin code folder), so click Setup Environment once in every Dragonfly version you use.</li>
+<li>Menu enable/disable changes take effect only at Dragonfly startup - one full restart per change.</li>
+<li>Publishing the result Channels needs no restart; they appear in the scene as soon as the run finishes.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>structure-tensor (compute engine, MIT license, version 0.3.4): https://github.com/Skielex/structure-tensor</li>
+<li>numpy (BSD license): https://numpy.org</li>
+<li>scipy (BSD license): https://scipy.org</li>
+<li>Prototype Labs &amp; Apps Full Package installation guide: the bilingual README shipped with the installer package (installation, Menu Item Manager, uninstall, and path-too-long troubleshooting).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>FiberOrientation-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

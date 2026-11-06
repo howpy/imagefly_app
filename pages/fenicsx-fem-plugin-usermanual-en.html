@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FEniCSx FEM · Dragonfly Prototype Apps</title>
+<meta name="description" content="FEniCSx FEM - User Manual Dragonfly Prototype Apps · FEniCSx FEM... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cases 3. Installati…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">FEniCSx FEM</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · FEniCSx FEM...</div>
+    <h1>FEniCSx FEM</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</a></li><li class="t3"><a href="#4-1-prerequisite-install-wsl2">4.1 Prerequisite: install WSL2</a></li><li class="t3"><a href="#4-2-option-a-one-click-build-in-the-panel-setup-fenicsx-environment">4.2 Option A: one-click build in the panel (Setup FEniCSx Environment)</a></li><li class="t3"><a href="#4-3-option-b-import-the-prebuilt-wsl-image-no-online-build">4.3 Option B: import the prebuilt WSL image (no online build)</a></li><li class="t3"><a href="#4-4-where-settings-are-saved-and-self-healing">4.4 Where settings are saved, and self-healing</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#5-1-left-column-beginner-demo-phantom-linear-elasticity-fea">5.1 Left column: ① Beginner Demo — Phantom + Linear-Elasticity FEA</a></li><li class="t3"><a href="#5-2-right-column-mesh-from-cgal-mesh-3-plugin">5.2 Right column: Mesh (from CGAL Mesh_3 plugin)</a></li><li class="t3"><a href="#5-3-right-column-fenicsx-environment-wsl2">5.3 Right column: FEniCSx Environment (WSL2)</a></li><li class="t3"><a href="#5-4-right-column-material-linear-elasticity">5.4 Right column: Material (Linear Elasticity)</a></li><li class="t3"><a href="#5-5-right-column-boundary-conditions-bounding-box-faces">5.5 Right column: Boundary Conditions (bounding-box faces)</a></li><li class="t3"><a href="#5-6-right-column-solver-output">5.6 Right column: Solver &amp; Output</a></li><li class="t3"><a href="#5-7-right-column-bottom-run-buttons-and-log">5.7 Right column bottom: run buttons and log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-workflow-a-beginner-demo-no-ct-data-required">6.1 Workflow A: beginner demo (no CT data required)</a></li><li class="t3"><a href="#6-2-workflow-b-linear-elasticity-on-real-ct-data">6.2 Workflow B: linear elasticity on real CT data</a></li><li class="t3"><a href="#6-3-job-folders">6.3 Job folders</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>FEniCSx FEM - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · FEniCSx FEM...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p>The <strong>FEniCSx FEM</strong> plugin lets you run finite-element (FEM) simulations directly on the tetrahedral meshes that the <strong>CGAL Mesh_3 plugin</strong> generates from your segmented CT data — without leaving Dragonfly. The current version (v1) solves <strong>linear elasticity</strong>: you point the panel at a mesh, set material properties (Young&#x27;s modulus E and Poisson&#x27;s ratio nu), choose which bounding-box face is fixed and which is loaded, and click <strong>Run FEM</strong>. The computed <strong>displacement field</strong> and <strong>von Mises stress field</strong> are sampled back onto the original CT voxel grid and imported as new Channels that are perfectly aligned with the original data, ready to view and analyze alongside your images.</p>
+<p>The solver engine is the open-source finite-element framework <strong>FEniCSx (dolfinx) 0.9</strong> (conda-forge package fenics-dolfinx=0.9.*), together with <strong>PETSc</strong> (real-scalar build), meshio (reads the .vtu mesh), numpy/scipy, h5py and pyvista, running on <strong>Python 3.12</strong>. The solver defaults to an iterative method (<strong>CG + GAMG</strong> preconditioning) and can be switched to a direct method (<strong>LU/MUMPS</strong>).</p>
+<p>Architecturally the plugin enforces strict process isolation: the Dragonfly side only assembles the configuration (config.json), launches the solve, and imports results back as Channels; the actual PDE solve is performed by fenicsx_runner.py inside a <strong>dedicated conda environment in WSL2</strong> — the solver is never loaded into Dragonfly&#x27;s own Python. The two sides communicate through files in the job folder (config.json for the task, status.json for live progress), so a solver crash can never take Dragonfly down.</p>
+<p>Why WSL2 is required: FEniCSx has no Windows distribution (no pip wheels for dolfinx/petsc4py/mpi4py, and no win-64 build on conda-forge) — the stack runs on Linux only. The plugin therefore uses Windows&#x27; built-in WSL2 subsystem to host the Linux compute environment.</p>
+<p>Licensing: all compute components (FEniCSx/dolfinx, PETSc, meshio, etc.) are open-source software installed from the official conda-forge channel; no commercial solver is included. The plugin itself ships with the Prototype Apps Full Package.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets <strong>image-based simulation</strong> for materials science and industrial CT: estimating the mechanical response of scanned objects under load without exporting to a separate FEM package. Typical scenarios include:</p>
+<ul>
+<li>Estimating deformation and stress distributions of scanned parts and additively manufactured (AM) components under load;</li>
+<li>Effective mechanical response of porous structures such as foams and lattices;</li>
+<li>Load analysis of geological/biological samples such as rocks and bone-like structures;</li>
+<li>Multi-material structures: the MaterialID labels carried by the CGAL mesh allow a different E and nu per segmented material (e.g. matrix vs. reinforcement in a composite);</li>
+<li>Teaching and onboarding: the left-hand side of the panel ships a one-click demo with four standard structures (cantilever beam, two-material cantilever, portal frame, L-bracket) — no CT data needed to experience the full pipeline.</li>
+</ul>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>The plugin is installed through the <strong>Prototype Labs &amp; Apps Full Package</strong>:</p>
+<p><strong>1. </strong>Unzip the package to a short path (e.g. C:\PL\; avoid deep folders because of the Windows 260-character path limit).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the component list, tick <strong>FEniCSx FEM...</strong>. Note: all plugins are <strong>unchecked by default</strong> — you must tick this plugin explicitly.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Restart Dragonfly completely</strong> (quit and reopen) — menus are scanned only at Dragonfly startup.</p>
+<p>After the restart, the menu entry appears under <strong>Prototype Apps ▸ FEniCSx FEM...</strong> (in the Simulation &amp; Meshing section). Clicking it opens a <strong>freely resizable floating panel window</strong>.</p>
+<p>To enable or disable the plugin later, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick/untick <strong>FEniCSx FEM...</strong> in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, then restart Dragonfly. Disabling <strong>never</strong> deletes the plugin&#x27;s WSL compute environment — re-enabling is instant. You can also re-run the installer at any time (even after deleting the zip: run %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat).</p>
+<p>Prerequisite: this plugin consumes the output of the <strong>CGAL Mesh_3 plugin</strong> (a .vtu tetrahedral mesh plus a sibling metadata.json). Install and use CGAL Mesh_3 first for real CT workflows; the beginner demo alone does not need CGAL.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</h2>
+<p>The compute environment runs in <strong>WSL2</strong> and must be built once before first use. <strong>No GPU is needed</strong>; internet access is required only while building the environment, not for day-to-day solves.</p>
+<h3 id="4-1-prerequisite-install-wsl2">4.1 Prerequisite: install WSL2</h3>
+<p>Windows 10/11 with WSL2 installed and up to date is required. If it is missing, run in an <strong>administrator</strong> PowerShell:</p>
+<p>wsl --install    (reboot afterwards)</p>
+<p>wsl --update     (if already installed)</p>
+<h3 id="4-2-option-a-one-click-build-in-the-panel-setup-fenicsx-environment">4.2 Option A: one-click build in the panel (Setup FEniCSx Environment)</h3>
+<p>Open the panel, make sure the <strong>WSL distro</strong> field names an existing distribution (default Ubuntu), and click <strong>Setup FEniCSx Environment</strong>. The button runs the setup script shipped with the plugin inside the chosen WSL distro; concretely it:</p>
+<p><strong>1. </strong>Looks for an existing mamba / conda / micromamba in the distro; if none is found, it automatically downloads <strong>Miniforge</strong> from GitHub and installs it into $HOME/miniforge3;</p>
+<p><strong>2. </strong>Creates (or updates) a conda environment named fenicsx from environment.yml: Python 3.12, fenics-dolfinx=0.9.*, real-scalar PETSc, meshio&gt;=5, scipy, numpy, h5py, pyvista;</p>
+<p><strong>3. </strong>Runs an import self-test (import dolfinx etc.) to verify the environment;</p>
+<p><strong>4. </strong>Prints FENICSX_PYTHON=&lt;interpreter path&gt;; the panel captures the path into the <strong>FEniCSx interpreter</strong> field and saves it to the config for automatic reuse.</p>
+<p>The first build downloads roughly <strong>1-2 GB</strong> and takes about <strong>10-30 minutes</strong>. Output streams live into the log area; on success the log shows &quot;FEniCSx environment ready. Interpreter: ...&quot;.</p>
+<h3 id="4-3-option-b-import-the-prebuilt-wsl-image-no-online-build">4.3 Option B: import the prebuilt WSL image (no online build)</h3>
+<p>If the <strong>FEniCSx-WSL-Package</strong> archive is provided with the plugin (containing the ~1.5 GB fenicsx-rootfs.tar.gz), you can skip the online build and import a ready-made Linux image (Ubuntu plus the prebuilt fenicsx conda environment):</p>
+<p><strong>1. </strong>Double-click <strong>`install_fenicsx_wsl.bat`</strong> in the package (or run install_fenicsx_wsl.ps1);</p>
+<p><strong>2. </strong>The installer imports the image as a WSL distribution named <strong>`FenicsxFEM`</strong> (its disk lives under %LOCALAPPDATA%\FenicsxFEM\wsl by default) and smoke-tests dolfinx;</p>
+<p><strong>3. </strong>The installer writes %LOCALAPPDATA%\FenicsxFem\config.json automatically, so the Dragonfly panel auto-fills the WSL distro and interpreter path (/home/dragonfly/miniconda3/envs/fenicsx/bin/python) — no manual configuration needed;</p>
+<p><strong>4. </strong>Open the Dragonfly panel and click <strong>Generate Phantom + Run Demo FEA</strong> for an end-to-end verification.</p>
+<p>Installer command-line options: -DistroName &lt;name&gt; (use a different distro name), -InstallDir &lt;path&gt; (where the distro&#x27;s disk lives), -Force (replace an existing distro of the same name), -Uninstall (remove the distro and the plugin config). The image runs as a neutral user dragonfly and carries no personal account information.</p>
+<h3 id="4-4-where-settings-are-saved-and-self-healing">4.4 Where settings are saved, and self-healing</h3>
+<p>The panel saves the CGAL output folder, mesh path, WSL distro, interpreter path and job root in two places (mutual backups): %LOCALAPPDATA%\FenicsxFem\config.json and a fenicsx_config.json next to the plugin code. If the interpreter field is empty when you click Run, the panel first restores it from the config file; failing that, it probes common conda locations inside WSL (miniconda3 / miniforge3 / anaconda3 / /opt/conda, etc.) for an environment named fenicsx. You can also paste the interpreter path manually into <strong>FEniCSx interpreter</strong>.</p>
+<p>Fallbacks on failure: if the online build fails (restricted network), use Option B and import the prebuilt image; if the image is unavailable, you can run bash setup_fenicsx_env.sh manually in any WSL distro and paste the printed interpreter path into the panel.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel is a resizable, maximizable floating window. A blue information line sits at the top; below it the window splits into two columns (draggable splitter): the <strong>left column is the beginner demo</strong>, the <strong>right column is the general configuration</strong>. The <strong>◀ Hide demo / Show demo ▶</strong> button at the top collapses/restores the left column. Each column has its own scrollbar.</p>
+<h3 id="5-1-left-column-beginner-demo-phantom-linear-elasticity-fea">5.1 Left column: ① Beginner Demo — Phantom + Linear-Elasticity FEA</h3>
+<p>The demo area includes illustrated diagrams (workflow, cantilever sketch, parameter effects) so that users without CT data can experience the full four-step pipeline — voxel structure → tetrahedral mesh → FEniCSx solve → result Channels — in one click. Controls:</p>
+<ul>
+<li><strong>Structure drop-down</strong> with four standard structures: Cantilever beam (uniform) — fixed at one end, pushed down at the free end, the classic bending demo; Cantilever beam (2 materials: stiff top) — the top half is 5x stiffer, showing the stiff layer deflecting less; Building portal frame (lateral load) — two columns plus a top beam, fixed at the bases, pushed sideways on top (sway); L-bracket (stress concentration) — mounted at the top, loaded at the tip, showing the stress spike at the inner corner;</li>
+<li><strong>Stiffness E (Young&#x27;s modulus)</strong> text field, default 1.0e9;</li>
+<li><strong>Applied load</strong> text field, default 1.0e6;</li>
+<li><strong>Resolution (voxels, 4-16)</strong> text field, default 8 — higher values mean a finer, more accurate mesh (especially stress peaks) but slower solves; 6-10 recommended;</li>
+<li><strong>Generate Phantom + Run Demo FEA</strong> button (green): generates the voxel phantom, tetrahedralizes it, solves in WSL, and imports the results as Channels;</li>
+<li>Result summary label: shows the maximum displacement, maximum von Mises stress, tetrahedron count and imported Channel names after completion.</li>
+</ul>
+<h3 id="5-2-right-column-mesh-from-cgal-mesh-3-plugin">5.2 Right column: Mesh (from CGAL Mesh_3 plugin)</h3>
+<ul>
+<li><strong>CGAL output folder</strong>: root output folder of the CGAL Mesh_3 plugin, default C:\CGALMeshJobs, with a … browse button;</li>
+<li><strong>Mesh .vtu (override)</strong>: optional; select one specific .vtu mesh file. Leave blank to automatically use the <strong>latest</strong> .vtu (searched recursively) that has a sibling metadata.json.</li>
+</ul>
+<h3 id="5-3-right-column-fenicsx-environment-wsl2">5.3 Right column: FEniCSx Environment (WSL2)</h3>
+<ul>
+<li><strong>WSL distro</strong>: name of the WSL distribution hosting the solver environment, default Ubuntu (becomes FenicsxFEM after importing the prebuilt image);</li>
+<li><strong>FEniCSx interpreter</strong>: path to the python of the fenicsx conda env inside WSL; filled automatically by the Setup button (placeholder &quot;set by &#x27;Setup FEniCSx Environment&#x27;&quot;), can also be pasted manually;</li>
+<li><strong>Job root (Windows)</strong>: job root folder, default C:\FEAJobs; each solve creates a new time-stamped job folder inside it;</li>
+<li><strong>Setup FEniCSx Environment</strong> button: one-time build/update of the compute environment (see chapter 4).</li>
+</ul>
+<h3 id="5-4-right-column-material-linear-elasticity">5.4 Right column: Material (Linear Elasticity)</h3>
+<ul>
+<li><strong>Young&#x27;s modulus E (default)</strong>: Young&#x27;s modulus of the default material, default 1.0e9;</li>
+<li><strong>Poisson ratio nu (default)</strong>: Poisson&#x27;s ratio of the default material, default 0.3;</li>
+<li><strong>Per-material overrides (JSON)</strong>: per-material overrides keyed by the CGAL mesh&#x27;s MaterialID, e.g. {&quot;2&quot;: {&quot;E&quot;: 5e9, &quot;nu&quot;: 0.25}}; materials without an entry use the defaults above. Invalid JSON is ignored with a log message.</li>
+</ul>
+<h3 id="5-5-right-column-boundary-conditions-bounding-box-faces">5.5 Right column: Boundary Conditions (bounding-box faces)</h3>
+<p>Boundary conditions are applied on <strong>whole faces of the mesh bounding box</strong> (axis x/y/z + side min/max), because a CGAL tet mesh has no named surfaces:</p>
+<ul>
+<li><strong>Fixed face (u=0)</strong>: the face with zero displacement; axis + side drop-downs, default z / min;</li>
+<li><strong>Load face</strong>: the loaded face, default z / max;</li>
+<li><strong>Traction on load face (x,y,z)</strong>: surface traction vector (force/area) with three components, default 0, 0, -1.0e6; if all three components are 0, no load is applied;</li>
+<li><strong>Body force (x,y,z)</strong>: body force vector, default 0, 0, 0.</li>
+</ul>
+<h3 id="5-6-right-column-solver-output">5.6 Right column: Solver &amp; Output</h3>
+<ul>
+<li><strong>Direct solver (LU/MUMPS) instead of CG+GAMG</strong> checkbox, unchecked by default: check for a direct solve (more robust on small/medium meshes); unchecked uses the iterative solver (tolerance 1e-8, at most 2000 iterations);</li>
+<li><strong>Import result fields as Dragonfly Channels</strong> checkbox, checked by default: automatically imports the result fields as Channels after the solve; uncheck to only keep the files in the job folder.</li>
+</ul>
+<h3 id="5-7-right-column-bottom-run-buttons-and-log">5.7 Right column bottom: run buttons and log</h3>
+<ul>
+<li><strong>Run FEM</strong> button (blue): starts a full solve with the current configuration;</li>
+<li><strong>Open Output Folder</strong> button: opens the most recent job folder in Explorer (or the job root if no job has run yet);</li>
+<li><strong>Log area</strong> (read-only): live output of the environment setup, solve progress percentage and status messages, imported Channel names, and error messages.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-workflow-a-beginner-demo-no-ct-data-required">6.1 Workflow A: beginner demo (no CT data required)</h3>
+<p><strong>1. </strong>Make sure the compute environment is ready (chapter 4; the FEniCSx interpreter field is filled, or the saved config can restore it automatically).</p>
+<p><strong>2. </strong>Pick a structure in the left-column drop-down (start with Cantilever beam (uniform)).</p>
+<p><strong>3. </strong>Optionally adjust Stiffness E, Applied load and Resolution (the defaults are fine).</p>
+<p><strong>4. </strong>Click <strong>Generate Phantom + Run Demo FEA</strong> and watch the progress in the log.</p>
+<p><strong>5. </strong>When finished, three Channels appear in the scene: Phantom_&lt;structure&gt; (the input shape), Demo_Displacement_Field (displacement magnitude) and Demo_VonMises_Stress (where stress concentrates); the result summary shows the maximum displacement and stress.</p>
+<p><strong>6. </strong>Change one parameter and re-run to compare: doubling the load roughly doubles displacement and stress; doubling E roughly halves the displacement (stress stays about the same); switch structures to compare behaviors.</p>
+<h3 id="6-2-workflow-b-linear-elasticity-on-real-ct-data">6.2 Workflow B: linear elasticity on real CT data</h3>
+<p><strong>1. </strong>Segment your data in Dragonfly and generate a tetrahedral mesh from the labels with the <strong>CGAL Mesh_3 plugin</strong> — this produces a .vtu file with a sibling metadata.json (by default under C:\CGALMeshJobs).</p>
+<p><strong>2. </strong>Open the <strong>Prototype Apps ▸ FEniCSx FEM...</strong> panel; make sure <strong>CGAL output folder</strong> points at the CGAL output directory, or select a specific mesh via <strong>Mesh .vtu (override)</strong> (blank = latest mesh automatically).</p>
+<p><strong>3. </strong>Set the default E and nu in the Material group; for multi-material meshes, add per-MaterialID entries in Per-material overrides.</p>
+<p><strong>4. </strong>In the Boundary Conditions group choose the fixed face (e.g. z/min), the load face (e.g. z/max) and enter the traction vector (at least one non-zero component); optionally set a body force.</p>
+<p><strong>5. </strong>In Solver &amp; Output choose the solver according to mesh size; keep <strong>Import result fields as Dragonfly Channels</strong> checked.</p>
+<p><strong>6. </strong>Click <strong>Run FEM</strong>. The log first shows which mesh is used, then the solve progress (percentage + stage messages); the solve runs in WSL and can take a while for large meshes.</p>
+<p><strong>7. </strong>When finished, the Displacement_Field and VonMises_Stress Channels appear in the scene, perfectly aligned with the original CT data for direct overlay; click <strong>Open Output Folder</strong> to inspect all output files of the job.</p>
+<h3 id="6-3-job-folders">6.3 Job folders</h3>
+<p>Each run creates a new folder under the job root (default C:\FEAJobs): fea_&lt;timestamp&gt; for regular solves and fea_demo_&lt;structure&gt;_&lt;timestamp&gt; for demos. It contains the configuration, live status, mesh-level results and rasterized field files of that run (see chapter 8), making every result traceable and reproducible.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>Main panel (right column) parameters:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>CGAL output folder</td><td>C:\CGALMeshJobs</td><td>Root output folder of the CGAL Mesh_3 plugin; searched recursively for .vtu meshes with a metadata.json</td></tr><tr><td>Mesh .vtu (override)</td><td>(blank)</td><td>Optionally pin a specific .vtu; blank = use the latest mesh automatically</td></tr><tr><td>WSL distro</td><td>Ubuntu</td><td>WSL distribution hosting the solver env; FenicsxFEM for the prebuilt image</td></tr><tr><td>FEniCSx interpreter</td><td>(blank)</td><td>Python path of the fenicsx env inside WSL; set by Setup or auto-detected</td></tr><tr><td>Job root (Windows)</td><td>C:\FEAJobs</td><td>Job root; each run creates a time-stamped subfolder</td></tr><tr><td>Young&#x27;s modulus E (default)</td><td>1.0e9</td><td>Default material Young&#x27;s modulus; units are your choice but must be consistent with the load units (Pa is typical)</td></tr><tr><td>Poisson ratio nu (default)</td><td>0.3</td><td>Default material Poisson&#x27;s ratio</td></tr><tr><td>Per-material overrides (JSON)</td><td>(blank)</td><td>Per-MaterialID overrides, e.g. {&quot;2&quot;: {&quot;E&quot;: 5e9, &quot;nu&quot;: 0.25}}; invalid JSON is ignored</td></tr><tr><td>Fixed face (u=0)</td><td>z / min</td><td>Whole bounding-box face with zero displacement (axis x/y/z + side min/max)</td></tr><tr><td>Load face</td><td>z / max</td><td>Whole bounding-box face carrying the traction</td></tr><tr><td>Traction on load face (x,y,z)</td><td>0, 0, -1.0e6</td><td>Surface traction vector (force/area); no load is applied if all components are 0</td></tr><tr><td>Body force (x,y,z)</td><td>0, 0, 0</td><td>Body force vector</td></tr><tr><td>Direct solver (LU/MUMPS)</td><td>unchecked</td><td>Checked = direct solve; unchecked = iterative CG+GAMG (tolerance 1e-8, max 2000 iterations)</td></tr><tr><td>Import result fields as Channels</td><td>checked</td><td>Automatically import the result fields as Dragonfly Channels after the solve</td></tr></table></div>
+<p>Beginner demo (left column) parameters:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Structure drop-down</td><td>Cantilever beam (uniform)</td><td>One of four: uniform cantilever / two-material cantilever / portal frame / L-bracket</td></tr><tr><td>Stiffness E (Young&#x27;s modulus)</td><td>1.0e9</td><td>Demo material stiffness; higher E means less deflection (delta proportional to 1/E), stress roughly unchanged</td></tr><tr><td>Applied load</td><td>1.0e6</td><td>Applied load; in linear elasticity displacement and stress scale proportionally with the load</td></tr><tr><td>Resolution (voxels, 4-16)</td><td>8</td><td>Voxel resolution; higher is more accurate (especially stress peaks) but slower; 6-10 recommended</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p><strong>Objects imported into Dragonfly (Channels):</strong> on a successful solve with import enabled, the following Channels appear in the scene; their geometry (voxel spacing and origin) comes from the CGAL metadata.json, so they align exactly with the original CT data:</p>
+<ul>
+<li>Displacement_Field — displacement-magnitude field (float32, z/y/x order);</li>
+<li>VonMises_Stress — von Mises equivalent-stress field;</li>
+<li>In demo mode the names carry a prefix: Demo_Displacement_Field, Demo_VonMises_Stress, plus the input shape Phantom_&lt;structure&gt;.</li>
+</ul>
+<p>Voxels outside the mesh are <strong>NaN</strong> (not inside the solid) and appear empty/transparent — this is expected. Overlay the result Channels on the original CT Channel to see directly where stress concentrates and how the part deforms.</p>
+<p><strong>Files in the job folder</strong> (click Open Output Folder):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>File</th><th>Description</th></tr><tr><td>config.json</td><td>The full configuration of this solve (mesh, materials, boundary conditions, solver, rasterization geometry)</td></tr><tr><td>status.json</td><td>Live progress (state / message / progress); the panel polls it for the percentage display</td></tr><tr><td>fem.xdmf (+ fem.h5)</td><td>Displacement and von Mises results on the tetrahedral mesh; open in ParaView for mesh-level post-processing</td></tr><tr><td>fem.vtu</td><td>The same results in VTU format (written best-effort)</td></tr><tr><td>field_disp_x/y/z.npy</td><td>The three displacement components sampled on the CT voxel grid (float32, z/y/x)</td></tr><tr><td>field_disp_mag.npy</td><td>Displacement-magnitude field (imported as Displacement_Field)</td></tr><tr><td>field_von_mises.npy</td><td>Von Mises stress field (imported as VonMises_Stress)</td></tr><tr><td>fem_result.json</td><td>Solve summary: number of DOFs, cells, vertices, max displacement, max stress, runtime in seconds</td></tr></table></div>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q1: Clicking Run FEM shows &quot;ERROR: FEniCSx interpreter not set&quot;?</strong></p>
+<p>A: The compute environment is not ready yet. Click <strong>Setup FEniCSx Environment</strong> for the one-time build (or import the prebuilt WSL image). If the environment actually exists, the panel first restores the path from the config file and then probes WSL for a conda environment named fenicsx; you can also paste the interpreter path manually.</p>
+<p><strong>Q2: The log says &quot;&#x27;wsl&#x27; not found. Install WSL2.&quot;?</strong></p>
+<p>A: WSL2 is not installed on this machine. Run wsl --install in an administrator PowerShell and reboot (wsl --update if already installed), then confirm that wsl -d &lt;distro&gt; opens a Linux shell.</p>
+<p><strong>Q3: &quot;no .vtu with a sibling metadata.json under ...&quot;?</strong></p>
+<p>A: No qualifying mesh was found under the CGAL output folder. A qualifying mesh is a .vtu file <strong>with a `metadata.json` in the same folder</strong> (the standard CGAL Mesh_3 output). Generate a mesh with CGAL Mesh_3 first, check the folder path, or select the file directly via <strong>Mesh .vtu (override)</strong>.</p>
+<p><strong>Q4: Environment setup is slow or fails?</strong></p>
+<p>A: The first build downloads about 1-2 GB and normally takes 10-30 minutes — keep the network connection up and be patient. If it keeps failing on a restricted network, switch to the <strong>prebuilt WSL image</strong> (FEniCSx-WSL-Package, double-click install_fenicsx_wsl.bat); after the import, the panel configuration is filled in automatically and no online build is needed.</p>
+<p><strong>Q5: The solve takes very long or does not converge?</strong></p>
+<p>A: The iterative solver (default) uses less memory on very large meshes but may converge slowly; for small/medium meshes tick <strong>Direct solver (LU/MUMPS)</strong>. In demo mode, lower the Resolution first. Also note that a cold-started WSL virtual machine responds slowly at first — the panel performs a warm-up, which is normal.</p>
+<p><strong>Q6: A load face is set but the result shows no deformation?</strong></p>
+<p>A: Check the three components of <strong>Traction on load face (x,y,z)</strong> — if all of them are 0, the plugin does not apply the load boundary condition at all. Enter at least one non-zero component (the sign encodes the direction).</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li>v1 supports <strong>linear elasticity</strong> only; thermal and electrostatic physics are future extensions.</li>
+<li>Boundary conditions can only be applied on <strong>whole bounding-box faces</strong> (axis + min/max); named surfaces, partial-face loads and component-wise/symmetry BCs are not supported — a CGAL tet mesh has no named surfaces.</li>
+<li>The real-data workflow depends on the <strong>CGAL Mesh_3 plugin</strong> output format (.vtu + metadata.json); meshes from other sources without a metadata.json are not auto-discovered.</li>
+<li>Results import as <strong>voxel Channels</strong> (Dragonfly displays regular voxel data); for node-level post-processing on the tetrahedral mesh, open fem.xdmf / fem.vtu from the job folder in ParaView.</li>
+<li>Units for E, load and length are the user&#x27;s responsibility (the plugin performs no unit conversion); material overrides match the CGAL MaterialID, and the default entry covers every id without an explicit entry.</li>
+<li>The compute environment runs on Linux (WSL2) only; no GPU is needed, and internet access is required only for the environment build.</li>
+<li>Menus are scanned only at Dragonfly startup — enabling/disabling the plugin requires one restart; disabling never deletes the built WSL environment.</li>
+<li>The iterative-solver settings (tolerance 1e-8, max 2000 iterations) are currently not exposed in the UI.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>FEniCSx / dolfinx project (open-source finite-element framework; conda-forge package fenics-dolfinx, this plugin uses the 0.9 series): https://fenicsproject.org</li>
+<li>Miniforge (installed automatically by the setup script when no conda is present): https://github.com/conda-forge/miniforge</li>
+<li>ParaView (opens fem.xdmf / fem.vtu from the job folder for mesh-level post-processing)</li>
+<li>CGAL Mesh_3 plugin user manual (generates the tetrahedral mesh + metadata.json this plugin consumes)</li>
+<li>Microsoft WSL2 documentation (official reference for wsl --install / wsl --update)</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>FEniCSx-FEM-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

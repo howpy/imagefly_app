@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto Backup &amp; Exit · Dragonfly Prototype Apps</title>
+<meta name="description" content="Auto Backup &amp; Exit - User Manual Dragonfly Prototype Apps · Auto Backup &amp; Exit... Version 1.0 · 2026-07-26 English Manual Contents 1. Introduction 2. What …">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Auto Backup &amp; Exit</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Auto Backup &amp; Exit...</div>
+    <h1>Auto Backup &amp; Exit</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-what-one-backup-contains">2. What one backup contains</a></li><li class="t2"><a href="#3-two-buttons-exit-and-shutdown">3. Two buttons / exit and shutdown</a></li><li class="t2"><a href="#4-how-it-works-technical-path">4. How it works (technical path)</a></li><li class="t2"><a href="#5-how-to-use">5. How to use</a></li><li class="t2"><a href="#6-requirements">6. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Auto Backup &amp; Exit - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Auto Backup &amp; Exit...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Auto Backup &amp; Exit</strong> gives you a single &#x27;back up and quit Dragonfly&#x27; button: capture the current session&#x27;s scene in one click, then quit Dragonfly — and optionally shut the computer down afterwards.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. The fast steps run entirely in-process with no internet. Shutdown is off by default and requires an explicit tick plus confirmation.</p>
+<h2 id="2-what-one-backup-contains">2. What one backup contains</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Ticked option</th><th>What is written</th></tr><tr><td>Session snapshot</td><td>main-window screenshot, per-view screenshots, a list of published objects (objects.txt), and a saved session file session.ORSSession</td></tr><tr><td>Object-connections graph (PNG)</td><td>the relationship graph drawn by the Show Connections plugin, saved as object_connections.png</td></tr><tr><td>Current view screenshot (PNG)</td><td>a screenshot of the currently active view, current_view.png</td></tr><tr><td>AI Work Log</td><td>reuses the WorkLog plugin and its local LLM to turn the day&#x27;s logs into Markdown (runs only if WorkLog is set up)</td></tr></table></div>
+<p>Each run creates a timestamped subfolder under the backup folder you pick (e.g. backup_20260726_180000); all of the above are written into that subfolder.</p>
+<h2 id="3-two-buttons-exit-and-shutdown">3. Two buttons / exit and shutdown</h2>
+<ul>
+<li><strong>Backup now (keep open)</strong>: runs only the ticked backup steps, then opens the folder for review; Dragonfly stays open.</li>
+<li><strong>Backup &amp; Exit Dragonfly</strong>: backs up, asks for confirmation, then quits Dragonfly cleanly. Because the session was just saved, quitting does not re-prompt to save.</li>
+<li><strong>Shut down after exit</strong> (optional): when ticked, a Windows shutdown is scheduled before quitting (shutdown /s /t 60). Within the 60-second countdown you can cancel it by running shutdown /a.</li>
+</ul>
+<h2 id="4-how-it-works-technical-path">4. How it works (technical path)</h2>
+<ul>
+<li><strong>Reuse, not re-implement</strong>: the object-connections graph calls the Show Connections plugin and the AI Work Log calls the WorkLog plugin directly; this plugin locates those two sibling plugins automatically inside the packaged directory (GenericMenuItems).</li>
+<li><strong>Threading</strong>: fast steps (screenshots / save session / object graph) run on the UI thread; the slower AI Work Log (local LLM) runs on a background thread so the UI never freezes.</li>
+<li><strong>How it exits</strong>: a clean event-loop quit (QApplication.quit), rather than the close flow that triggers the save guard — because the session was already saved during the backup.</li>
+</ul>
+<h2 id="5-how-to-use">5. How to use</h2>
+<p>1. Menu Prototype Apps ▸ Auto Backup &amp; Exit… to open the panel.</p>
+<p>2. Choose a backup folder (default: your home\DragonflyBackups).</p>
+<p>3. Tick what to include (session snapshot / object-connections graph / current-view screenshot / AI Work Log; and whether to shut down after exit).</p>
+<p>4. Click &#x27;Backup now&#x27; to back up without exiting; or click &#x27;Backup &amp; Exit Dragonfly&#x27; and confirm to back up and quit (then shut down, if ticked).</p>
+<h2 id="6-requirements">6. Requirements</h2>
+<p>The fast steps need no install/internet/GPU/venv. The object-connections graph requires the Show Connections plugin to be installed alongside; the AI Work Log requires the WorkLog plugin plus its one-time setup (local model + venv), and is skipped when not set up. Shutdown is Windows-only.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>AutoBackupExit-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

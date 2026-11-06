@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenFiberSeg (Fiber Separation) Plugin · Dragonfly Prototype Apps</title>
+<meta name="description" content="OpenFiberSeg (Fiber Separation) Plugin - User Manual Dragonfly Prototype Apps · OpenFiberSeg (Fiber Separation) Version 1.0 · 2026-07-10 English Manual Con…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">OpenFiberSeg (Fiber Separation) Plugin</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · OpenFiberSeg (Fiber Separation)</div>
+    <h1>OpenFiberSeg (Fiber Separation) Plugin</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-10</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-algorithm-pipeline">2. Algorithm &amp; pipeline</a></li><li class="t2"><a href="#3-when-to-use">3. When to use</a></li><li class="t2"><a href="#4-requirements-setup">4. Requirements &amp; setup</a></li><li class="t2"><a href="#5-step-by-step">5. Step-by-step</a></li><li class="t2"><a href="#6-parameters">6. Parameters</a></li><li class="t2"><a href="#7-fast-vs-full-mode">7. Fast vs Full mode</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-differences-from-the-built-in">9. Differences from the built-in</a></li><li class="t2"><a href="#10-troubleshooting">10. Troubleshooting</a></li><li class="t2"><a href="#11-license-credits">11. License &amp; credits</a></li></ul></nav>
+  <main class="manual"><p><strong>OpenFiberSeg (Fiber Separation) Plugin - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · OpenFiberSeg (Fiber Separation)</p>
+<p>Version 1.0 · 2026-07-10</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>OpenFiberSeg (Fiber Separation)</strong> takes an <strong>already-segmented binary Fiber ROI</strong> and separates it into <strong>individual fibers (a MultiROI)</strong> - one label/colour per fiber - for orientation, length and count statistics or visualization. It uses the OpenFiberSeg fiber-tracking algorithm (watershed center points -&gt; orientation-guided per-fiber tracking -&gt; voxel assignment -&gt; volumetric post-processing).</p>
+<p>This plugin is a <strong>fully independent</strong> implementation: it shares <strong>no code or dependency</strong> with Dragonfly&#x27;s built-in &quot;Open Fiber Segmentation (beta)&quot; (Workflows menu). It runs in its own Python environment, so it is faster, friendlier, and cannot interfere with the built-in one.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h2 id="2-algorithm-pipeline">2. Algorithm &amp; pipeline</h2>
+<p>For the input binary fiber volume, the algorithm runs, in order:</p>
+<p><strong>1. </strong><strong>Watershed center points</strong>: find a candidate seed inside each fiber.</p>
+<p><strong>2. </strong><strong>Per-fiber tracking</strong>: from each seed, follow the local orientation to link one fiber&#x27;s voxels into a centerline.</p>
+<p><strong>3. </strong><strong>Voxel assignment</strong>: assign every foreground voxel to the nearest, orientation-consistent fiber.</p>
+<p><strong>4. </strong><strong>Volumetric post-processing</strong>: fill/clean the labelled volume for tidy per-fiber labels.</p>
+<p><strong>5. </strong>(Full mode only) <strong>3-axis combination</strong>: run once per X/Y/Z axis permutation and merge, to catch fibers in all directions.</p>
+<p>The output is a MultiROI (one label per fiber), with an optional centerline MultiROI.</p>
+<h2 id="3-when-to-use">3. When to use</h2>
+<p>For CT of short-fiber-reinforced composites (and similar) where the fibers are already binarised as <strong>one</strong> ROI but must be split into <strong>per-fiber</strong> labels.</p>
+<ul>
+<li>Fibers that are <strong>dense, touching, near-parallel</strong> - a skeleton method merges neighbours into one; orientation tracking separates them better.</li>
+<li>You need <strong>per-fiber</strong> orientation, length, diameter, count or volume-fraction statistics.</li>
+<li>You want a per-fiber coloured visualization.</li>
+</ul>
+<p>If fibers are sparse with clear crossings, the lighter <strong>Fiber ROI to MultiROI</strong> (skeleton method) is usually enough and faster.</p>
+<h2 id="4-requirements-setup">4. Requirements &amp; setup</h2>
+<p>The input is an <strong>existing binary Fiber ROI</strong> (foreground = fibers).</p>
+<p>On first use, open the <strong>Setup</strong> tab and click <strong>Setup Environment</strong>: it creates an isolated Python venv and installs numpy(&lt;2), scipy, scikit-image and opencv-python.</p>
+<ul>
+<li>Internet is needed <strong>once</strong> for setup; <strong>no GPU</strong> is required at run time.</li>
+<li>Compute runs <strong>multi-core</strong> inside that isolated venv, separate from the Dragonfly process.</li>
+<li>If the base Python is not auto-detected, set <strong>Base Python</strong> manually (e.g. Dragonfly&#x27;s Python_env\python.exe or a system Python).</li>
+</ul>
+<h2 id="5-step-by-step">5. Step-by-step</h2>
+<p><strong>1. </strong><strong>1 Setup</strong> (first time): click Setup Environment; wait for &quot;Environment ready.&quot;.</p>
+<p><strong>2. </strong><strong>2 Input</strong>: Refresh and pick the Fiber ROI; name the output MultiROI; tick &quot;Also output fiber centerlines&quot; if wanted.</p>
+<p><strong>3. </strong><strong>3 Parameters</strong>: pick a <strong>Preset</strong> (Default / Thin / Thick / Dense) and click Apply preset, then fine-tune the red image-dependent knobs.</p>
+<p><strong>4. </strong><strong>4 Run</strong>: choose <strong>Fast</strong> (single axis, default, ~3x faster) or <strong>Full</strong> (3 axes, most accurate), then click &quot;Run Fiber Separation + Create MultiROI&quot;.</p>
+<p><strong>5. </strong>When it finishes, the separated fibers are published as a MultiROI; the summary table shows the fiber count and timing.</p>
+<h2 id="6-parameters">6. Parameters</h2>
+<p>Length parameters are in <strong>voxels</strong> (the panel works in voxels; no physical-unit conversion needed). Red parameters are strongly image-dependent.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Unit</th><th>Meaning</th></tr><tr><td>Fiber diameter</td><td>6</td><td>voxels</td><td>Typical fiber diameter; grows tracked centerlines back to full fibers. Image-dependent.</td></tr><tr><td>Min fiber length</td><td>8</td><td>voxels</td><td>Shortest tracked fiber kept. Raise to drop short spurious fibers; too high deletes real short fibers.</td></tr><tr><td>Max stitching distance</td><td>3</td><td>voxels</td><td>Largest gap bridged when stitching two collinear tracked segments into one fiber.</td></tr><tr><td>Initial water level</td><td>1.0</td><td>pixels</td><td>Initial water level for the watershed that seeds fiber center points. Lower = more, smaller seeds.</td></tr><tr><td>Convexity defect</td><td>1.0</td><td>pixels</td><td>How strongly touching fibers are split at concave necks. Raise to split merged fibers more aggressively.</td></tr><tr><td>Post-process all fibers</td><td>on</td><td>-</td><td>Fill/clean the labelled volume for a tidier result.</td></tr></table></div>
+<p><strong>Presets</strong> bundle the knobs for common cases: Default (general), Thin fibers, Thick fibers, Dense / noisy. You can still fine-tune after applying one.</p>
+<h2 id="7-fast-vs-full-mode">7. Fast vs Full mode</h2>
+<ul>
+<li><strong>Fast (single axis, default)</strong>: one axis pass; skips the two extra axis permutations AND the combine step the built-in does - <strong>~3x faster</strong>. Enough for most data.</li>
+<li><strong>Full (3 axes, most accurate)</strong>: runs all three axis permutations and merges them, better for fibers in every direction, at ~3x the time.</li>
+</ul>
+<p>The built-in <strong>always</strong> runs 3 axes, a main reason it is slow. This plugin defaults to Fast; switch to Full only when you need maximum accuracy.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<ul>
+<li><strong>Segmented fibers MultiROI</strong> (default): one label/colour per fiber.</li>
+<li><strong>Centerline MultiROI</strong> (optional): the centerline of each fiber, when ticked.</li>
+</ul>
+<p>Both are <strong>segmentation objects (MultiROI)</strong>, ready for measurement, statistics, or as input to later workflows.</p>
+<h2 id="9-differences-from-the-built-in">9. Differences from the built-in</h2>
+<ul>
+<li><strong>Independent</strong>: does not depend on or modify Dragonfly&#x27;s built-in Open Fiber Segmentation.</li>
+<li><strong>Faster</strong>: single-axis by default (the built-in is fixed at 3 axes) and multi-core in its own venv.</li>
+<li><strong>Friendlier</strong>: a 4-tab wizard with presets and hover tooltips; clear parameter meanings.</li>
+<li><strong>Same algorithm</strong>: the core tracking is the same source (MIT), so result quality is comparable.</li>
+</ul>
+<h2 id="10-troubleshooting">10. Troubleshooting</h2>
+<ul>
+<li><strong>No / too few fibers</strong>: lower Initial water level, lower Min fiber length, or try the &quot;Thin fibers&quot; preset.</li>
+<li><strong>Neighbours merged into one fiber</strong>: raise Convexity defect, or try Full mode.</li>
+<li><strong>Too many fragmentary fibers</strong>: raise Min fiber length.</li>
+<li><strong>Slow</strong>: use Fast mode; for big volumes, crop a small block first to tune parameters.</li>
+<li><strong>Setup fails</strong>: point Base Python at a Python that has pip, and ensure internet access.</li>
+</ul>
+<h2 id="11-license-credits">11. License &amp; credits</h2>
+<p>The core fiber-tracking algorithm is <strong>OpenFiberSeg</strong>, Copyright <strong>Facundo Sosa-Rey (2021)</strong>, used under the <strong>MIT License</strong>; the LICENSE and attribution are kept inside the plugin. The rest (panel, bridge, packaging) was written for this project.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>OpenFiberSeg-FiberSeparation-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

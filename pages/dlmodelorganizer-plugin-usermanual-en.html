@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DL Model Organizer · Dragonfly Prototype Apps</title>
+<meta name="description" content="DL Model Organizer - User Manual Dragonfly Prototype Apps · DL Model Organizer... Version 1.0 · 2026-07-26 English Manual Contents 1. Introduction 2. Featu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">DL Model Organizer</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · DL Model Organizer...</div>
+    <h1>DL Model Organizer</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-features">2. Features</a></li><li class="t2"><a href="#3-how-to-use">3. How to use</a></li><li class="t2"><a href="#4-attach-modes-compared">4. Attach modes compared</a></li><li class="t2"><a href="#5-review-training-images-and-visual-feedback">5. Review Training Images and Visual Feedback</a></li><li class="t2"><a href="#6-requirements-notes">6. Requirements &amp; notes</a></li></ul></nav>
+  <main class="manual"><p><strong>DL Model Organizer - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · DL Model Organizer...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>DL Model Organizer</strong> manages the deep-learning segmentation models trained by Dragonfly&#x27;s <strong>DeepTrainer</strong> from one central library: move them off C: to any drive with space, temporarily <strong>attach</strong> them back to a given Dragonfly version for training/inference, then free C: again — while keeping a <strong>single copy</strong> shared across versions on demand.</p>
+<p>Background: DeepTrainer stores each model as a folder (model.ORSModel + data.json + checkpoints) in a fixed per-version C: directory, %LOCALAPPDATA%\comet\Dragonfly&lt;ver&gt;\pythonUserExtensions\PythonPluginExtensions\DeepTrainer\models\. There is no built-in setting to relocate it, so C: fills up (tens of GB per version in practice) and every Dragonfly version keeps its own duplicate. This plugin exists to fix exactly those two problems.</p>
+<p>Use it to: reclaim C: when DeepTrainer models fill it; share one set of trained models across multiple Dragonfly versions (e.g. 2025.1 and 2027.1) without duplicating them; and attach the models you need to the current version for a training/inference session, then free the space afterwards.</p>
+<h2 id="2-features">2. Features</h2>
+<ul>
+<li><strong>Central model library</strong>: set one library root (e.g. D:\DragonflyModels); the path is persisted and remembered next time.</li>
+<li><strong>Cross-version table</strong>: scans every Dragonfly version on C: plus the library, one row per model, showing name, origin version (read from data.json&#x27;s dragonflyVersion), size, whether it is in the library, last-modified time, and which versions it is present in.</li>
+<li><strong>Move to Library</strong>: move a version&#x27;s C: model into the library, freeing C: immediately.</li>
+<li><strong>Attach →</strong>: place a library model into a chosen <strong>target version</strong>. By default this uses a <strong>Windows directory junction (mklink /J)</strong> — no admin, instant, ~0 C: usage, one shared copy kept in the library; or switch to <strong>Move</strong> to physically relocate the single copy into that version.</li>
+<li><strong>Detach</strong>: remove a model from a version. A junction is just unlinked and the library copy is untouched; a real folder that was move-attached is moved back to the library; a redundant real duplicate already in the library can be deleted after confirmation.</li>
+<li><strong>Live refresh, no restart</strong>: after attach/detach the CURRENTLY running version&#x27;s model list is auto-refreshed (refreshModelsList), so the change shows in AI/DeepTrainer without a restart (other versions pick it up on next launch).</li>
+<li><strong>Batch actions</strong>: the table supports Ctrl/Shift multi-select and Ctrl+A select-all; Move to Library / Attach / Detach act on every selected row, and each confirmation (version mismatch, deleting duplicates) is asked once for the whole batch.</li>
+<li><strong>Search, notes, visual feedback</strong>: a search box filters by name/ID/version/location; every row has a <strong>Notes</strong> button editing a notes.md that travels with the model; right-clicking a model opens a <strong>training-image visual-feedback viewer</strong> (see below).</li>
+<li><strong>Space hints</strong>: the bottom line shows the library&#x27;s free space (GB) and each version&#x27;s reclaimable size.</li>
+</ul>
+<h2 id="3-how-to-use">3. How to use</h2>
+<p>1. Open <strong>Prototype Apps ▸ Train Custom Model ▸ DL Model Organizer...</strong> to bring up the dockable panel.</p>
+<p>2. On the <strong>Central model library</strong> row, click <strong>Browse…</strong> and pick a folder on a drive with space (e.g. D:\DragonflyModels), or paste the path. It is remembered.</p>
+<p>3. In the table, Ctrl/Shift-click one or more models (Ctrl+A selects all); the right-hand columns show which versions each model lives in, its size, and whether it is in the library.</p>
+<p>4. <strong>Free C:</strong> — select a version&#x27;s C: model and click <strong>Move to Library</strong>; the files are moved into the library and C: is freed immediately.</p>
+<p>5. <strong>Attach back to a version</strong> — pick the <strong>Target version</strong> in the dropdown, choose an <strong>Attach mode</strong> (Junction by default, or Move), select a library model, and click <strong>Attach →</strong>. The default junction completes instantly with ~0 C: usage.</p>
+<p>6. <strong>Free the space when done</strong> — select a model no longer needed in a version and click <strong>Detach</strong>; a junction is just unlinked, and the library copy stays.</p>
+<p>7. After attach/detach, the running version&#x27;s model list auto-refreshes — the model is usable in AI / DeepTrainer with no Dragonfly restart.</p>
+<p>The log pane at the bottom records each move/attach/detach action and its result; the status line reports how many succeeded and how many failed (failures detailed in the log).</p>
+<h2 id="4-attach-modes-compared">4. Attach modes compared</h2>
+<p><strong>Attach</strong> offers two modes, chosen with the radio buttons on the panel:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col><col></colgroup><tr><th>Mode</th><th>How it works</th><th>C: usage</th><th>Copies</th><th>On Detach</th></tr><tr><td>Junction (default)</td><td>creates a Windows directory junction (mklink /J, no admin, instant) in the version folder pointing at the one library copy</td><td>~0</td><td>one shared copy</td><td>removes only the junction; library copy untouched</td></tr><tr><td>Move (physical)</td><td>physically relocates the single copy from the library into the version folder</td><td>the full model size</td><td>still one (relocated)</td><td>moves the folder back to the library</td></tr></table></div>
+<ul>
+<li><strong>Junctions work between local NTFS drives on the same machine only.</strong> Network/removable drives do not support them — use Move mode there.</li>
+<li><strong>Version compatibility</strong>: 2026.1 and 2027.1 are treated as the same format (a rename) and are compatible. Attaching a model whose origin version differs from the target (outside that equivalence) raises a compatibility warning to confirm before proceeding.</li>
+</ul>
+<h2 id="5-review-training-images-and-visual-feedback">5. Review Training Images and Visual Feedback</h2>
+<p><strong>Right-click</strong> a model in the table and choose <strong>Review Training Images and Visual Feedback</strong> to browse the visual-feedback snapshots saved during that model&#x27;s training (the visual_feedback_*.ORSObject files inside the model folder).</p>
+<p>The viewer shows the <strong>input image in grayscale</strong> with the per-class <strong>predicted segmentation</strong> overlaid, and provides:</p>
+<ul>
+<li><strong>Snapshot selector</strong>: switch between the snapshots saved at different timestamps during training (a dropdown plus ◀ Prev / Next ▶).</li>
+<li><strong>Overlay control</strong>: pick which prediction layer to show, and toggle &quot;Show overlay&quot; on/off.</li>
+<li><strong>Prediction-slice slider</strong>: scrub slice by slice through a 3D prediction.</li>
+<li><strong>Opacity slider</strong>: adjust the segmentation overlay&#x27;s transparency; a class-color legend sits below the image.</li>
+<li><strong>Save PNG…</strong>: save the current view as a PNG image.</li>
+</ul>
+<p>The right-click menu also offers <strong>Open notes…</strong> (open/edit the model&#x27;s notes) and <strong>Open model folder</strong> (reveal the model&#x27;s real folder in Explorer).</p>
+<h2 id="6-requirements-notes">6. Requirements &amp; notes</h2>
+<ul>
+<li><strong>Runs purely in-process</strong>: no venv, no internet, no GPU, and no admin rights (directory junctions via mklink /J need no admin). After installing, <strong>restart Dragonfly</strong> to see the menu item.</li>
+<li><strong>Windows / same-machine NTFS only</strong>: junctions only work between local NTFS drives; use Move mode for network or removable drives.</li>
+<li><strong>Safety</strong>: destructive actions (deleting a redundant real duplicate already in the library) require confirmation; detaching a junction uses os.rmdir on the reparse point only, so it can <strong>never</strong> follow the link and delete the library&#x27;s real files.</li>
+<li><strong>Notes travel with the model</strong>: notes.md lives inside the model&#x27;s real folder (a junction is resolved to its target), so notes always follow the single library copy.</li>
+</ul>
+<p>This feature is provided by a third party (Prototype Labs / Prototype Apps), not officially developed or supported by Dragonfly. Use at your own risk.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>DLModelOrganizer-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

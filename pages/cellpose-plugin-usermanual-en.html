@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Train Custom Model: Cellpose · Dragonfly Prototype Apps</title>
+<meta name="description" content="Train Custom Model: Cellpose - User Manual Dragonfly Prototype Apps · Train Custom Model: Cellpose... Version 1.0 · 2026-07-04 English Manual Contents 1. O…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Train Custom Model: Cellpose</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Train Custom Model: Cellpose...</div>
+    <h1>Train Custom Model: Cellpose</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#common-settings-models-folder">Common settings (Models folder)</a></li><li class="t3"><a href="#train-fine-tune">① Train / fine-tune</a></li><li class="t3"><a href="#infer-publish-a-multiroi">② Infer (publish a MultiROI)</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#workflow-a-train-fine-tune-a-model">Workflow A: Train / fine-tune a model</a></li><li class="t3"><a href="#workflow-b-infer-with-a-model-and-publish-a-multiroi">Workflow B: Infer with a model and publish a MultiROI</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Train Custom Model: Cellpose - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Train Custom Model: Cellpose...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Train Custom Model: Cellpose</strong> (menu title Train Custom Model: Cellpose...) is an embedded Dragonfly plugin that lets you train your own <strong>Cellpose</strong> cell/object-segmentation model directly from your Dragonfly data and then apply it to full images. The workflow has two steps: in the <strong>Train</strong> tab you fine-tune a new model file from an image <strong>Channel</strong> plus an already-labeled <strong>MultiROI</strong>; in the <strong>Infer</strong> tab you pick any trained model, segment a full image slice by slice, and publish the detected objects back into your scene as a new <strong>MultiROI</strong>.</p>
+<p>The underlying engine is <strong>Cellpose</strong>, a widely used open-source deep-learning framework for cell segmentation. This plugin uses the Cellpose that ships <strong>inside Dragonfly 2027.1</strong> — including its <strong>Cellpose-SAM</strong> base model and Dragonfly&#x27;s CellposeHelper. As a result the plugin runs <strong>entirely in-process</strong> inside Dragonfly: there is no separate Python environment, no venv, and no &quot;Setup Environment&quot; step.</p>
+<p>Licensing: Cellpose is distributed under the <strong>BSD</strong> license; its <strong>Cellpose-SAM</strong> weights follow their publishers&#x27; respective terms. The plugin only calls components already bundled with Dragonfly and <strong>never downloads anything</strong> during install or use.</p>
+<p>Prerequisite: this plugin requires <strong>Dragonfly 2027.1</strong> (which ships Cellpose-SAM + CellposeHelper + cellpose). It cannot run on earlier Dragonfly versions.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin is ideal for life-science and biomedical imaging: when you need to segment <strong>cells, nuclei, or other rounded structures</strong> in 2D slices or 3D stacks, and the generic model needs fine-tuning to your own staining, magnification, or sample type.</p>
+<ul>
+<li>You have a few hand-labeled slices and want a model that generalizes to the rest of a large dataset;</li>
+<li>You want to fine-tune a generic model for a specific stain, magnification, imaging modality, or sample type;</li>
+<li>You want to continue fine-tuning an earlier custom model (use that previous model as the new base);</li>
+<li>You want to segment other blob-like features in materials or industrial images — anything you can label as a MultiROI.</li>
+</ul>
+<p>In short, any workflow of the form &quot;a few hand-labeled slices + a model to auto-segment the whole volume&quot; fits this plugin.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin is installed via the <strong>Full Package</strong> installer. It is a &quot;plugin&quot;-type app and is <strong>OFF by default</strong> in the installer, so you must enable it explicitly.</p>
+<p><strong>1. </strong>Unzip the supplied Full Package to any short folder (e.g. C:\PL\) to avoid long-path issues.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) — this only affects the Prototype Labs core blocks/recipes, not any plugin.</p>
+<p><strong>4. </strong>In the app list, <strong>tick `Train Custom Model: Cellpose...`</strong> (plugins are OFF by default, so you must check it).</p>
+<p><strong>5. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>6. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are scanned only at startup).</p>
+<p>After the restart the menu item appears at: <strong>Prototype Apps ▸ Train Custom Model: Cellpose...</strong> (in the Train Custom Model group). Click it to open the panel.</p>
+<p>To change your choice later, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, find this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, tick = deploy / untick = remove the menu entry, and restart Dragonfly to apply. Disabling <strong>never</strong> deletes anything — this plugin has no separate environment, so re-enabling is instant.</p>
+<p>Uninstall: double-click Uninstall_FullPackage.bat to remove all Full Package menu items and plugins. Because this plugin runs in-process with no venv/downloads, uninstalling leaves no separate environment folder behind.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</h2>
+<p><strong>This plugin has NO &quot;Setup Environment&quot; step.</strong> Unlike heavy plugins that download packages, build a venv, or import a WSL distro, this plugin uses <strong>Dragonfly 2027.1&#x27;s own Python</strong> together with its bundled cellpose, torch, and CellposeHelper, all running in-process inside Dragonfly.</p>
+<ul>
+<li><strong>Download size: 0.</strong> Neither install nor first use downloads any model or dependency.</li>
+<li><strong>Internet needed: No.</strong> Fully usable offline.</li>
+<li><strong>GPU needed: recommended, not required.</strong> The plugin auto-detects an NVIDIA GPU (via torch.cuda.is_available()): if present it accelerates training and inference; if absent it falls back to CPU with identical functionality, just slower.</li>
+<li><strong>WSL needed: No.</strong></li>
+<li><strong>Version requirement: Dragonfly 2027.1 only.</strong> Earlier versions lack the bundled Cellpose-SAM / CellposeHelper and cannot run it.</li>
+</ul>
+<p>The only thing to set before first use is the <strong>Models folder</strong> — trained models are saved there and listed there for inference. The default is C:\CellposeModels, created automatically at training time; you can point it anywhere writable via the … button.</p>
+<p>Panel settings are remembered automatically in cellpose_config.json in the plugin&#x27;s code folder and in %LOCALAPPDATA%\CellposeCustom\config.json, and restored the next time you open the panel.</p>
+<p>Fallback when things fail: since no environment build is involved, most issues come from the data itself (see Section 9). If you suspect out-of-memory on the GPU, turn off True 3D (use the default 2D+Z stitch), or reduce batch size / image size and retry.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel opens with a short blue note describing its purpose. Below is a scrollable area with three sections: common settings, ① Train, and ② Infer. At the very bottom are a green result-status label and a read-only <strong>log window</strong> that shows Cellpose epochs, progress, and any error messages in real time.</p>
+<h3 id="common-settings-models-folder">Common settings (Models folder)</h3>
+<ul>
+<li><strong>Models folder</strong>: text field + … browse button. Where models are saved and listed; default C:\CellposeModels.</li>
+<li><strong>Refresh channels / MultiROIs / models</strong>: rescans the current Dragonfly scene for image Channels and MultiROIs, and refreshes the model list from the models folder.</li>
+</ul>
+<h3 id="train-fine-tune">① Train / fine-tune</h3>
+<ul>
+<li><strong>Image Channel</strong>: dropdown; the image Channel used as training input.</li>
+<li><strong>MultiROI (labels)</strong>: dropdown; the ground-truth MultiROI (each label = one object).</li>
+<li><strong>Orientation</strong>: dropdown, XY / XZ / YZ, default XY.</li>
+<li><strong>Slice index</strong>: spin box; the slice used as a training example in that orientation; range adapts to the Channel&#x27;s size, defaulting to the middle slice.</li>
+<li><strong>Add pair</strong> / <strong>Clear pairs</strong>: add the current (Channel + MultiROI + slice) to the training set, or clear it; the &quot;Training pairs: N&quot; label shows how many are queued.</li>
+<li><strong>Base model</strong>: dropdown, Cellpose-SAM (default), cyto3, nuclei, or (custom path...).</li>
+<li><strong>Custom base path</strong>: text field + … button; used only when Base model = (custom path...), to continue fine-tuning a previously trained model.</li>
+<li><strong>Epochs</strong>: spin box, range 1–5000, default 100.</li>
+<li><strong>Learning rate</strong>: text field, default 1e-05.</li>
+<li><strong>Batch size</strong>: spin box, range 1–64, default 1.</li>
+<li><strong>Diameter</strong>: text field; blank or 0 means auto (Cellpose-SAM ignores it).</li>
+<li><strong>New model name</strong>: text field; blank auto-generates a timestamped name.</li>
+<li><strong>Train</strong>: blue button; starts training on a background worker thread (the UI stays responsive).</li>
+</ul>
+<h3 id="infer-publish-a-multiroi">② Infer (publish a MultiROI)</h3>
+<ul>
+<li><strong>Model</strong>: dropdown listing every model in the models folder (name + file size in MB), with a <strong>Refresh models</strong> button beside it.</li>
+<li><strong>Image Channel</strong>: dropdown; the full image Channel to segment.</li>
+<li><strong>Stitch threshold (Z)</strong>: text field, default 0.3; stitches the per-slice 2D results into Z-consistent 3D objects.</li>
+<li><strong>Flow threshold</strong>: text field, default 0.4.</li>
+<li><strong>Cellprob threshold</strong>: text field, default 0.0.</li>
+<li><strong>Diameter</strong>: text field; blank or 0 means auto.</li>
+<li><strong>True 3D (do_3D) instead of 2D+stitch</strong>: checkbox, default off; when on, uses true 3D segmentation instead of 2D-per-slice + Z stitch.</li>
+<li><strong>Result title</strong>: text field; blank auto-names the resulting MultiROI.</li>
+<li><strong>Infer -&gt; publish MultiROI</strong>: green button; runs inference and publishes the result into the scene.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="workflow-a-train-fine-tune-a-model">Workflow A: Train / fine-tune a model</h3>
+<p><strong>Input requirements</strong>: at least one image Channel in the scene, plus a MultiROI that labels objects on the corresponding slice(s) of that Channel (each label = one object).</p>
+<p><strong>1. </strong>Open the panel and click <strong>Refresh channels / MultiROIs / models</strong> to load the current scene objects.</p>
+<p><strong>2. </strong>(Optional) Set the <strong>Models folder</strong> to where you want models saved.</p>
+<p><strong>3. </strong>In <strong>① Train</strong>, select the <strong>Image Channel</strong> and the <strong>MultiROI (labels)</strong>.</p>
+<p><strong>4. </strong>Choose an <strong>Orientation</strong> and <strong>Slice index</strong> — make sure that slice actually contains labeled objects.</p>
+<p><strong>5. </strong>Click <strong>Add pair</strong> to queue that pair; repeat for each labeled slice (across orientations/indices as needed). The &quot;Training pairs&quot; count should increase.</p>
+<p><strong>6. </strong>Choose a <strong>Base model</strong> (use the default Cellpose-SAM for a first training; pick (custom path...) and a path to continue fine-tuning an existing custom model).</p>
+<p><strong>7. </strong>Set <strong>Epochs</strong>, <strong>Learning rate</strong>, <strong>Batch size</strong>, and a <strong>New model name</strong> (blank = auto timestamp).</p>
+<p><strong>8. </strong>Click <strong>Train</strong>. The log shows per-epoch progress; when done, the new model is saved to the Models folder and appears automatically in the inference dropdown.</p>
+<p>If a queued pair has no labels on its chosen slice, it is skipped automatically during training; if all pairs lack labels, training fails with a message. Verify the orientation and slice index.</p>
+<h3 id="workflow-b-infer-with-a-model-and-publish-a-multiroi">Workflow B: Infer with a model and publish a MultiROI</h3>
+<p><strong>Input requirements</strong>: at least one model in the Models folder (trained here, or imported via a custom path), plus an image Channel to segment.</p>
+<p><strong>1. </strong>In <strong>② Infer</strong>, click <strong>Refresh models</strong> and select a model from the dropdown.</p>
+<p><strong>2. </strong>Select the <strong>Image Channel</strong> to segment.</p>
+<p><strong>3. </strong>Set <strong>Stitch threshold (Z)</strong>, <strong>Flow threshold</strong>, <strong>Cellprob threshold</strong>, and (optional) <strong>Diameter</strong>.</p>
+<p><strong>4. </strong>For true 3D segmentation, tick <strong>True 3D</strong>; otherwise keep the default 2D-per-slice + Z stitch.</p>
+<p><strong>5. </strong>(Optional) Enter a name in <strong>Result title</strong> for the resulting MultiROI.</p>
+<p><strong>6. </strong>Click <strong>Infer -&gt; publish MultiROI</strong>. The plugin segments slice by slice, stitches through Z, and publishes the detected objects as a new MultiROI; the log reports the object count.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p><strong>Training parameters</strong> (① Train tab):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Models folder</td><td>C:\CellposeModels</td><td>Where trained models are saved; inference lists models from here.</td></tr><tr><td>Orientation</td><td>XY</td><td>Direction of the 2D training slice taken from the volume: XY / XZ / YZ.</td></tr><tr><td>Slice index</td><td>middle slice</td><td>Slice used as a training example in that orientation; range adapts to the Channel.</td></tr><tr><td>Base model</td><td>Cellpose-SAM</td><td>Fine-tuning start point: Cellpose-SAM / cyto3 / nuclei / (custom path).</td></tr><tr><td>Custom base path</td><td>(empty)</td><td>Used when Base model = (custom path); points to an existing model to continue fine-tuning.</td></tr><tr><td>Epochs</td><td>100</td><td>Number of training epochs, range 1–5000.</td></tr><tr><td>Learning rate</td><td>1e-05</td><td>Optimizer learning rate.</td></tr><tr><td>Batch size</td><td>1</td><td>Training images per batch, range 1–64.</td></tr><tr><td>Diameter</td><td>auto (blank/0)</td><td>Object diameter estimate; ignored by Cellpose-SAM, mainly for cyto-family models.</td></tr><tr><td>New model name</td><td>auto timestamp</td><td>Output model filename; blank names it cellpose_custom_&lt;timestamp&gt;.</td></tr></table></div>
+<p><strong>Inference parameters</strong> (② Infer tab):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Model</td><td>(dropdown)</td><td>The trained model to apply, from the Models folder.</td></tr><tr><td>Image Channel</td><td>(dropdown)</td><td>The full image Channel to segment.</td></tr><tr><td>Stitch threshold (Z)</td><td>0.3</td><td>Stitches per-slice 2D results into Z-consistent 3D objects.</td></tr><tr><td>Flow threshold</td><td>0.4</td><td>Cellpose flow-error threshold; affects which objects are kept.</td></tr><tr><td>Cellprob threshold</td><td>0.0</td><td>Cell-probability threshold; lower detects more, higher is stricter.</td></tr><tr><td>Diameter</td><td>auto (blank/0)</td><td>Object diameter estimate; blank = auto.</td></tr><tr><td>True 3D (do_3D)</td><td>off</td><td>When on, uses true 3D segmentation instead of 2D-per-slice + Z stitch.</td></tr><tr><td>Result title</td><td>auto</td><td>Name of the published MultiROI; blank names it Cellpose_&lt;model name&gt;.</td></tr></table></div>
+<p>The inference batch size is auto-optimized by the plugin via CellposeHelper.findOptimizedBatchSizeForCellpose to fit available GPU memory — no manual setting needed; training uses a fixed internal weight decay of 0.1.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p><strong>Training output</strong>: a new <strong>Cellpose model file</strong> saved into the Models folder (named as you specified, or auto-generated as cellpose_custom_&lt;timestamp&gt;). When training finishes, the plugin refreshes the Infer model dropdown so the new model is immediately selectable. The list is sorted by modification time and shows each model&#x27;s name and file size (MB).</p>
+<p><strong>Inference output</strong>: a new <strong>MultiROI</strong> object published back into the current Dragonfly scene. It is aligned to the source image Channel&#x27;s grid (matching geometry, spacing, and origin), with one MultiROI label per detected object. It is built via Dragonfly&#x27;s CellposeHelper by default; if that path is unavailable, the plugin completes automatically with a fallback (label volume → Channel → MultiROI).</p>
+<p><strong>How to view</strong>: after publishing, the MultiROI appears in Dragonfly&#x27;s object tree with the name you set as Result title, or the auto name Cellpose_&lt;model name&gt;. You can display, color, and further measure/analyze it in 2D slice and 3D views like any other MultiROI. The panel&#x27;s log confirms with a line like &quot;Published MultiROI &#x27;...&#x27; with N object(s).&quot;</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: I can&#x27;t find &quot;Train Custom Model: Cellpose...&quot; in the menu.</strong></p>
+<p>A: Make sure you ticked this plugin in the installer (it is OFF by default) and <strong>fully restarted Dragonfly</strong> afterward; menus are scanned only at startup. You can also check its state in Developer ▸ Prototype Labs... ▸ Menu Item Manager. Confirm you are on Dragonfly 2027.1.</p>
+<p><strong>Q: Training reports &quot;All pairs had 0 labels on the chosen slices.&quot;</strong></p>
+<p>A: The queued pairs contain no MultiROI labels on the chosen orientation/slice. Verify the Orientation and Slice index so you land on a slice that truly has annotations, re-Add the pair, and train again.</p>
+<p><strong>Q: Inference reports &quot;Cellpose found no objects.&quot;</strong></p>
+<p>A: Try lowering the <strong>Cellprob threshold</strong>, entering an explicit <strong>Diameter</strong>, or using a model that fits your data better; if needed, add more training examples or epochs and retrain.</p>
+<p><strong>Q: Training/inference is slow or reports out of memory.</strong></p>
+<p>A: Training and inference use an NVIDIA GPU automatically when present; without a GPU, CPU fallback is notably slower. If the GPU runs out of memory, keep True 3D unchecked for inference (use the default 2D+Z stitch), and reduce Batch size or use smaller slices for training.</p>
+<p><strong>Q: My Channel or MultiROI isn&#x27;t in the dropdown.</strong></p>
+<p>A: Load the data in Dragonfly first, then click <strong>Refresh channels / MultiROIs / models</strong> to rescan the scene.</p>
+<p><strong>Q: My trained model doesn&#x27;t show in the inference list.</strong></p>
+<p>A: Make sure the Infer tab&#x27;s Models folder points to the same directory you trained into, then click <strong>Refresh models</strong>. The list ignores non-model files such as .json / .txt / .npy.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>Dragonfly 2027.1 only</strong>: depends on its bundled Cellpose-SAM and CellposeHelper.</li>
+<li><strong>Training examples are 2D slices</strong>: each pair takes one 2D slice (which may come from different orientations/indices); Cellpose fine-tunes on these 2D images.</li>
+<li><strong>MultiROI labels map 1:1 to objects</strong>: each MultiROI label is treated as one distinct object (instance).</li>
+<li><strong>Training runs in Dragonfly&#x27;s process</strong>: training and inference share the Dragonfly process; avoid other memory/VRAM-heavy operations while they run. The UI stays responsive on a background thread.</li>
+<li><strong>Cellpose-SAM is diameter/channel-agnostic</strong>: Diameter mainly targets cyto-family base models and is ignored when Cellpose-SAM is selected.</li>
+<li><strong>Inference defaults to 2D-per-slice + Z stitch</strong>: the Stitch threshold keeps object labels consistent through Z; True 3D is an optional mode.</li>
+<li><strong>GPU is an optional accelerator</strong>: it runs without a GPU, just more slowly.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Cellpose open-source project (BSD license): https://github.com/MouseLand/cellpose</li>
+<li>Cellpose official documentation: https://cellpose.readthedocs.io</li>
+<li>Dragonfly 2027.1&#x27;s bundled Cellpose-SAM feature and CellposeHelper (see Dragonfly&#x27;s own Help)</li>
+<li>Full Package install &amp; enable instructions: the packaged README.md and the installer dialog</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Cellpose-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

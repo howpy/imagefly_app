@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesh to CAD (STEP) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Mesh to CAD (STEP) - User Manual Dragonfly Prototype Apps · Mesh to CAD (STEP)... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cases…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Mesh to CAD (STEP)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Mesh to CAD (STEP)...</div>
+    <h1>Mesh to CAD (STEP)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-standard-conversion-opencascade-backends">6.1 Standard conversion (OpenCASCADE backends)</a></li><li class="t3"><a href="#6-2-point2cad-conversion-experimental-optional">6.2 Point2CAD conversion (experimental, optional)</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Mesh to CAD (STEP) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Mesh to CAD (STEP)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p>The <strong>Mesh to CAD (STEP)</strong> plugin converts a mesh object in the Dragonfly scene into a CAD solid or shell and writes it as a <strong>STEP / IGES / BREP</strong> CAD file. Pick a mesh, a conversion backend, an output format and an output file, then click <strong>Convert</strong>: a <strong>watertight</strong> mesh becomes a <strong>solid</strong>, otherwise a <strong>shell</strong>. When done, the panel reports the written file (solid/shell, size) and offers an <strong>Open output folder</strong> button.</p>
+<p>Three conversion backends are available:</p>
+<ul>
+<li><strong>OpenCASCADE - faceted solid (exact geometry)</strong>: every triangle becomes a planar CAD face, sewn into a shell; a watertight mesh further becomes a solid. Exact geometry, always available, permissively licensed (LGPL).</li>
+<li><strong>OpenCASCADE - convex hull solid (simplified)</strong>: the mesh&#x27;s convex hull as a clean, simplified solid.</li>
+<li><strong>Point2CAD - automatic parametric B-rep (EXPERIMENTAL)</strong>: deep-learning reverse engineering (fits surfaces + edges + corners). Licensed <strong>CC-BY-NC 4.0 (NON-COMMERCIAL / research only)</strong>, needs your own GPU environment and a segmented point cloud; live verification is still pending.</li>
+</ul>
+<p>Engines and licensing: the OpenCASCADE backends use <strong>cadquery-ocp</strong> (Python bindings for OpenCASCADE Technology, LGPL) as the CAD kernel and STEP/IGES/BREP writer; <strong>trimesh</strong> (MIT) for mesh handling and convex hulls; <strong>numpy / scipy</strong> (BSD) for numerics. All of these are permissive and safe for commercial use. <strong>Point2CAD</strong> is the one exception - CC-BY-NC 4.0, non-commercial, and an optional experimental feature.</p>
+<p>Architecture: all conversions run as a subprocess in the plugin&#x27;s own dedicated Python virtual environment (venv) with JSON-file IPC - never inside Dragonfly&#x27;s Python. Even a failed conversion cannot destabilize Dragonfly.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<ul>
+<li><strong>Bring CT / photogrammetry / segmentation meshes into a CAD workflow</strong>: export meshes obtained from CT reconstruction, photogrammetry or image segmentation as STEP and open them in FreeCAD, SolidWorks, etc.</li>
+<li><strong>Metrology and assembly reference</strong>: use as-measured geometry as a reference part in a CAD assembly or for metrology.</li>
+<li><strong>Reverse engineering</strong>: the first step from scan data toward an editable CAD model.</li>
+<li><strong>Long-term archival</strong>: STEP / IGES are neutral CAD exchange formats, well suited for cross-software, long-term archiving.</li>
+<li><strong>When clean parametric CAD is needed</strong>: try the experimental Point2CAD backend (mind its non-commercial license; see sections 4 and 10).</li>
+</ul>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong> as one of its Prototype Apps. To install:</p>
+<p><strong>1. </strong>Unzip the package anywhere with a short path (Desktop or C:\PL\ is fine).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> / <strong>Compatible</strong> - this only affects the Prototype Labs CORE blocks &amp; recipes, never any plugin&#x27;s environment or settings).</p>
+<p><strong>4. </strong>Tick <strong>Mesh to CAD (STEP)...</strong> in the Prototype Apps list. Note: <strong>all plugins are unticked by default</strong> - you must tick it explicitly.</p>
+<p><strong>5. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>6. </strong><strong>Fully restart Dragonfly</strong> (quit completely, then reopen).</p>
+<p>After the restart, the menu entry appears under <strong>Prototype Apps ▸ Mesh to CAD (STEP)...</strong> (in the Measurements &amp; Analysis group). Clicking it opens a floating, dockable panel.</p>
+<p><strong>Changing your choice later</strong>: inside Dragonfly, open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> - the &quot;Prototype Apps (Full Package)&quot; list at the bottom has a checkbox per app: tick = deploy, untick = remove the menu entry; restart Dragonfly to apply. Disabling <strong>never</strong> deletes a plugin&#x27;s environment - re-enabling is instant. Alternatively, re-run the installer any time (%LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat); your previous choices are the new defaults.</p>
+<p>Menus are discovered only at Dragonfly startup - every enable/disable change needs one full restart.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</h2>
+<p>Before the first conversion, click <strong>Setup Environment</strong> once in the panel. It does the following:</p>
+<p><strong>1. </strong>Creates a Python virtual environment (venv) at the <strong>deliberately SHORT path</strong> <strong>`%LOCALAPPDATA%\DragonflyPrototypeLabs\MeshToCAD\venv`</strong>. Why short: OpenCASCADE&#x27;s DLLs have long file names - installed under a deep folder, the full path would exceed the Windows <strong>MAX_PATH (260 characters)</strong> limit and the DLLs would fail to load. The setup script warns if the venv path exceeds 90 characters.</p>
+<p><strong>2. </strong>Uses <strong>Dragonfly&#x27;s own Python</strong> as the base interpreter by default (you may point Base Python elsewhere).</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p><strong>3. </strong>Pip-installs cadquery-ocp (the OpenCASCADE bindings - a large download), trimesh, numpy and scipy from PyPI over the internet.</p>
+<p><strong>4. </strong>Runs an import smoke test (numpy / trimesh / scipy / OCP&#x27;s STEP writer), records the venv&#x27;s Python path, and the Status line turns <strong>Ready</strong>.</p>
+<ul>
+<li><strong>Internet</strong>: needed once, for the environment build only; conversions afterwards are fully offline.</li>
+<li><strong>GPU</strong>: the two OpenCASCADE backends need <strong>no GPU</strong>.</li>
+<li><strong>WSL</strong>: not needed.</li>
+<li><strong>Duration</strong>: the panel allows up to 30 minutes for the setup; a normal connection finishes far sooner.</li>
+<li><strong>Reuse</strong>: clicking Setup Environment again reuses an existing working venv instead of re-downloading.</li>
+</ul>
+<p><strong>If the setup fails</strong>: e.g. the base Python lacks the venv module or a usable pip - enter the full path of another CPython 3.9-3.12 (x86-64) python.exe in the <strong>Base Python</strong> field (cadquery-ocp only ships wheels for those versions) and click Setup Environment again. Left blank, the plugin auto-detects: Dragonfly&#x27;s own Python first, then the py launcher, pythons on PATH, and common install locations.</p>
+<p>The Point2CAD backend does NOT use this venv. It requires your OWN GPU environment: clone https://github.com/prs-eth/point2cad , set the environment variables MESH2CAD_P2C_DIR (the cloned folder) and MESH2CAD_P2C_PY (its python), and mind its <strong>CC-BY-NC 4.0 non-commercial license</strong>. For commercial/robust use, pick an OpenCASCADE backend.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>From top to bottom the panel consists of (matching the actual software exactly):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Description</th></tr><tr><td>Header</td><td>label</td><td>Mesh to CAD (STEP) - convert a scene mesh into a CAD solid/shell and write STEP / IGES / BREP.</td></tr><tr><td>Mesh + Refresh</td><td>dropdown + button</td><td>Lists all mesh objects in the scene as &quot;title (vertices v / faces f)&quot;. Refresh re-scans the scene.</td></tr><tr><td>Backend</td><td>dropdown</td><td>The three conversion backends (see section 1). Selecting Point2CAD shows the non-commercial / experimental warning below.</td></tr><tr><td>Format</td><td>dropdown</td><td>STEP (.step) / IGES (.igs) / BREP (.brep). Changing the format re-syncs the output file&#x27;s extension.</td></tr><tr><td>Output file + Browse...</td><td>text field + button</td><td>Full path of the output CAD file. Browse... opens a save dialog starting at %LOCALAPPDATA%\DragonflyPrototypeLabs\MeshToCAD\output\model.step by default.</td></tr><tr><td>Warning bar</td><td>label (orange, bold)</td><td>Shows the current backend&#x27;s note and license; for Point2CAD, the non-commercial / experimental warning.</td></tr><tr><td>Base Python</td><td>text field</td><td>In the Environment (conversion venv) group. Blank = build the env from Dragonfly&#x27;s own Python; or enter a python path.</td></tr><tr><td>Status</td><td>label</td><td>Environment state: Ready (&lt;venv dir&gt;) or Not set up - click &#x27;Setup Environment&#x27;.</td></tr><tr><td>Setup Environment</td><td>button</td><td>One-time environment build (see section 4). Disabled while a job is running.</td></tr><tr><td>Convert</td><td>button (blue)</td><td>Runs the conversion: export the selected mesh, convert in the venv, write the CAD file.</td></tr><tr><td>Result line + Open output folder</td><td>label + button</td><td>Shows the conversion summary and output path; Open output folder becomes enabled on success and opens the folder in Explorer.</td></tr><tr><td>Log area</td><td>read-only text box</td><td>Live progress (percentages), messages and errors for setup and conversion.</td></tr></table></div>
+<p>The panel remembers <strong>Output file</strong> and <strong>Base Python</strong> (stored in a config file next to the plugin code) and restores them next time; plugin code updates preserve this config.</p>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>Prerequisite: the scene contains a mesh object (e.g. from CT segmentation, isosurface extraction or photogrammetry) that has triangle faces (a pure point cloud is rejected).</p>
+<h3 id="6-1-standard-conversion-opencascade-backends">6.1 Standard conversion (OpenCASCADE backends)</h3>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Mesh to CAD (STEP)...</strong>.</p>
+<p><strong>2. </strong>First use: click <strong>Setup Environment</strong> and wait for Setup complete. in the log; the Status line turns <strong>Ready</strong> (see section 4).</p>
+<p><strong>3. </strong>Pick the mesh in the <strong>Mesh</strong> dropdown (click <strong>Refresh</strong> if it is empty).</p>
+<p><strong>4. </strong>Pick the <strong>Backend</strong>: <strong>OpenCASCADE - faceted solid</strong> (exact, recommended) or <strong>OpenCASCADE - convex hull solid</strong> (simplified).</p>
+<p><strong>5. </strong>Pick the <strong>Format</strong>: STEP / IGES / BREP.</p>
+<p><strong>6. </strong>Click <strong>Browse...</strong> to choose the output file (or type a full path).</p>
+<p><strong>7. </strong>Click <strong>Convert</strong>. The log shows the progress (Loading mesh, Converting, done).</p>
+<p><strong>8. </strong>On success the result line shows a summary like Wrote solid STEP (12000 faces, 3456789 bytes) plus the output path; click <strong>Open output folder</strong> and verify the file in FreeCAD / SolidWorks etc.</p>
+<p>What happens under the hood: the plugin reads the selected mesh&#x27;s vertices and faces inside Dragonfly (polygons with more than 3 edges are fan-triangulated), exports them to mesh.npz in a temporary job folder, then launches the conversion subprocess in the venv, which builds one CAD face per triangle and sews them together. <strong>Watertight mesh becomes a solid; otherwise a shell.</strong> A single conversion may run for up to 1 hour before timing out.</p>
+<h3 id="6-2-point2cad-conversion-experimental-optional">6.2 Point2CAD conversion (experimental, optional)</h3>
+<p>Point2CAD is licensed CC-BY-NC 4.0 - <strong>commercial use is NOT permitted</strong> - and is experimental with live verification pending. The steps below are for research users only.</p>
+<p><strong>1. </strong>Clone https://github.com/prs-eth/point2cad yourself and set up its GPU environment per its instructions.</p>
+<p><strong>2. </strong>Set the environment variables MESH2CAD_P2C_DIR (the cloned folder) and MESH2CAD_P2C_PY (that environment&#x27;s python), then start Dragonfly.</p>
+<p><strong>3. </strong>Select <strong>Point2CAD - automatic parametric B-rep (EXPERIMENTAL)</strong> as the Backend; the remaining steps match 6.1.</p>
+<p><strong>4. </strong>The plugin samples 20000 points from the mesh surface into point2cad_input.xyzc and hands it to Point2CAD; its products (.step/.stp/.ply/.obj) are written into the output file&#x27;s folder.</p>
+<p>Important limitation: Point2CAD expects a <strong>segmented</strong> point cloud (a surface label per point); the plugin currently labels all sampled points identically (a single surface), which is adequate only as a pipeline smoke test - real results need an upstream segmentation. If the environment variables are not set, the conversion returns an explanatory notice instead of crashing.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Mesh</td><td>(first mesh in the scene)</td><td>The mesh to convert; entries show vertex/face counts. Refresh re-scans.</td></tr><tr><td>Backend</td><td>OpenCASCADE - faceted solid (exact geometry)</td><td>Conversion backend; alternatives: convex hull (simplified) and Point2CAD (experimental, non-commercial).</td></tr><tr><td>Format</td><td>STEP (.step)</td><td>Output format; also IGES (.igs) and BREP (.brep). Switching re-syncs the output file extension.</td></tr><tr><td>Output file</td><td>(remembered from last time)</td><td>Full output path; Browse suggests %LOCALAPPDATA%\DragonflyPrototypeLabs\MeshToCAD\output\model.step.</td></tr><tr><td>Base Python</td><td>(blank = Dragonfly&#x27;s own Python)</td><td>Base interpreter used only by Setup Environment; needs CPython 3.9-3.12 x86-64.</td></tr></table></div>
+<p>The following <strong>built-in defaults</strong> of the conversion core are not exposed in the UI in this version:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Internal parameter</th><th>Default</th><th>Description</th></tr><tr><td>Sewing tolerance sew_tol</td><td>1e-6</td><td>Tolerance used by OpenCASCADE when sewing the per-triangle faces into a shell.</td></tr><tr><td>Try to make a solid make_solid</td><td>on</td><td>After sewing a closed shell, attempt to build a solid; falls back to the shell on failure.</td></tr><tr><td>Point2CAD sample count n_sample</td><td>20000</td><td>Number of surface points sampled from the mesh for Point2CAD.</td></tr><tr><td>Environment setup timeout</td><td>30 minutes</td><td>Upper limit for Setup Environment.</td></tr><tr><td>Conversion timeout</td><td>1 hour</td><td>Upper limit for a single Convert run.</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>The plugin&#x27;s output is a <strong>CAD file on disk</strong> - it does not create a new object in the Dragonfly scene:</p>
+<ul>
+<li><strong>The CAD file</strong>: written to the Output file path you chose, as STEP (.step), IGES (.igs) or BREP (.brep). A watertight mesh yields a solid, otherwise a shell.</li>
+<li><strong>Result summary</strong>: the result line reads Wrote &lt;solid|shell&gt; &lt;FORMAT&gt; (&lt;n&gt; faces, &lt;n&gt; bytes) plus the output path.</li>
+<li><strong>Open output folder</strong>: enabled on success; opens the output file&#x27;s folder in Windows Explorer.</li>
+<li><strong>Job folder</strong>: each conversion creates a temporary job folder (name starting with mesh2cad_) in the system temp directory, containing the exported mesh.npz, config.json, status.json and results.json - useful when troubleshooting.</li>
+</ul>
+<p><strong>Viewing the result</strong>: open the file in any CAD application that reads STEP/IGES/BREP, e.g. FreeCAD (free) or SolidWorks. The faceted-solid backend produces a &quot;faceted BREP&quot; - one planar CAD face per triangle - geometrically identical to the mesh, but not a smooth parametric surface.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: Setup Environment fails with &quot;requirements install failed / cadquery-ocp needs a matching wheel&quot;?</strong></p>
+<p>A: cadquery-ocp ships pre-built wheels only for CPython 3.9-3.12 (x86-64). If Dragonfly&#x27;s own Python does not qualify, enter the full path of a qualifying python.exe in the <strong>Base Python</strong> field and retry. Also make sure PyPI is reachable at that moment.</p>
+<p><strong>Q: OpenCASCADE DLLs fail to load, or the log warns the path is too long (MAX_PATH)?</strong></p>
+<p>A: This is exactly why the plugin pins the venv to the short path %LOCALAPPDATA%\DragonflyPrototypeLabs\MeshToCAD\venv. Do not move the venv to a deep folder; if the setup log warns &quot;venv path is long (&gt;90 chars)&quot;, check whether %LOCALAPPDATA% is redirected to a deep location.</p>
+<p><strong>Q: The Mesh dropdown is empty?</strong></p>
+<p>A: Click <strong>Refresh</strong> and confirm the scene actually contains a mesh object (the plugin enumerates mesh-type objects; Channels/ROIs never appear here). If the log says No meshes found in the scene., create a mesh first (e.g. extract an isosurface from an ROI).</p>
+<p><strong>Q: Error &quot;this object has no faces (it is a point cloud)&quot;?</strong></p>
+<p>A: The selected object has vertices but no triangle faces (it is a point cloud). Mesh to CAD needs a triangle mesh - reconstruct a mesh from the point cloud first.</p>
+<p><strong>Q: Why is my result a shell instead of a solid?</strong></p>
+<p>A: Only a <strong>watertight</strong> (closed, hole-free) mesh sews into a solid; meshes with holes or open borders remain shells. Repair the mesh in Dragonfly first, or use the <strong>convex hull</strong> backend for a guaranteed-closed simplified solid.</p>
+<p><strong>Q: Point2CAD says &quot;Point2CAD not configured&quot;?</strong></p>
+<p>A: Expected - Point2CAD requires you to clone https://github.com/prs-eth/point2cad yourself and set the MESH2CAD_P2C_DIR and MESH2CAD_P2C_PY environment variables (see 6.2). Also re-check that your use complies with its CC-BY-NC non-commercial license.</p>
+<p><strong>Q: The STEP file is huge / very slow to open in CAD software?</strong></p>
+<p>A: The faceted backend writes <strong>one CAD face per triangle</strong>, so file size and load time grow with the triangle count. Decimate/simplify the mesh in Dragonfly before converting, or use the convex hull backend if a simplified shape is acceptable.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Faceted output</strong>: the OpenCASCADE faceted backend produces a faceted BREP (one planar face per triangle), not smooth NURBS parametric surfaces; for parametric surfaces the only current option is the experimental Point2CAD.</li>
+<li><strong>Convex hull loses concavities</strong>: the convex hull backend keeps only the convex outer shape - all concavities, holes and internal structure disappear.</li>
+<li><strong>Point2CAD</strong>: CC-BY-NC 4.0, <strong>commercial use prohibited</strong>; experimental and live-verify pending; needs your own GPU environment and a segmented point cloud - the plugin currently feeds an unsegmented (single-label) sampled cloud, adequate only as a smoke test.</li>
+<li><strong>Polygon faces are triangulated</strong>: non-triangular faces (quads etc.) are fan-triangulated on export.</li>
+<li><strong>Timeouts</strong>: 30 minutes for the environment setup, 1 hour per conversion; extremely large meshes may time out.</li>
+<li><strong>Menu changes need a restart</strong>: after enabling/disabling the plugin, fully restart Dragonfly.</li>
+<li><strong>Disk locations</strong>: the venv and the default output folder live under %LOCALAPPDATA%\DragonflyPrototypeLabs\MeshToCAD\; uninstalling the Full Package keeps this environment (its path is listed at the end of the uninstall for manual cleanup).</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>OCP (cadquery-ocp, Python bindings for OpenCASCADE Technology, LGPL): https://github.com/CadQuery/OCP</li>
+<li>trimesh (MIT, mesh handling and convex hulls): https://trimsh.org</li>
+<li>Point2CAD (CVPR 2024, CC-BY-NC 4.0): https://github.com/prs-eth/point2cad</li>
+<li>STEP / IGES: neutral CAD data-exchange formats, importable by virtually every CAD application (FreeCAD, SolidWorks, ...).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MeshToCAD-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

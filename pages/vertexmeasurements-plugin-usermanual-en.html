@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compute Vertex Measurements (Mesh) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Compute Vertex Measurements (Mesh) - User Manual Dragonfly Prototype Apps · Compute Vertex Measurements (Mesh)... Version 1.0 · 2026-07-04 English Manual C…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Compute Vertex Measurements (Mesh)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Compute Vertex Measurements (Mesh)...</div>
+    <h1>Compute Vertex Measurements (Mesh)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#engine-and-algorithms">Engine and algorithms</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and enabling</a></li><li class="t3"><a href="#menu-location">Menu location</a></li><li class="t3"><a href="#changing-your-choices-later">Changing your choices later</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and first-run setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup environment does</a></li><li class="t3"><a href="#resource-requirements">Resource requirements</a></li><li class="t3"><a href="#where-the-environment-lives">Where the environment lives</a></li><li class="t2"><a href="#5-interface-reference">5. Interface reference</a></li><li class="t2"><a href="#5-1-mesh-selector">5.1 Mesh selector</a></li><li class="t2"><a href="#5-2-grouped-measurement-list">5.2 Grouped measurement list</a></li><li class="t2"><a href="#5-3-reference-mesh-selector-conditional">5.3 Reference-mesh selector (conditional)</a></li><li class="t2"><a href="#5-4-select-all-none">5.4 Select all / none</a></li><li class="t2"><a href="#5-5-environment-row">5.5 Environment row</a></li><li class="t2"><a href="#5-6-compute-row-progress-bar-and-log">5.6 Compute row, progress bar and log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t2"><a href="#6-1-basic-workflow-single-mesh">6.1 Basic workflow (single mesh)</a></li><li class="t2"><a href="#6-2-deviation-from-reference-mesh-two-mesh-comparison">6.2 Deviation from reference mesh (two-mesh comparison)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter reference</a></li><li class="t3"><a href="#geodesic-source-explained">Geodesic source explained</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t3"><a href="#how-to-view-the-results">How to view the results</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and troubleshooting</a></li><li class="t3"><a href="#q1-i-can-t-find-compute-vertex-measurements-mesh-in-the-menu">Q1: I can&#x27;t find “Compute Vertex Measurements (Mesh)...” in the menu.</a></li><li class="t3"><a href="#q2-the-environment-shows-not-set-up-or-compute-says-it-can-t-run">Q2: The environment shows “not set up”, or Compute says it can&#x27;t run.</a></li><li class="t3"><a href="#q3-the-7-curvature-measurements-fail-while-the-others-work">Q3: The 7 Curvature measurements fail while the others work.</a></li><li class="t3"><a href="#q4-i-ticked-deviation-from-reference-mesh-but-it-won-t-compute">Q4: I ticked “Deviation from reference mesh” but it won&#x27;t compute.</a></li><li class="t3"><a href="#q5-local-thickness-sdf-is-slow">Q5: Local thickness (SDF) is slow.</a></li><li class="t3"><a href="#q6-the-mesh-list-is-empty">Q6: The mesh list is empty.</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Compute Vertex Measurements (Mesh) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Compute Vertex Measurements (Mesh)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Compute Vertex Measurements (Mesh)</strong> is a Dragonfly plugin that computes up to <strong>20 per-vertex measurements</strong> on a <strong>surface mesh that already exists</strong> in your scene. Each measurement produces one scalar value <strong>for every vertex</strong> of the mesh and writes it back onto the same mesh as a new <strong>per-vertex scalar field</strong> — displayable with a colormap just like any other mesh property. The workflow is simple: pick a mesh, tick the measurements you want, and click <strong>Compute</strong>.</p>
+<p>The 20 measurements are organized into 5 groups by purpose: <strong>Curvature</strong>, <strong>Thickness &amp; distance</strong>, <strong>Surface exposure &amp; roughness</strong>, <strong>Local geometry &amp; topology</strong>, and <strong>Spectral shape signatures</strong>. They cover mean / Gaussian / principal curvature and shape index, local wall thickness (SDF), geodesic and radial distance, deviation from a best-fit sphere / plane or from a second reference mesh, ambient occlusion, roughness, and the Heat Kernel Signature (HKS) and Wave Kernel Signature (WKS).</p>
+<h3 id="engine-and-algorithms">Engine and algorithms</h3>
+<p>All heavy computation runs in an <strong>isolated Windows venv subprocess</strong> kept separate from Dragonfly, so Dragonfly&#x27;s own Python environment is never touched. All core libraries are permissively licensed (MIT / BSD / MPL-2.0) with no GPL / CGAL components:</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<ul>
+<li><strong>trimesh</strong> (MIT) — geometric measures, inward ray-cast thickness, proximity / deviation queries, normals, adjacency.</li>
+<li><strong>libigl</strong> (MPL-2.0; only the permissive core is used, igl.copyleft.* is never imported) — the Curvature group (principal-curvature quadric fit).</li>
+<li><strong>potpourri3d</strong> (MIT) — robust heat-method geodesic distance.</li>
+<li><strong>robust-laplacian</strong> (MIT) — robust cotangent Laplacian / mass matrix for roughness, HKS, WKS.</li>
+<li><strong>rtree</strong> (MIT; underlying libspatialindex is MIT) — spatial-index backend for trimesh ray casting and nearest-point queries.</li>
+<li><strong>numpy / scipy</strong> — pure numerical computation (radial distance, best-fit sphere / plane, etc.).</li>
+</ul>
+<p>Licensing: every third-party library used here is permissively licensed (MIT / BSD / MPL-2.0) with no GPL or CGAL code, so it is safe for commercial use.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<p>The plugin is useful wherever <strong>local surface geometry</strong> matters. Typical cases include:</p>
+<ul>
+<li><strong>Materials science and industrial CT</strong>: measure <strong>wall thickness</strong> and <strong>surface roughness</strong> of parts; assess <strong>deviation</strong> of a scanned part from a reference / CAD-derived mesh.</li>
+<li><strong>Additive manufacturing (AM) quality checks</strong>: compare the as-built print against the nominal model to locate distortion, warpage, and over-/under-thickness regions.</li>
+<li><strong>Life science</strong>: <strong>curvature and shape analysis</strong> of segmented anatomical surfaces (bones, cells, membranes), identifying ridges, grooves, and depressions.</li>
+<li><strong>Reverse engineering and metrology</strong>: evaluate form errors such as roundness and flatness via deviation from a best-fit sphere / plane.</li>
+<li><strong>Shape-analysis research</strong>: describe and compare shapes with intrinsic, isometry-invariant spectral signatures such as HKS / WKS.</li>
+</ul>
+<p>A mesh must already exist in the scene. This plugin does <strong>not</strong> create meshes — it computes per-vertex properties on existing ones. If you have no mesh yet, first generate or import a surface mesh with Dragonfly&#x27;s own tools.</p>
+<h2 id="3-installation-and-enabling">3. Installation and enabling</h2>
+<p>The plugin ships as part of the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong><strong>Unzip anywhere</strong> (prefer a short folder such as C:\PL\ to avoid the Windows 260-character path limit).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick `Compute Vertex Measurements (Mesh)...`</strong> in the Prototype Apps list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are discovered only at startup).</p>
+<p>This is a heavy plugin and is <strong>OFF by default</strong> in the installer list. If you didn&#x27;t tick it, it won&#x27;t appear after restart — re-run the installer and tick it, or enable it inside Dragonfly as described below.</p>
+<h3 id="menu-location">Menu location</h3>
+<p>After restart the plugin appears at <strong>Prototype Apps ▸ Compute Vertex Measurements (Mesh)...</strong> (in the Measurements &amp; Analysis section). Clicking it opens a dockable, floating panel.</p>
+<h3 id="changing-your-choices-later">Changing your choices later</h3>
+<p>You can enable / disable the plugin inside Dragonfly at any time: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, find the plugin in the bottom “Prototype Apps (Full Package)” list, tick = deploy / untick = remove the menu entry, then <strong>restart Dragonfly</strong> to apply. Disabling <strong>never</strong> deletes the built environment; re-enabling is instant.</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> in the installer folder to remove all Full-Package menu items and plugins. Uninstalling <strong>keeps</strong> each plugin&#x27;s built environment (venv); the script prints its path at the end so you can delete it manually to reclaim disk space.</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and first-run setup</h2>
+<p><strong>Nothing is downloaded at install time.</strong> Before first use, click <strong>Setup environment</strong> once in the panel. This builds an <strong>isolated venv</strong> inside the plugin&#x27;s code directory <strong>using Dragonfly&#x27;s own Python</strong> as the base (falling back to a system Python if needed) and pip-installs the required compute libraries.</p>
+<h3 id="what-setup-environment-does">What Setup environment does</h3>
+<ul>
+<li>Builds runner\venv (inside the installed GenericMenuItems\VertexMeasurements\runner\ directory).</li>
+<li>pip-installs the core dependencies: numpy, scipy, trimesh, rtree, potpourri3d, robust-laplacian (all ship prebuilt wheels; usually a few minutes).</li>
+<li>Installs the optional libigl on a <strong>best-effort</strong> basis. libigl 2.6.x has <strong>no prebuilt Windows wheel</strong>, so pip <strong>builds it from source</strong> (needs a C++ / CMake toolchain, a few minutes). If the build fails on a machine without a compiler, setup does <strong>not</strong> fail overall — only the <strong>7 Curvature measurements become temporarily unavailable</strong>, while the other ~13 measurements keep working.</li>
+<li>Once ready, the venv Python path is recorded in runner\venv_python.txt; on the next open the panel shows “Environment: ready”.</li>
+</ul>
+<h3 id="resource-requirements">Resource requirements</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Item</th><th>Details</th></tr><tr><td>Internet</td><td>Required once, only while Setup environment downloads dependencies; computation afterwards is fully offline.</td></tr><tr><td>Download size</td><td>Roughly tens to ~100+ MB for the core deps (numpy/scipy/trimesh/rtree/potpourri3d/robust-laplacian).</td></tr><tr><td>GPU</td><td>Not required. Everything runs on the CPU.</td></tr><tr><td>WSL / external apps</td><td>Not required. No WSL and no external programs to install.</td></tr><tr><td>Dragonfly version</td><td>Verified on Dragonfly 2027.1.</td></tr></table></div>
+<h3 id="where-the-environment-lives">Where the environment lives</h3>
+<ul>
+<li>Isolated environment: runner\venv under the installed code directory (inside %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\VertexMeasurements\runner\).</li>
+<li>Per-job directories (input / result files): runner\jobs\ (created at runtime).</li>
+<li>venv Python path record: runner\venv_python.txt.</li>
+</ul>
+<p>Fallback if setup fails: if libigl fails to build for lack of a compiler, use the other measurements as usual; when you need the Curvature group, install a C++ / CMake toolchain and click Setup environment again. The core dependencies themselves ship prebuilt wheels and rarely fail.</p>
+<h2 id="5-interface-reference">5. Interface reference</h2>
+<p>From top to bottom the panel has: a mesh selector, the grouped measurement list, Select all / none buttons, an environment row, a compute row, a progress bar, and a log box.</p>
+<h2 id="5-1-mesh-selector">5.1 Mesh selector</h2>
+<ul>
+<li><strong>Mesh (dropdown)</strong>: lists every surface mesh in the current scene; pick the mesh you want to measure.</li>
+<li><strong>Refresh (button)</strong>: re-scans the scene and refreshes the list. Click it if you created / imported a mesh after opening the panel.</li>
+</ul>
+<h2 id="5-2-grouped-measurement-list">5.2 Grouped measurement list</h2>
+<p>A scrollable area listing all 20 measurements in 5 groups, one checkbox each (ticked = compute). By default only <strong>Mean curvature (H)</strong> and <strong>Gaussian curvature (K)</strong> are ticked. Some items have a <strong>?</strong> button that opens a dialog explaining that measurement in detail. The 5 groups are:</p>
+<ul>
+<li><strong>Curvature</strong>: mean, Gaussian, max / min principal curvature, shape index, curvedness, max absolute curvature (7 items).</li>
+<li><strong>Thickness &amp; distance</strong>: local thickness (SDF), geodesic distance, radial distance, deviation from best-fit sphere / plane, deviation from reference mesh (5 items).</li>
+<li><strong>Surface exposure &amp; roughness</strong>: ambient occlusion / accessibility, surface roughness (high-pass) (2 items).</li>
+<li><strong>Local geometry &amp; topology</strong>: normal variation, vertex valence, vertex (barycentric) area (3 items).</li>
+<li><strong>Spectral shape signatures</strong>: Heat Kernel Signature (HKS), Wave Kernel Signature (WKS) (2 items).</li>
+</ul>
+<h2 id="5-3-reference-mesh-selector-conditional">5.3 Reference-mesh selector (conditional)</h2>
+<p>Only when <strong>Deviation from reference mesh</strong> is ticked does a framed area appear below the list, prompting “Select a SECOND mesh to measure deviation against:” and containing a <strong>Reference mesh (dropdown)</strong>. Pick the <strong>second mesh</strong> to compare against here. Un-ticking the measurement hides this area automatically.</p>
+<h2 id="5-4-select-all-none">5.4 Select all / none</h2>
+<ul>
+<li><strong>Select all</strong>: ticks every measurement.</li>
+<li><strong>Select none</strong>: clears all ticks.</li>
+</ul>
+<h2 id="5-5-environment-row">5.5 Environment row</h2>
+<ul>
+<li><strong>Environment status label</strong>: shows the state, e.g. “Environment: ready” or “Environment: not set up — click &#x27;Setup environment&#x27;.”</li>
+<li><strong>Setup environment (button)</strong>: click once on first use to build the isolated venv and install dependencies (see Chapter 4).</li>
+</ul>
+<h2 id="5-6-compute-row-progress-bar-and-log">5.6 Compute row, progress bar and log</h2>
+<ul>
+<li><strong>Compute (button)</strong>: runs all ticked measurements on the selected mesh and writes results back onto it.</li>
+<li><strong>Cancel (button)</strong>: becomes enabled during a run and requests cancellation of the current task.</li>
+<li><strong>Progress bar</strong>: shows a busy state while a task runs.</li>
+<li><strong>Log box (read-only)</strong>: streams run info — number of meshes found, vertex / face counts, names of the scalar slots written back, and error summaries for any failed measurement.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<h2 id="6-1-basic-workflow-single-mesh">6.1 Basic workflow (single mesh)</h2>
+<p><strong>1. </strong>Make sure a surface mesh exists in the scene (this plugin does not create meshes).</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Compute Vertex Measurements (Mesh)...</strong>.</p>
+<p><strong>3. </strong>On first use, click <strong>Setup environment</strong> and wait until the status reads “Environment: ready” (needs internet, a few minutes).</p>
+<p><strong>4. </strong>Pick the target mesh in the top <strong>Mesh</strong> dropdown (click <strong>Refresh</strong> first if needed).</p>
+<p><strong>5. </strong>Tick the measurements you want (Mean and Gaussian curvature are ticked by default; use Select all / Select none to adjust quickly).</p>
+<p><strong>6. </strong>Click <strong>Compute</strong>. The log box shows the vertex / face counts read and the progress.</p>
+<p><strong>7. </strong>When finished, a dialog reports how many per-vertex scalar fields were added; switch the mesh&#x27;s scalar slot / colormap in Dragonfly to view each result (see Chapter 8).</p>
+<h2 id="6-2-deviation-from-reference-mesh-two-mesh-comparison">6.2 Deviation from reference mesh (two-mesh comparison)</h2>
+<p><strong>1. </strong>Make sure both the <strong>measured mesh</strong> and the <strong>reference mesh</strong> exist in the scene (e.g. a scan vs a nominal CAD model).</p>
+<p><strong>2. </strong>Select the <strong>measured mesh</strong> in the <strong>Mesh</strong> dropdown.</p>
+<p><strong>3. </strong>Tick <strong>Deviation from reference mesh</strong>; the reference-mesh area appears below.</p>
+<p><strong>4. </strong>Pick the <strong>reference mesh</strong> in the <strong>Reference mesh</strong> dropdown (it must differ from the measured mesh, or an error is shown).</p>
+<p><strong>5. </strong>Click <strong>Compute</strong>. The plugin computes the <strong>signed distance</strong> from each vertex of the measured mesh to the reference surface and writes it back.</p>
+<p><strong>6. </strong>Sign convention: <strong>inside</strong> the reference = <strong>positive</strong>, <strong>outside</strong> = <strong>negative</strong>; the colormap legend is labelled accordingly.</p>
+<p>Input requirement: the input must be a triangulated surface mesh. The plugin reads its world-space vertices (V) and triangle connectivity (F). If a mesh has no vertices / faces, reading fails.</p>
+<h2 id="7-parameter-reference">7. Parameter reference</h2>
+<p>The table below lists all 20 measurements with their group, unit, compute backend (library), and internal default parameters. Apart from whether an item is ticked by default, each measurement&#x27;s internal parameters (ray count, number of eigenvalues, etc.) are preset by the plugin — you do not enter them in the panel.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col><col></colgroup><tr><th>Measurement</th><th>Group</th><th>Unit</th><th>Backend</th><th>Default / parameters</th></tr><tr><td>Mean curvature (H)</td><td>Curvature</td><td>1/length</td><td>libigl</td><td>ticked by default; H=(κ₁+κ₂)/2</td></tr><tr><td>Gaussian curvature (K)</td><td>Curvature</td><td>1/length²</td><td>libigl</td><td>ticked by default; K=κ₁·κ₂</td></tr><tr><td>Max principal curvature (κ₁)</td><td>Curvature</td><td>1/length</td><td>libigl</td><td>—</td></tr><tr><td>Min principal curvature (κ₂)</td><td>Curvature</td><td>1/length</td><td>libigl</td><td>—</td></tr><tr><td>Shape index</td><td>Curvature</td><td>[-1, 1]</td><td>libigl</td><td>+1 dome / 0 saddle / -1 cup</td></tr><tr><td>Curvedness</td><td>Curvature</td><td>1/length</td><td>libigl</td><td>C=sqrt((κ₁²+κ₂²)/2)</td></tr><tr><td>Max absolute curvature |κ|</td><td>Curvature</td><td>1/length</td><td>libigl</td><td>max(|κ₁|,|κ₂|)</td></tr><tr><td>Local thickness (SDF)</td><td>Thickness &amp; distance</td><td>length</td><td>trimesh</td><td>n_rays=5, cone_deg=20.0</td></tr><tr><td>Geodesic distance</td><td>Thickness &amp; distance</td><td>length</td><td>potpourri3d</td><td>source_mode=auto</td></tr><tr><td>Radial distance</td><td>Thickness &amp; distance</td><td>length</td><td>numpy</td><td>straight-line distance to centroid</td></tr><tr><td>Deviation from best-fit sphere</td><td>Thickness &amp; distance</td><td>length</td><td>numpy</td><td>signed distance to least-squares sphere</td></tr><tr><td>Deviation from best-fit plane</td><td>Thickness &amp; distance</td><td>length</td><td>numpy</td><td>signed distance to least-squares plane</td></tr><tr><td>Deviation from reference mesh</td><td>Thickness &amp; distance</td><td>length</td><td>trimesh</td><td>needs a 2nd reference mesh; inside = positive</td></tr><tr><td>Ambient occlusion / accessibility</td><td>Surface exposure &amp; roughness</td><td>[0, 1]</td><td>trimesh</td><td>n_samples=64, report=accessibility</td></tr><tr><td>Surface roughness (high-pass)</td><td>Surface exposure &amp; roughness</td><td>length</td><td>robust-laplacian</td><td>smoothing=1.0</td></tr><tr><td>Normal variation (deg)</td><td>Local geometry &amp; topology</td><td>degrees</td><td>trimesh</td><td>mean angle vs incident faces</td></tr><tr><td>Vertex valence (degree)</td><td>Local geometry &amp; topology</td><td>count</td><td>trimesh</td><td>number of edges meeting at the vertex</td></tr><tr><td>Vertex (barycentric) area</td><td>Local geometry &amp; topology</td><td>length²</td><td>trimesh</td><td>1/3 of summed area of surrounding triangles</td></tr><tr><td>Heat Kernel Signature (HKS)</td><td>Spectral shape signatures</td><td>a.u.</td><td>robust-laplacian + scipy</td><td>n_eig=80, scale=0.5</td></tr><tr><td>Wave Kernel Signature (WKS)</td><td>Spectral shape signatures</td><td>a.u.</td><td>robust-laplacian + scipy</td><td>n_eig=80, energy=0.5</td></tr></table></div>
+<h3 id="geodesic-source-explained">Geodesic source explained</h3>
+<p><strong>Geodesic distance</strong> computes, for each vertex, the shortest distance measured <strong>along the mesh surface</strong> (not straight-line) to a set of source vertices, using the heat method (potpourri3d). The source is chosen automatically, with no extra picking (source_mode=auto): if the mesh has an open boundary (e.g. a cropped / shell surface), every boundary vertex is a source, giving “distance inward from the edge”; if the mesh is closed (no boundary), the single vertex farthest from the centroid is the source, giving “distance across the object from its most extreme point”.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>Each successful measurement is written back as a <strong>new per-vertex scalar field (scalar slot)</strong> onto <strong>the mesh you selected</strong> (the reference mesh is never modified). The slot is named after the measurement (e.g. “Mean curvature (H)”) with the corresponding unit. After writing, the plugin refreshes the mesh display and legend.</p>
+<h3 id="how-to-view-the-results">How to view the results</h3>
+<p><strong>1. </strong>Read the completion dialog and the log box after computing: the line “Added scalar slots: ...” lists the slots successfully written this run.</p>
+<p><strong>2. </strong>Select the mesh in Dragonfly and <strong>switch the vertex scalar slot to display</strong> in its property / display settings.</p>
+<p><strong>3. </strong>Choose a suitable <strong>colormap</strong> and value range for that slot to see the measurement rendered as colors on the mesh surface in the 3D view.</p>
+<p><strong>4. </strong>If you computed several measurements, switch between the scalar slots to inspect each one.</p>
+<p>The plugin only appends per-vertex scalar fields to the mesh; it does <strong>not</strong> create Channels, ROIs, MultiROIs or new mesh objects, and it does not change the mesh geometry. If a measurement fails, the other successful ones are still written back and the failure reason is printed in the log box.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and troubleshooting</h2>
+<h3 id="q1-i-can-t-find-compute-vertex-measurements-mesh-in-the-menu">Q1: I can&#x27;t find “Compute Vertex Measurements (Mesh)...” in the menu.</h3>
+<p>A: This plugin is OFF by default. Confirm you ticked it during install, or open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, tick it, and <strong>restart Dragonfly</strong>. Menus are scanned only at startup, so every enable / disable needs one restart.</p>
+<h3 id="q2-the-environment-shows-not-set-up-or-compute-says-it-can-t-run">Q2: The environment shows “not set up”, or Compute says it can&#x27;t run.</h3>
+<p>A: The compute environment hasn&#x27;t been built yet. Click <strong>Setup environment</strong>, stay online, and wait a few minutes. When it&#x27;s done the status reads “Environment: ready”. If setup fails, read the specific error in the log box.</p>
+<h3 id="q3-the-7-curvature-measurements-fail-while-the-others-work">Q3: The 7 Curvature measurements fail while the others work.</h3>
+<p>A: The Curvature group depends on the optional <strong>libigl</strong> library. libigl has no prebuilt Windows wheel and must be built from source, so it fails to install on a machine lacking a C++ / CMake toolchain (this best-effort behaviour is by design and never blocks the other measurements). Fix: install a C++ / CMake toolchain, then click Setup environment again. Until then, use the other ~13 measurements.</p>
+<h3 id="q4-i-ticked-deviation-from-reference-mesh-but-it-won-t-compute">Q4: I ticked “Deviation from reference mesh” but it won&#x27;t compute.</h3>
+<p>A: This measurement needs a <strong>second mesh</strong> chosen in the <strong>Reference mesh</strong> dropdown that appears below, and the reference must be <strong>different</strong> from the measured mesh. If none is selected, or it equals the measured mesh, the plugin shows a message. Make sure the scene has at least two meshes and select them separately.</p>
+<h3 id="q5-local-thickness-sdf-is-slow">Q5: Local thickness (SDF) is slow.</h3>
+<p>A: Local thickness casts rays inward from every vertex, which is slow on <strong>very large meshes</strong>. Try a smaller / decimated mesh first; to speed up large meshes you can additionally install the optional embreex accelerator in the environment (without it, trimesh falls back to a slower pure-Python ray engine).</p>
+<h3 id="q6-the-mesh-list-is-empty">Q6: The mesh list is empty.</h3>
+<p>A: There is no recognizable surface mesh in the current scene. Generate or import a mesh first, then click <strong>Refresh</strong> on the panel to re-scan the scene.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and known limitations</h2>
+<ul>
+<li>The input must be an <strong>existing triangulated surface mesh</strong>; the plugin does not create, import, or modify mesh geometry.</li>
+<li>Results are written back only to the <strong>selected mesh</strong>, appended as per-vertex scalar slots; the reference mesh is untouched.</li>
+<li>The <strong>Curvature group (7 items) and some measurements depend on optional libraries</strong> (notably libigl); if an optional library did not install, those measurements report a clear error at compute time while the rest keep working.</li>
+<li><strong>HKS / WKS require an eigen-decomposition</strong> of the mesh Laplacian and are heavier than the geometric measures, especially on large meshes.</li>
+<li><strong>Local thickness (SDF)</strong> is meaningful mainly on solid / shell-like surfaces; ray casting is slow on large meshes.</li>
+<li><strong>Geodesic distance</strong> auto-selects its source depending on whether the mesh is closed (open boundary vs farthest point); the field&#x27;s meaning differs per mesh — see Chapter 7.</li>
+<li>Building the environment the first time needs internet; installing libigl may require a C++ / CMake build toolchain.</li>
+<li>Verified on <strong>Dragonfly 2027.1</strong>; computation is CPU-only and needs no GPU.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>trimesh (MIT): https://github.com/mikedh/trimesh</li>
+<li>libigl (MPL-2.0): https://libigl.github.io/</li>
+<li>potpourri3d (MIT): https://github.com/nmwsharp/potpourri3d</li>
+<li>robust-laplacian (MIT): https://github.com/nmwsharp/robust-laplacians-py</li>
+<li>rtree (MIT) / libspatialindex: https://github.com/Toblerity/rtree</li>
+<li>SciPy: https://scipy.org/ · NumPy: https://numpy.org/</li>
+</ul>
+<p>For the algorithmic concepts behind the Koenderink shape index, Heat Kernel Signature (HKS), Wave Kernel Signature (WKS), and Shape Diameter Function (SDF), consult the project documentation above and the relevant computational-geometry / shape-analysis literature.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>VertexMeasurements-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

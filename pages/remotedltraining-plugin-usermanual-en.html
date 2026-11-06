@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remote DL Training · Dragonfly Prototype Apps</title>
+<meta name="description" content="Remote DL Training - User Manual Dragonfly Prototype Apps · Remote DL Training... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cases…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Remote DL Training</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Remote DL Training...</div>
+    <h1>Remote DL Training</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#5-1-top-remote-dragonfly-server-bar">5.1 Top: Remote Dragonfly server bar</a></li><li class="t3"><a href="#5-2-training-data-orsobject-files">5.2 Training data (.ORSObject files)</a></li><li class="t3"><a href="#5-3-how-should-the-server-get-the-files-transfer-mode">5.3 How should the server get the files? (transfer mode)</a></li><li class="t3"><a href="#5-4-where-should-training-run-execution-target">5.4 Where should training run? (execution target)</a></li><li class="t3"><a href="#5-5-model-manipulation-right-column">5.5 Model manipulation (right column)</a></li><li class="t3"><a href="#5-6-model-training-parameters-right-column">5.6 Model &amp; training parameters (right column)</a></li><li class="t3"><a href="#5-7-visual-feedback-optional-collapsible-left-column">5.7 Visual feedback (optional, collapsible, left column)</a></li><li class="t3"><a href="#5-8-actions-log-left-column">5.8 Actions &amp; log (left column)</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Remote DL Training - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Remote DL Training...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Remote DL Training</strong> is a dockable panel that runs inside Dragonfly and lets you offload slow deep-learning <strong>semantic-segmentation</strong> model training to a <strong>remote (or local) Dragonfly server</strong>. You prepare the training data in the client Dragonfly (one image Channel plus a ground-truth MultiROI), enter the remote server&#x27;s address, port and access token at the top of the panel, and submit the job to that server while watching the progress, loss curve and segmentation preview locally in real time.</p>
+<p>The panel has two parts: a <strong>&quot;Remote Dragonfly server&quot; bar at the top</strong> (Address / Port / Token with Apply and Test buttons), and, below it, the <strong>exact Remote DL Training tab from the standalone app</strong> (inputs, hyper-parameters, model manipulation, visual feedback, train/cancel, and a log). Every request goes to the server you set at the top, so a <strong>GPU-less</strong> machine&#x27;s Dragonfly can hand training to another <strong>GPU-equipped</strong> Dragonfly server.</p>
+<p><strong>Underlying engine:</strong> training uses Dragonfly&#x27;s own deep-learning framework (PyTorch backend) through Dragonfly&#x27;s AI interface to create and train a new segmentation model; the client and server communicate over a length-prefixed-JSON TCP protocol. Available model architectures are the 2D U-Net, Attention U-Net, UNet++, TransU-Net, and the 3D U-Net 3D, Sensor3D.</p>
+<p><strong>License &amp; dependencies:</strong> the plugin itself introduces no third-party external software and no separate virtual environment (venv); it runs entirely in Dragonfly&#x27;s own Python (PyQt6). Its UI comes from the gui_qt package shared with the standalone app and the embedded Prototype Labs panel, so you must <strong>also install the Prototype Labs embedded package</strong> (which provides gui_qt). Training itself relies on the AI capability and license of whichever Dragonfly runs the job.</p>
+<p>Unlike Dragonfly&#x27;s built-in Prototype Labs window (which forces a no-auth loopback connection to the local Dragonfly), this plugin is the &quot;point at a remote box&quot; counterpart: a remote connection <strong>requires</strong> that server&#x27;s token, while a 127.0.0.1 connection needs <strong>none</strong>.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin is designed to <strong>move slow DL training off the local machine onto a remote GPU server</strong>. Typical scenarios:</p>
+<ul>
+<li>Your local machine has no GPU or limited power, but there is a GPU-equipped Dragonfly server in the lab: prepare the data locally, submit to the remote server with one click.</li>
+<li>Reach a remote GPU box over Tailscale (e.g. address 100.64.0.2) or on a LAN (e.g. 192.168.0.82).</li>
+<li>Watch the <strong>loss curve (loss / val_loss)</strong> and a <strong>segmentation preview</strong> locally while training to judge convergence and decide whether to stop early.</li>
+<li>After training, directly <strong>download the model file</strong>, <strong>import it into the local Dragonfly</strong> AI model library, or <strong>apply it to the full volume</strong> in one click.</li>
+<li>Quick local experiments: choose the local headless subprocess mode to train in a windowless Dragonfly process with no separate server.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin ships in the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip to any <strong>short</strong> folder (e.g. C:\PL\, to avoid path-too-long errors).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> / <strong>Compatible</strong> - this affects only the Prototype Labs core blocks &amp; recipes, not any plugin) and <strong>tick Remote DL Training</strong> in the plugin list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p><strong>Remote DL Training is OFF by default</strong> (default_enabled = false); you must tick it during install or it will not appear after restart. Also tick and install the <strong>Prototype Labs embedded core</strong> - this plugin&#x27;s UI comes from its gui_qt package, and without it the panel shows a &quot;could not find gui_qt&quot; error.</p>
+<p>After restart the plugin appears under <strong>Prototype Apps ▸ Remote DL Training...</strong> (in the B9_Remote Deep Learning group, next to the companion <strong>Remote DL Inferring</strong>). Clicking it opens a dockable, floatable panel.</p>
+<p><strong>Changing your choices later:</strong> the easiest way is inside Dragonfly - open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and use the checkboxes in the bottom &quot;Prototype Apps (Full Package)&quot; list (ticked = deploy, unticked = remove the menu entry); restart Dragonfly to apply. Disabling never deletes any environment. You may also re-run the installer at any time (it remembers your previous choices).</p>
+<p><strong>Install locations (all per-user, no admin rights needed):</strong></p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Content</th><th>Location</th></tr><tr><td>Plugin package (OrsPlugin)</td><td>%LOCALAPPDATA%\comet\&lt;Dragonfly ver&gt;\pythonUserExtensions\Plugins\OrsRemoteDLTraining_&lt;uuid&gt;\</td></tr><tr><td>Panel code</td><td>...\pythonUserExtensions\GenericMenuItems\RemoteDLTraining\</td></tr><tr><td>UI dependency gui_qt (Prototype Labs)</td><td>...\pythonUserExtensions\GenericMenuItems\Prototype_Labs\</td></tr><tr><td>Full Package store &amp; enable state</td><td>%LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\</td></tr></table></div>
+<p><strong>Uninstall:</strong> double-click <strong>`Uninstall_FullPackage.bat`</strong> from the Full Package to remove the menu entry and files.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</h2>
+<p><strong>No environment to build, no Setup Environment step.</strong> This is a lightweight plugin (environment kind in_process): it runs entirely in Dragonfly&#x27;s own Python, downloads nothing, creates no venv, and needs <strong>no internet, no local GPU, no WSL and no external software</strong>. Its only prerequisites are:</p>
+<ul>
+<li><strong>The Prototype Labs embedded core is installed</strong> (provides the gui_qt UI code). On startup the panel resolves gui_qt automatically from the sibling GenericMenuItems\Prototype_Labs folder or from the DF_PROTOTYPE_LABS_DIR environment variable.</li>
+<li><strong>A running target Dragonfly server</strong> - a remote GPU box or the local machine; it must have the Prototype Labs TCP server started.</li>
+<li><strong>The target server&#x27;s access token</strong> (required for remote connections only; not needed for 127.0.0.1).</li>
+</ul>
+<p><strong>First-run configuration (done in the top connection bar):</strong></p>
+<p><strong>1. </strong>Enter the target server&#x27;s <strong>Address</strong> (Tailscale IP such as 100.64.0.2, LAN IP such as 192.168.0.82, or 127.0.0.1).</p>
+<p><strong>2. </strong>Enter the <strong>Port</strong> (default 54321).</p>
+<p><strong>3. </strong>Enter the <strong>Token</strong> (required for remote; leave blank for local).</p>
+<p><strong>4. </strong>Click <strong>Apply</strong> so the tab below uses that server, or click <strong>Test</strong> to connect and ping once to verify the address / port / token.</p>
+<p><strong>5. </strong>The status line below the bar shows the current target, e.g. Target: 100.64.0.2:54321 (remote - token set); a missing token shows remote - TOKEN REQUIRED.</p>
+<p>For security, <strong>the address and port are remembered across sessions, but the access token is NOT saved to disk</strong> - re-enter it each session. This is by design, not a bug.</p>
+<p><strong>Where the GPU lives:</strong> the GPU that matters is on the machine that runs the training (the target server), not on your local UI machine. That is exactly why this plugin is useful when the local machine has no GPU.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>Top to bottom, the panel is a <strong>connection bar</strong> over a <strong>training tab</strong>. The training tab uses a two-column layout: the left column holds data / transfer mode / execution target / action buttons / log; the right column holds model manipulation and training hyper-parameters.</p>
+<h3 id="5-1-top-remote-dragonfly-server-bar">5.1 Top: Remote Dragonfly server bar</h3>
+<ul>
+<li><strong>Address:</strong> the target Dragonfly server&#x27;s IP or hostname. Placeholder examples: 100.64.0.2 (Tailscale) / 192.168.0.82 (LAN) / 127.0.0.1.</li>
+<li><strong>Port:</strong> spin box, range 1-65535, default 54321.</li>
+<li><strong>Token:</strong> password field (shown as dots). Required for a remote server; may be blank for local.</li>
+<li><strong>Apply button:</strong> sets the current address / port / token as the target for the tab below.</li>
+<li><strong>Test button:</strong> applies the current settings, then connects and pings the server once to check reachability; the result appears on the status line (e.g. connected OK or cannot reach server: ...).</li>
+<li><strong>Status line:</strong> shows the current target and token state (local needs no token / remote token set / remote token required).</li>
+</ul>
+<h3 id="5-2-training-data-orsobject-files">5.2 Training data (.ORSObject files)</h3>
+<ul>
+<li><strong>Image Channel:</strong> text field + Browse... button; select the image Channel .ORSObject file used as training input.</li>
+<li><strong>Ground-truth MultiROI:</strong> text field + Browse... button; select the MultiROI .ORSObject holding the ground-truth labels.</li>
+</ul>
+<h3 id="5-3-how-should-the-server-get-the-files-transfer-mode">5.3 How should the server get the files? (transfer mode)</h3>
+<ul>
+<li><strong>Upload to the Dragonfly server (default):</strong> uploads the files; works across machines; <strong>each file must be &lt; 200 MB</strong>.</li>
+<li><strong>The server can read these paths directly:</strong> for the same machine or a shared drive; any file size.</li>
+</ul>
+<h3 id="5-4-where-should-training-run-execution-target">5.4 Where should training run? (execution target)</h3>
+<ul>
+<li><strong>On the connected Dragonfly (GUI Sync) (default):</strong> sends training to the server configured in the top bar (a GUI Dragonfly with the server started, or a headless server you started yourself on this machine).</li>
+<li><strong>Headless of local Dragonfly (subprocess):</strong> spawns a windowless Dragonfly process on THIS machine to train; it reads the selected files directly; live progress / epoch / visual feedback all work and Cancel hard-stops it; import / apply / download afterwards use the connected server.</li>
+<li><strong>Headless on a Dragonfly Server (no GUI):</strong> connects to a headless Dragonfly server you started yourself (possibly on another machine). A <strong>?</strong> help button next to it explains what a headless server is and how to start one.</li>
+</ul>
+<p>When &quot;Headless of local Dragonfly&quot; is chosen, the transfer-mode box is disabled (the subprocess reads local files directly, so no upload is needed).</p>
+<h3 id="5-5-model-manipulation-right-column">5.5 Model manipulation (right column)</h3>
+<ul>
+<li><strong>Save model in Dragonfly server (checkbox):</strong> checked = keep the trained model in the server&#x27;s AI model library (named with a RemoteTraining prefix); unchecked = export to a temporary file for download but do not keep it in the library.</li>
+<li><strong>Auto apply the trained model to full image data (checkbox):</strong> after training ends (whether it finishes or you cancel), run the final model on the FULL input image and save the segmentation MultiROI as a downloadable .ORSObject.</li>
+<li><strong>Download Model File (button):</strong> download a .zip of the just-trained model to your computer (enabled after a successful train).</li>
+<li><strong>Add to local Dragonfly (button):</strong> import the just-trained model into the connected (local) Dragonfly&#x27;s AI model library, ready for inference.</li>
+<li><strong>Download Full Segmentation MultiROI (button):</strong> download the full-volume segmentation result .ORSObject produced after training.</li>
+<li><strong>Select an image and apply the trained model (button):</strong> choose another image (a Channel .ORSObject or a raw image file), upload it, run the just-trained model on it, and download the resulting segmentation MultiROI.</li>
+</ul>
+<p>The download and apply buttons are disabled until a train succeeds, then enable automatically.</p>
+<h3 id="5-6-model-training-parameters-right-column">5.6 Model &amp; training parameters (right column)</h3>
+<p>See the parameter table in Chapter 7 for each control. It includes architecture, class count, epochs, patch size, stride ratio, batch size, loss function, optimizer, validation split, data augmentation, GPU count and model name.</p>
+<h3 id="5-7-visual-feedback-optional-collapsible-left-column">5.7 Visual feedback (optional, collapsible, left column)</h3>
+<ul>
+<li><strong>Show visual feedback (checkbox):</strong> every N epochs, apply the current model to a chosen ROI region and show the segmentation preview + loss curve. It trains in short segments, so optimizer dynamics differ slightly from one continuous run.</li>
+<li><strong>Preview region (ROI):</strong> text field + Browse...; select the ROI .ORSObject defining the preview region.</li>
+<li><strong>Preview every N epochs:</strong> spin box, range 1-1000, default 1.</li>
+<li><strong>Segmentation preview:</strong> the left half shows the segmentation preview image at each interval.</li>
+<li><strong>Loss curve:</strong> the right half plots loss and val_loss; <strong>double-click to enlarge</strong> into a separate window.</li>
+</ul>
+<p>The live preview needs a filesystem SHARED between the UI and the training process: the local headless subprocess always qualifies; GUI Sync / a headless server qualify only when the server is on this machine (loopback host). <strong>A remote server cannot do a live preview</strong> - visual feedback is then disabled, but training still runs normally and results are available on completion.</p>
+<h3 id="5-8-actions-log-left-column">5.8 Actions &amp; log (left column)</h3>
+<ul>
+<li><strong>Train model (button):</strong> starts training.</li>
+<li><strong>Cancel (button):</strong> requests a stop; GUI Sync / server modes stop at the next safe point, while the local headless subprocess is hard-stopped. Enabled only while training.</li>
+<li><strong>Status label:</strong> shows Idle / Connecting / Starting / Training epoch X/Y / Trained / Cancelled / Failed, etc.</li>
+<li><strong>Progress line / log pane:</strong> live progress text and a detailed training log (monospace). Training runs on the server worker thread (exec_mode=current_thread), so the Dragonfly GUI stays responsive.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p><strong>End-to-end: train a segmentation model on a remote GPU server</strong></p>
+<p><strong>1. </strong>Prepare data: in Dragonfly, save the training image as a Channel .ORSObject and the ground-truth labels as a MultiROI .ORSObject (optionally also a ROI .ORSObject that defines a preview region).</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Remote DL Training...</strong>.</p>
+<p><strong>3. </strong>In the top bar, enter the remote server&#x27;s <strong>Address / Port / Token</strong>, click <strong>Test</strong> to verify reachability, then click <strong>Apply</strong>.</p>
+<p><strong>4. </strong>Under Training data, use Browse... to pick the <strong>Image Channel</strong> and <strong>Ground-truth MultiROI</strong> files.</p>
+<p><strong>5. </strong>Choose a transfer mode: for a different machine pick <strong>Upload to the Dragonfly server</strong> (note the &lt; 200 MB per-file limit); for the same machine or a shared drive pick direct read.</p>
+<p><strong>6. </strong>Under &quot;Where should training run?&quot; keep <strong>On the connected Dragonfly (GUI Sync)</strong> (the server you just configured).</p>
+<p><strong>7. </strong>In the right-column parameters, set architecture, epochs, patch size, etc. (defaults are fine to start).</p>
+<p><strong>8. </strong>(Optional) tick <strong>Save model in Dragonfly server</strong> to keep the model in the server library, and/or <strong>Auto apply the trained model to full image data</strong> to segment the full volume after training.</p>
+<p><strong>9. </strong>(Optional, local / shared drive only) expand &quot;Visual feedback&quot;, tick <strong>Show visual feedback</strong>, pick a preview ROI and set the interval.</p>
+<p><strong>10. </strong>Click <strong>Train model</strong>. Watch progress in the log and convergence in the loss curve; click <strong>Cancel</strong> if needed.</p>
+<p><strong>11. </strong>After a successful train, the right-column buttons enable: use <strong>Download Model File</strong> to save, <strong>Add to local Dragonfly</strong> to import, <strong>Download Full Segmentation MultiROI</strong> for the full-volume result, or <strong>Select an image and apply the trained model</strong> for other images.</p>
+<p><strong>Alternative: quick local experiment (no server)</strong></p>
+<p><strong>1. </strong>Leave the top address as 127.0.0.1 (local, no token).</p>
+<p><strong>2. </strong>Under &quot;Where should training run?&quot; choose <strong>Headless of local Dragonfly (subprocess)</strong>; the transfer-mode box is disabled automatically.</p>
+<p><strong>3. </strong>Pick the Channel and MultiROI, set parameters and click <strong>Train model</strong> - a windowless Dragonfly process trains on this machine with live progress and visual feedback available.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<p>The table lists the range and default of each control in &quot;Model &amp; training parameters&quot; (defaults are live-probed from a fresh Dragonfly U-Net).</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Architecture</td><td>U-Net</td><td>Model architecture. Options: 2D U-Net, Attention U-Net, UNet++, TransU-Net; 3D U-Net 3D, Sensor3D.</td></tr><tr><td>Class count (0 = auto)</td><td>0</td><td>Number of output classes; 0 = auto (use the MultiROI&#x27;s label count). Range 0-999.</td></tr><tr><td>Epochs</td><td>100</td><td>Number of training epochs. Range 1-100000.</td></tr><tr><td>Patch size</td><td>64</td><td>Square training patch edge length (voxels). Minimum 32, step 16.</td></tr><tr><td>Stride ratio</td><td>1.0</td><td>Patch sampling stride as a fraction of patch size. Range 0.05-1.0, step 0.05; lower = more, overlapping patches.</td></tr><tr><td>Batch size (0 = auto)</td><td>0</td><td>Patches per step; 0 = auto (chosen from GPU memory; halved automatically on out-of-memory). Range 0-4096.</td></tr><tr><td>Loss function</td><td>(model default)</td><td>Segmentation loss. Options (model default) (= CrossEntropyLoss), CrossEntropyLoss, OrsDiceLoss, OrsJaccardDistance.</td></tr><tr><td>Optimizer</td><td>(model default)</td><td>Optimizer. Options (model default) (= Adadelta), Adadelta, Adam, AdamW, SGD, RMSprop, Adagrad, Adamax, NAdam, RAdam, ASGD, Adafactor, Rprop, Muon.</td></tr><tr><td>Use validation split</td><td>On</td><td>Hold out part of the data for validation (needed for best-checkpoint / early stop).</td></tr><tr><td>Validation %</td><td>20 %</td><td>Percent of data held out for validation when validation is on. Range 1-90.</td></tr><tr><td>Apply data augmentation</td><td>On</td><td>Apply Dragonfly&#x27;s default augmentation (flips, rotation, zoom, shear).</td></tr><tr><td>GPU count</td><td>1</td><td>Number of local GPUs used for training (multi-GPU for deep models). Range 1-16.</td></tr><tr><td>Model name</td><td>(auto)</td><td>Name for the created model; blank = auto from architecture + class count.</td></tr><tr><td>Preview every</td><td>1</td><td>Visual feedback: generate a preview every this many epochs. Range 1-1000.</td></tr></table></div>
+<p>GPU count refers to the GPUs on the machine that RUNS the training (the server), not your local UI machine.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>After a successful train, the plugin can produce:</p>
+<ul>
+<li><strong>A trained segmentation model:</strong> if <strong>Save model in Dragonfly server</strong> was ticked, the model is kept in the server&#x27;s AI model library with a RemoteTraining prefix; otherwise it is exported to a temporary .zip for download.</li>
+<li><strong>A model `.zip` file:</strong> downloaded to your local disk via <strong>Download Model File</strong>.</li>
+<li><strong>A locally imported model:</strong> via <strong>Add to local Dragonfly</strong>, added to the local Dragonfly AI model library, then usable with Dragonfly&#x27;s &quot;apply a deep-learning segmentation model&quot; for inference.</li>
+<li><strong>A full-volume segmentation MultiROI:</strong> if <strong>Auto apply the trained model to full image data</strong> was ticked, the full volume is segmented after training and saved as an .ORSObject, downloaded via <strong>Download Full Segmentation MultiROI</strong>.</li>
+<li><strong>A segmentation of any chosen image:</strong> via <strong>Select an image and apply the trained model</strong>, another image is inferred and its segmentation MultiROI .ORSObject is downloaded locally.</li>
+<li><strong>Training history:</strong> the in-panel loss curve (loss / val_loss) plus final loss and epoch count in the log.</li>
+</ul>
+<p><strong>How to view:</strong> after downloading or importing the model into Dragonfly&#x27;s AI model library, apply it to new images in Dragonfly; open a downloaded segmentation MultiROI .ORSObject in Dragonfly to view and edit the segmentation labels.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: The panel opens but says it cannot find the gui_qt package, or fails to load. What now?</strong></p>
+<p>A: This plugin&#x27;s UI comes from the gui_qt package provided by the Prototype Labs embedded core. Make sure you ticked and installed the <strong>Prototype Labs embedded core</strong> in the Full Package so it sits in the sibling GenericMenuItems\Prototype_Labs folder, or set the DF_PROTOTYPE_LABS_DIR environment variable to a folder containing gui_qt. Then restart Dragonfly.</p>
+<p><strong>Q: Clicking Test says &quot;cannot reach server&quot;.</strong></p>
+<p>A: Check, in order: is the target Dragonfly server running with the Prototype Labs server started; are the Address and Port correct (default port 54321); did you enter the correct <strong>Token</strong> for a remote connection (required; the status line shows TOKEN REQUIRED); and do network / firewall / Tailscale allow that port.</p>
+<p><strong>Q: I can&#x27;t find Remote DL Training in the menu.</strong></p>
+<p>A: The plugin is OFF by default. Re-run the Full Package installer and tick it (or tick it in <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>), then <strong>restart Dragonfly completely</strong> - menus are scanned only at startup. It lives under the <strong>Prototype Apps</strong> menu, B9_Remote Deep Learning group.</p>
+<p><strong>Q: Why is &quot;Show visual feedback&quot; greyed out?</strong></p>
+<p>A: The live preview needs a filesystem shared between the UI and the training process. When you connect to a <strong>remote server on another machine</strong> there is no shared path, so visual feedback is disabled - but training still runs and results are available on completion. To use visual feedback, train on this machine (choose the local headless subprocess, or have the server on this machine).</p>
+<p><strong>Q: Uploading errors out or the file is too large.</strong></p>
+<p>A: In upload mode <strong>each file must be &lt; 200 MB</strong>. For larger data, put the files where the server can read them directly (same machine or a shared drive) and choose <strong>The server can read these paths directly</strong> - then there is no size limit.</p>
+<p><strong>Q: It says the Dragonfly server is busy.</strong></p>
+<p>A: The target server handles one task at a time. Wait for the current task to finish and try again.</p>
+<p><strong>Q: My token is gone after reopening the panel.</strong></p>
+<p>A: This is deliberate security: the address and port persist, but the token is <strong>not written to disk</strong> and must be re-entered each session.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>Depends on the Prototype Labs embedded core:</strong> without gui_qt the panel cannot load, so install both.</li>
+<li><strong>Remote connections require a token:</strong> only 127.0.0.1 needs no token.</li>
+<li><strong>The GPU is on the server:</strong> training speed depends on the target server&#x27;s GPU, not your local UI machine.</li>
+<li><strong>Upload size limit:</strong> in upload mode each file must be &lt; 200 MB; use direct paths for larger data.</li>
+<li><strong>Visual feedback is local/shared-drive only:</strong> a remote server cannot do a live preview.</li>
+<li><strong>Visual feedback trains in segments:</strong> optimizer dynamics differ slightly from one continuous run.</li>
+<li><strong>Single-task server:</strong> the target server handles one task at a time; wait when busy.</li>
+<li><strong>Cancel behavior:</strong> GUI Sync / server modes stop at the next safe point (may not interrupt mid-epoch); the local headless subprocess is hard-stopped.</li>
+<li><strong>Token not persisted:</strong> re-enter the access token each session.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Companion plugin: <strong>Remote DL Inferring</strong> - apply a trained model to images; both live in the same B9_Remote Deep Learning group.</li>
+<li>Full install / enable / uninstall instructions: the README.md shipped with the Full Package (Prototype Labs &amp; Apps - Full Package).</li>
+<li>What a headless Dragonfly server is and how to start one: the <strong>?</strong> help button next to the &quot;Headless on a Dragonfly Server (no GUI)&quot; option in the panel.</li>
+<li>Deep-learning segmentation, the model library and inference: Dragonfly&#x27;s official Help documentation (Deep Learning / AI segmentation sections).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>RemoteDLTraining-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MONAI Label Segmentation · Dragonfly Prototype Apps</title>
+<meta name="description" content="MONAI Label Segmentation - User Manual Dragonfly Prototype Apps · MONAI Label Segmentation... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview …">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">MONAI Label Segmentation</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · MONAI Label Segmentation...</div>
+    <h1>MONAI Label Segmentation</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#option-1-start-a-local-server-in-server-management-recommended">Option 1: start a local server in Server Management (recommended)</a></li><li class="t3"><a href="#option-2-point-at-a-running-remote-server">Option 2: point at a running / remote server</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#5-1-connection-row">5.1 Connection row</a></li><li class="t3"><a href="#5-2-model-channel-row">5.2 Model &amp; channel row</a></li><li class="t3"><a href="#5-3-slice-viewer-controls">5.3 Slice viewer &amp; controls</a></li><li class="t3"><a href="#5-4-action-buttons">5.4 Action buttons</a></li><li class="t3"><a href="#5-5-status-log">5.5 Status log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-interactive-segmentation-deepedit-deepgrow">6.1 Interactive segmentation (DeepEdit / DeepGrow)</a></li><li class="t3"><a href="#6-2-pure-auto-segmentation">6.2 Pure auto-segmentation</a></li><li class="t3"><a href="#6-3-active-learning-which-volume-to-label-next">6.3 Active learning: which volume to label next</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>MONAI Label Segmentation - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · MONAI Label Segmentation...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>MONAI Label Segmentation</strong> is a native, dockable panel embedded in Dragonfly. It connects to a (local or remote) <strong>MONAI Label</strong> server to perform <strong>interactive AI segmentation</strong> of CT / MRI volumes inside Dragonfly: click a few points on the slice viewer (left = foreground, right = background) and the model completes the <strong>whole-volume</strong> segmentation; with no clicks it falls back to pure <strong>auto-segmentation</strong>. Once you are satisfied, one click <strong>imports the result as a MultiROI</strong> back into Dragonfly for downstream measurement and analysis, or as deep-learning training labels.</p>
+<p>The underlying engine is the open-source <strong>MONAI Label</strong> project (Project MONAI) together with its official <strong>radiology</strong> sample app, which provides <strong>DeepEdit</strong>, <strong>DeepGrow</strong>, and standard segmentation models. DeepEdit / DeepGrow are interactive paradigms: a few hint points let the model infer and refine the whole-volume label. Inference runs on the server (PyTorch based); the panel only exports the volume, sends the click points, and receives and displays the result mask.</p>
+<p>The panel runs in Dragonfly&#x27;s own Python and needs <strong>no plugin-specific virtual environment</strong>: NIfTI volume I/O uses a built-in pure-numpy codec (no SimpleITK / nibabel required). The panel talks to the server over HTTP (REST) via the shared monailabel_client.py.</p>
+<p><strong>License note</strong>: MONAI Label and the MONAI ecosystem are Apache-2.0 licensed (permissive). This plugin is only a client that calls a MONAI Label server; it does not alter those license terms. Please follow the MONAI Label project&#x27;s own license and usage guidance.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets medical, preclinical, and life-science CT / MRI segmentation. Typical scenarios:</p>
+<ul>
+<li><strong>Fast organ / lesion segmentation</strong>: for a single volume, a few foreground / background clicks yield a whole-volume mask, far faster than slice-by-slice manual drawing.</li>
+<li><strong>Pure auto-segmentation</strong>: for trained auto-seg / DeepEdit models, run with no clicks for a one-click fully automatic result.</li>
+<li><strong>Generating training labels</strong>: import the MONAI Label result as a Dragonfly MultiROI to serve as labels for downstream deep learning (e.g. Dragonfly&#x27;s built-in training) or statistical analysis.</li>
+<li><strong>Active learning (batch annotation ranking)</strong>: with many unlabeled scans, the server ranks unlabeled volumes by uncertainty (e.g. epistemic entropy) and tells you <strong>which to annotate first</strong>, so each manual label maximizes model improvement.</li>
+</ul>
+<p>Click hint points are captured in the <strong>embedded 2D slice viewer</strong> as integer voxel coordinates [i, j, k]. Picking points directly in Dragonfly&#x27;s own 2D / 3D viewports is not yet supported (a future enhancement).</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the package to a short folder (e.g. C:\PL\; avoid very deep paths or a OneDrive-redirected Desktop).</p>
+<p><strong>2. </strong>Double-click <strong>Install_FullPackage.bat</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick MONAI Label Segmentation</strong> in the app list (all plugins are OFF by default and must be ticked).</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>After restart, the plugin appears under <strong>Prototype Apps ▸ MONAI Label Segmentation...</strong> (in the &quot;Interactive Segmentation&quot; section). Click it to open the dockable segmentation panel.</p>
+<p>The plugin depends on the <strong>Prototype Labs embedded package</strong>, which provides the shared monailabel_client.py (the REST protocol). The panel resolves it from the sibling GenericMenuItems\Prototype_Labs\ folder (or the DF_PROTOTYPE_LABS_DIR environment variable). With the Full Package, the Prototype Labs core and this plugin deploy together, so this usually needs no extra action.</p>
+<p><strong>Changing your choices later</strong>: inside Dragonfly, open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>; in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, tick = deploy, untick = remove the menu entry. Restart Dragonfly to apply. Disabling <strong>never</strong> deletes a downloaded / built environment; re-enabling is instant.</p>
+<p><strong>Uninstall</strong>: double-click <strong>Uninstall_FullPackage.bat</strong> from the package to remove all Full-Package menu items and plugins. It keeps the Prototype Labs core and each plugin&#x27;s environment (e.g. the MONAI Label server venv) and prints those paths at the end so you can delete them manually to reclaim disk space.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</h2>
+<p><strong>The plugin itself needs no environment setup</strong>: it runs in Dragonfly&#x27;s own Python, uses its bundled numpy, and does NIfTI I/O via a built-in pure-numpy codec. There is nothing to pip-install and no &quot;Setup Environment&quot; button to click.</p>
+<p>What you do need is a <strong>reachable MONAI Label server</strong>. Two ways:</p>
+<h3 id="option-1-start-a-local-server-in-server-management-recommended">Option 1: start a local server in Server Management (recommended)</h3>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Server Management...</strong>.</p>
+<p><strong>2. </strong>Find <strong>MONAI Label Server</strong> in the server list and click <strong>Start</strong>.</p>
+<p><strong>3. </strong>First start automatically: creates a dedicated venv → installs a matching <strong>torch</strong> first (auto CUDA / CPU; falls back to CPU if the GPU driver is too old) → pip install -U monailabel → downloads the <strong>radiology</strong> sample app (DeepEdit / DeepGrow / segmentation) → writes a ready sentinel → launches monailabel start_server in the background.</p>
+<p><strong>4. </strong>The server listens by default at http://127.0.0.1:8384. Once ready, connect from the panel.</p>
+<p><strong>Download size &amp; internet</strong>: the first-time server install requires <strong>internet</strong> to download torch (the CUDA build can be several GB), monailabel, and the radiology app, and may take a while. Subsequent starts do not re-download. GPU use depends on your machine: an available NVIDIA GPU is used automatically via CUDA; otherwise inference runs on CPU (noticeably slower).</p>
+<h3 id="option-2-point-at-a-running-remote-server">Option 2: point at a running / remote server</h3>
+<p>If you already have a running MONAI Label server (another local process or a machine on your network), just enter its address in the panel&#x27;s <strong>Server URL</strong> field at the top and click <strong>Connect / Refresh</strong> — no local install needed.</p>
+<p><strong>Install location</strong>: the MONAI Label server installs by default under %LOCALAPPDATA%\DragonflyPrototypeLabs\MONAILabel (override with MONAILABEL_DIR). The default endpoint, sample app, and models can be overridden via MONAILABEL_URL / MONAILABEL_HOST / MONAILABEL_PORT, MONAILABEL_APP (default radiology), and MONAILABEL_MODELS (default deepedit).</p>
+<p><strong>If setup fails</strong>: if the local auto-install fails (restricted network, no suitable system Python), run the MONAI Label server on another capable machine and use <strong>Option 2</strong> to point the panel at it; or deploy the server manually per MONAI Label&#x27;s official docs and connect. <strong>Active learning / submitting corrections</strong> require your scans to be present in the server&#x27;s studies datastore.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel is a single page laid out top-to-bottom: connection row, model / channel row, slice viewer, slice &amp; mask controls, action buttons, and a status log. The controls are described below.</p>
+<h3 id="5-1-connection-row">5.1 Connection row</h3>
+<ul>
+<li><strong>Server URL</strong> (text field): the MONAI Label server address, default http://127.0.0.1:8384 (from environment variables or the default port 8384).</li>
+<li><strong>Connect / Refresh</strong> (button): connects to the server and reads /info, populating the model, strategy, and label dropdowns from the response.</li>
+</ul>
+<h3 id="5-2-model-channel-row">5.2 Model &amp; channel row</h3>
+<ul>
+<li><strong>Model</strong> (dropdown): lists the server&#x27;s available models with a type / dimension tag, e.g. deepedit  [deepedit/3D]. Switching the model updates its available labels.</li>
+<li><strong>Label</strong> (dropdown): the current model&#x27;s label names (background is filtered out). Click hint points apply to the label selected here.</li>
+<li><strong>Channel</strong> (dropdown): the image Channels (titles) currently open in the Dragonfly session.</li>
+<li><strong>↻</strong> (refresh channels, button): re-enumerates the Channel list in Dragonfly.</li>
+<li><strong>Load Channel</strong> (button): reads the selected Channel into the panel&#x27;s memory (numpy volume), records its voxel spacing and origin, and shows it in the slice viewer.</li>
+</ul>
+<h3 id="5-3-slice-viewer-controls">5.3 Slice viewer &amp; controls</h3>
+<ul>
+<li><strong>Slice viewer</strong> (grayscale image): shows the current slice. <strong>Left-click = foreground point</strong>, <strong>right-click = background point</strong>; points are recorded as integer voxel coordinates [i, j, k] and drawn as crosshairs (green = foreground, red = background). Only left / right clicks count; middle and other buttons are ignored.</li>
+<li><strong>Slice</strong> (slider): scrolls through slices; after loading it defaults to the middle slice of the volume.</li>
+<li><strong>Slice counter label</strong>: shows current index / max (format current/max).</li>
+<li><strong>Show mask</strong> (checkbox, on by default): overlays the inference result mask in semi-transparent red on the slice.</li>
+</ul>
+<h3 id="5-4-action-buttons">5.4 Action buttons</h3>
+<ul>
+<li><strong>Run (auto-seg / clicks)</strong> (button): exports the volume to NIfTI and POSTs it with the click params to the server&#x27;s /infer/{model}; empty clicks = pure auto-segmentation.</li>
+<li><strong>Clear points</strong> (button): removes all current foreground / background points.</li>
+<li><strong>Import as MultiROI</strong> (button): publishes the inference mask as a MultiROI on the source Channel&#x27;s grid. Disabled until an inference has succeeded.</li>
+<li><strong>Strategy</strong> (dropdown): the active-learning sampling strategy (from the server&#x27;s /info strategies, e.g. epistemic).</li>
+<li><strong>Next best volume</strong> (button): asks the server which unlabeled volume to annotate next under the chosen strategy.</li>
+</ul>
+<h3 id="5-5-status-log">5.5 Status log</h3>
+<ul>
+<li>A read-only text box at the bottom that shows connection status, load info, recorded clicks, inference progress and result statistics, plus any errors (prefixed with ERROR:).</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-interactive-segmentation-deepedit-deepgrow">6.1 Interactive segmentation (DeepEdit / DeepGrow)</h3>
+<p><strong>Inputs</strong>: a reachable MONAI Label server; an image Channel (CT / MRI volume) already open in Dragonfly.</p>
+<p><strong>1. </strong>Confirm the <strong>Server URL</strong> and click <strong>Connect / Refresh</strong>; the log reports the connected app name, version, model count, and strategy count.</p>
+<p><strong>2. </strong>Pick an interactive model in <strong>Model</strong> (e.g. deepedit / deepgrow) and a target label in <strong>Label</strong>.</p>
+<p><strong>3. </strong>Pick the image in <strong>Channel</strong> (click <strong>↻</strong> to refresh if needed) and click <strong>Load Channel</strong>.</p>
+<p><strong>4. </strong>Drag the <strong>Slice</strong> slider to the target slice and <strong>left-click foreground, right-click background</strong> on the viewer; points appear as crosshairs and the log reports running totals.</p>
+<p><strong>5. </strong>Click <strong>Run (auto-seg / clicks)</strong>; the model completes the whole-volume segmentation from your points.</p>
+<p><strong>6. </strong>When inference finishes, the mask overlays in red (toggle with <strong>Show mask</strong>); review the slices. If unsatisfied, <strong>Clear points</strong> and re-add, or add / remove points and <strong>Run</strong> again.</p>
+<p><strong>7. </strong>When satisfied, click <strong>Import as MultiROI</strong> to publish the result as a Dragonfly MultiROI.</p>
+<h3 id="6-2-pure-auto-segmentation">6.2 Pure auto-segmentation</h3>
+<p><strong>Inputs</strong>: as above, but choose a model that supports auto-segmentation (segmentation / DeepEdit).</p>
+<p><strong>1. </strong>Connect to the server and pick an auto-seg / DeepEdit model.</p>
+<p><strong>2. </strong>Select the image and click <strong>Load Channel</strong>.</p>
+<p><strong>3. </strong><strong>Without placing any points</strong>, click <strong>Run</strong>; empty points are sent and the server performs full auto-segmentation.</p>
+<p><strong>4. </strong>Review the overlay and, when satisfied, click <strong>Import as MultiROI</strong>.</p>
+<h3 id="6-3-active-learning-which-volume-to-label-next">6.3 Active learning: which volume to label next</h3>
+<p><strong>Inputs</strong>: the server&#x27;s studies datastore already holds the unlabeled scans to process.</p>
+<p><strong>1. </strong>After connecting, pick a sampling strategy in <strong>Strategy</strong> (e.g. epistemic).</p>
+<p><strong>2. </strong>Click <strong>Next best volume</strong>; the server returns the volume that should be annotated first, ranked by uncertainty.</p>
+<p><strong>3. </strong>The log reports that volume&#x27;s id plus its uncertainty / weight; annotate that volume first in the server&#x27;s datastore.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control / Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Server URL</td><td>http://127.0.0.1:8384</td><td>MONAI Label server address; may point at a local or remote server.</td></tr><tr><td>Model</td><td>first model returned by the server</td><td>The model used for inference; each item is tagged with type / dimension.</td></tr><tr><td>Label</td><td>first non-background label of the model</td><td>Click hint points apply to this label; used by DeepEdit / DeepGrow.</td></tr><tr><td>Channel</td><td>first Channel in the session</td><td>The image Channel used as segmentation input; click ↻ to refresh.</td></tr><tr><td>Slice</td><td>middle slice after loading</td><td>Scrolls through slices; range 0 to (slice count - 1).</td></tr><tr><td>Show mask</td><td>checked (on)</td><td>Whether to overlay the result mask in red on the slice.</td></tr><tr><td>Strategy</td><td>first strategy returned by the server</td><td>Active-learning sampling strategy (e.g. epistemic).</td></tr><tr><td>Foreground point (left-click)</td><td>none (empty = auto-seg)</td><td>Integer voxel coordinates [i, j, k]; a positive hint.</td></tr><tr><td>Background point (right-click)</td><td>none</td><td>Integer voxel coordinates [i, j, k]; a negative hint (exclude region).</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<p>The panel&#x27;s main output is a <strong>MultiROI</strong> (multi-label region of interest), published on the source Channel&#x27;s grid via <strong>Import as MultiROI</strong>:</p>
+<ul>
+<li>The MultiROI is <strong>voxel-for-voxel aligned</strong> with the source Channel: because export and the returned label share one NIfTI affine (built from the source Channel&#x27;s spacing and origin), the mask coincides exactly with the original image in Dragonfly.</li>
+<li>Publishing prefers CellposeHelper to build the MultiROI directly on the channel grid; if unavailable, it falls back to an aligned labelmap Channel converted to a MultiROI; as a last resort it publishes the labelmap as a Channel (the log reports which path was taken).</li>
+<li>The resulting MultiROI is named like MONAI Label: &lt;model name&gt;.</li>
+</ul>
+<p><strong>How to view</strong>: after import, the MultiROI appears in Dragonfly&#x27;s object list; you can display and color it in 2D / 3D views and feed it into downstream measurement and analysis, or use it as deep-learning training labels.</p>
+<p><strong>On geometry / orientation</strong>: voxel-level alignment is reliable, but the anatomical orientation (RAS / LPS) required by the model is best-effort. Verify the orientation on a known volume before relying on it.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: Connect / Refresh says the server is not reachable. What now?</strong></p>
+<p>A: Make sure the MONAI Label server is running — start <strong>MONAI Label Server</strong> under <strong>Prototype Apps ▸ Server Management</strong> — or check the <strong>Server URL</strong> (default http://127.0.0.1:8384). The first server start downloads over the internet, so wait for it to become ready before connecting.</p>
+<p><strong>Q: The log says it cannot find monailabel_client.py.</strong></p>
+<p>A: The plugin relies on the <strong>Prototype Labs embedded package</strong> for that file. Ensure the Prototype Labs core is installed (it ships with the Full Package), or set DF_PROTOTYPE_LABS_DIR to a folder that contains monailabel_client.py.</p>
+<p><strong>Q: The Model / Label / Strategy dropdowns are empty.</strong></p>
+<p>A: These lists come from the server&#x27;s /info and are only filled after a successful connection. Connect first; if still empty, the server has no such models or strategies configured — check its installed sample app (default radiology) and model configuration.</p>
+<p><strong>Q: My image is not in the Channel dropdown.</strong></p>
+<p>A: Click <strong>↻</strong> to refresh the channel list and confirm the image is open as a Channel in the current Dragonfly session. If the log reports it cannot be read to a numpy array after loading, verify it is a regular scalar image Channel.</p>
+<p><strong>Q: Inference returns &quot;no mask&quot; or an empty result.</strong></p>
+<p>A: Check that the chosen model matches how you are using it (interactive models expect points, or allow empty points for auto-seg); the log shows the server&#x27;s returned result for diagnosis. For interactive models, try adding a few more foreground points inside the target and background points on clearly non-target areas, then re-run.</p>
+<p><strong>Q: Next best volume says there is nothing to annotate.</strong></p>
+<p>A: Active learning operates on the server&#x27;s studies datastore. Upload the scans to annotate into the server&#x27;s datastore (or use its demo dataset) to populate the queue, then retry.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>Hint points are captured in the <strong>embedded 2D slice viewer</strong> as integer voxel coordinates; picking directly in Dragonfly&#x27;s 2D / 3D viewports is not yet supported (a future enhancement).</li>
+<li>Anatomical orientation (RAS / LPS) is best-effort; verify on a known volume on first use.</li>
+<li>Inference speed depends on the server&#x27;s compute: an NVIDIA GPU uses CUDA acceleration, while CPU-only is noticeably slower.</li>
+<li>Active learning and submitting corrections require scans to live in the server&#x27;s studies datastore; loading a Channel in the panel does not upload it there automatically.</li>
+<li>Menus are scanned only at Dragonfly startup, so enabling / disabling the plugin requires one restart to take effect.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>MONAI Label project: https://github.com/Project-MONAI/MONAILabel</li>
+<li>Project MONAI (Medical Open Network for AI): https://monai.io</li>
+<li>In-panel hint: &quot;Left-click = foreground · Right-click = background · No clicks = pure auto-segmentation&quot;.</li>
+<li>Server management and install / enable: see Prototype Apps ▸ Server Management and the Full Package README.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MONAILabel-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

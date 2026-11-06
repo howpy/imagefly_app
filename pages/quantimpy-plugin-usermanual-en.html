@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minkowski Functionals (QuantImPy) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Minkowski Functionals (QuantImPy) - User Manual Dragonfly Prototype Apps · Minkowski Functionals (QuantImPy)... Version 1.0 · 2026-07-09 English Manual Con…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Minkowski Functionals (QuantImPy)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Minkowski Functionals (QuantImPy)...</div>
+    <h1>Minkowski Functionals (QuantImPy)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#engine-and-algorithm">Engine and algorithm</a></li><li class="t3"><a href="#licensing">Licensing</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and enabling</a></li><li class="t3"><a href="#changing-your-choices-later">Changing your choices later</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-runtime-environment-and-first-run-setup">4. Runtime environment and first-run setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#internet-gpu-wsl-external-apps">Internet, GPU, WSL, external apps</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#fallback-if-setup-fails">Fallback if setup fails</a></li><li class="t2"><a href="#5-interface-reference">5. Interface reference</a></li><li class="t3"><a href="#input-group">Input group</a></li><li class="t3"><a href="#minkowski-functionals-to-report-group">Minkowski functionals to report group</a></li><li class="t3"><a href="#morphology-group-optional">Morphology group (optional)</a></li><li class="t3"><a href="#environment-group">Environment group</a></li><li class="t3"><a href="#action-buttons-and-output-area">Action buttons and output area</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t3"><a href="#workflow-a-functionals-of-a-binary-roi">Workflow A: functionals of a binary ROI</a></li><li class="t3"><a href="#workflow-b-one-label-of-a-multiroi">Workflow B: one label of a MultiROI</a></li><li class="t3"><a href="#workflow-c-a-channel-plus-a-threshold">Workflow C: a Channel plus a threshold</a></li><li class="t3"><a href="#workflow-d-run-a-morphology-op-and-publish-a-channel">Workflow D: run a morphology op and publish a Channel</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and troubleshooting</a></li><li class="t3"><a href="#q1-compute-says-environment-not-set-up">Q1: Compute says &quot;environment not set up&quot;?</a></li><li class="t3"><a href="#q2-setup-environment-fails-on-venv-or-numpy-scipy-install">Q2: Setup Environment fails on venv or numpy/scipy install?</a></li><li class="t3"><a href="#q3-an-import-error-like-numpy-dtype-size-changed-abi-mismatch">Q3: An import error like &quot;numpy.dtype size changed&quot; (ABI mismatch)?</a></li><li class="t3"><a href="#q4-no-foreground-voxels-nothing-to-measure">Q4: &quot;No foreground voxels: nothing to measure&quot;?</a></li><li class="t3"><a href="#q5-computation-reports-out-of-memory">Q5: Computation reports &quot;Out of memory&quot;?</a></li><li class="t3"><a href="#q6-the-plugin-does-not-appear-in-the-menu">Q6: The plugin does not appear in the menu?</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Minkowski Functionals (QuantImPy) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Minkowski Functionals (QuantImPy)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Minkowski Functionals (QuantImPy)</strong> is a Dragonfly plugin that computes the four <strong>Minkowski functionals</strong> of a 3D binary image - Volume, Surface area, Integral mean curvature, and the Euler characteristic - with an optional <strong>morphological operation</strong> (erode / dilate / open / close) on the same mask. It appears as a dockable panel under <strong>Prototype Apps ▸ Minkowski Functionals (QuantImPy)...</strong>.</p>
+<p>The Minkowski functionals are a robust set of integral-geometry / morphology descriptors: in 3D there are exactly four, corresponding to volume, surface area, integral of mean curvature, and topological connectivity. They give <strong>whole-object scalars</strong> (not a per-label table) for porosity, specific surface area, mean curvature, and connectivity of porous media, foams, trabecular bone, packed particles, and similar structures.</p>
+<h3 id="engine-and-algorithm">Engine and algorithm</h3>
+<p>The computation is performed by the open-source <strong>QuantImPy</strong> library (project page https://github.com/boeleman/quantimpy). The Minkowski functionals come from quantimpy.minkowski.functionals (compiled Cython) and the morphology from quantimpy.morphology. QuantImPy depends on <strong>numpy</strong> and <strong>scipy</strong>.</p>
+<ul>
+<li><strong>Volume</strong> - the measure of the foreground region.</li>
+<li><strong>Surface area</strong> - the area of the foreground boundary.</li>
+<li><strong>Integral mean curvature</strong> - the integral of mean curvature over the boundary.</li>
+<li><strong>Euler characteristic</strong> - the topological connectivity number.</li>
+</ul>
+<p>Two Euler numbers are reported: QuantImPy&#x27;s fourth returned value is the topological Euler number scaled as chi × 3/(4π). The panel reports BOTH QuantImPy&#x27;s raw fourth value (labelled Euler characteristic (QuantImPy)) and the recovered true topological Euler characteristic (labelled Euler characteristic (topological); a solid convex blob gives chi = 1), for direct comparison and interpretability.</p>
+<h3 id="licensing">Licensing</h3>
+<p><strong>QuantImPy is GPL-3.0-or-later.</strong> To keep it arm&#x27;s-length from Dragonfly, the library is installed only into the plugin&#x27;s own dedicated virtual environment (venv) and is <strong>executed only as a subprocess</strong> - it is <strong>never imported into Dragonfly&#x27;s own Python</strong>. The Dragonfly side of the plugin touches only PyQt6 + ORSModel. The plugin&#x27;s own code follows the DragonflyPrototypeLabs repository terms; numpy and scipy are BSD-licensed.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12; other versions not verified) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<p>The plugin targets quantitative 3D morphology analysis in materials and life science. Typical subjects include:</p>
+<ul>
+<li><strong>Porous media and core samples</strong>: porosity via volume / foreground fraction, specific surface area via surface area.</li>
+<li><strong>Foams and open/closed-cell materials</strong>: pore-wall curvature and connectivity via mean curvature and the Euler characteristic.</li>
+<li><strong>Trabecular bone</strong>: connectivity and surface area of the bone microstructure.</li>
+<li><strong>Packed particles</strong>: surface area and connectivity descriptors of the packing.</li>
+<li><strong>Any 3D structure</strong> where integral-geometry descriptors (porosity, specific surface area, curvature, connectivity) matter.</li>
+</ul>
+<p>Note: the plugin returns <strong>whole-object scalars</strong>, not a per-object / per-label measurement table. For per-label measurements of a MultiROI, pair it with Dragonfly&#x27;s built-in MultiROI measurement tools.</p>
+<h2 id="3-installation-and-enabling">3. Installation and enabling</h2>
+<p>The plugin ships in the <strong>Full Package</strong>. To install and enable it:</p>
+<p><strong>1. </strong>Unzip the package to any short folder (e.g. C:\PL\, to avoid the 260-character path limit from deep paths).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick</strong> &quot;Minkowski Functionals (QuantImPy)&quot; in the app list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly.</strong></p>
+<p>This plugin is <strong>OFF by default</strong> in the installer (all plugins default OFF; only light menu items default ON). You must tick it in the install dialog, or enable it later in the Menu Item Manager.</p>
+<p>After the restart, the plugin appears under <strong>Prototype Apps ▸ Minkowski Functionals (QuantImPy)...</strong> (in the &quot;Measurements &amp; Analysis&quot; group). Click it to open the dockable panel.</p>
+<h3 id="changing-your-choices-later">Changing your choices later</h3>
+<p>The easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>; the &quot;Prototype Apps (Full Package)&quot; list at the bottom has a checkbox per app - tick to deploy, untick to remove the menu entry, then restart Dragonfly. Disabling <strong>never</strong> deletes a plugin&#x27;s environment: re-enabling is instant.</p>
+<p>Menus are discovered only at Dragonfly startup, so <strong>every enable/disable change needs one restart</strong>. Everything is per-user under %LOCALAPPDATA%; no admin rights are required.</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> (also kept in the installer folder). It removes all Full-Package menu items and plugins while <strong>keeping</strong> each built environment (venv); the listed paths let you delete them manually to reclaim disk space.</p>
+<h2 id="4-runtime-environment-and-first-run-setup">4. Runtime environment and first-run setup</h2>
+<p>Because QuantImPy is a GPL, compiled library, the plugin uses a <strong>venv-in-code</strong> model: the computation runs in a subprocess of a dedicated virtual environment installed inside the plugin&#x27;s code folder, kept isolated from Dragonfly&#x27;s own Python.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p>On first use, click <strong>Setup Environment</strong> in the panel. It will:</p>
+<p><strong>1. </strong>Create a virtual environment from the interpreter in the <strong>Base Python</strong> field (blank = this Dragonfly&#x27;s own Python by default, so no separate Python install is needed);</p>
+<p><strong>2. </strong>Upgrade pip / setuptools / wheel;</p>
+<p><strong>3. </strong>pip-install quantimpy, numpy&lt;2, and scipy&lt;1.14 from the default PyPI index (no CUDA);</p>
+<p><strong>4. </strong>Run an import smoke test and record the venv Python path for subsequent computations.</p>
+<p><strong>numpy must stay &lt; 2</strong>: the published quantimpy build is compiled against the numpy 1.x C-ABI, so numpy 2.x raises &quot;numpy.dtype size changed&quot; at import. The requirements pin numpy&lt;2 and scipy&lt;1.14. Verified: quantimpy imports and computes cleanly on numpy 1.26.4.</p>
+<h3 id="internet-gpu-wsl-external-apps">Internet, GPU, WSL, external apps</h3>
+<ul>
+<li><strong>Internet needed once</strong>: only the first Setup Environment needs internet to fetch dependencies from PyPI; use afterwards is offline.</li>
+<li><strong>No GPU</strong>: computation is CPU-only.</li>
+<li><strong>No WSL</strong>: everything runs in a local Windows virtual environment.</li>
+<li><strong>No external software</strong>: no Fiji/ImageJ or other third-party program is required.</li>
+</ul>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<p>The venv is created inside the <strong>installed plugin code folder</strong>, i.e. &lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\QuantImPy\venv (under %LOCALAPPDATA%\comet\). Reinstalling or updating the plugin code preserves this venv, so you do not have to rebuild it.</p>
+<h3 id="fallback-if-setup-fails">Fallback if setup fails</h3>
+<p>If the default base Python lacks the venv module, or numpy/scipy wheels are unavailable, point the panel&#x27;s <strong>Base Python</strong> field at a <strong>CPython 3.10+</strong> (3.10-3.12 recommended on Windows, with prebuilt numpy&lt;2 / scipy wheels) - for example C:\Python312\python.exe or a launcher command like py -3.11 - then click Setup Environment again. The Status label shows &quot;Ready: &lt;python path&gt;&quot; when it succeeds, or a prompt that setup is still needed.</p>
+<h2 id="5-interface-reference">5. Interface reference</h2>
+<p>The panel is a stack of group boxes, described from top to bottom. All time-consuming operations (reading objects, building the environment, computing) run on a background thread, so the UI never freezes.</p>
+<h3 id="input-group">Input group</h3>
+<p>Titled &quot;Input (binary mask, or Channel + threshold)&quot;.</p>
+<ul>
+<li><strong>Input type</strong> dropdown: ROI, MultiROI, or Channel (default ROI). Changing it refreshes the object list and enables/disables the related controls.</li>
+<li><strong>Object</strong> dropdown + <strong>Refresh</strong> button: lists the objects of the chosen type in the current Dragonfly session (title and shape; a MultiROI also shows its label count). Refresh re-scans.</li>
+<li><strong>MultiROI label (0=all)</strong> spin box: available only for MultiROI input; 0 = union of all labels; its upper bound adjusts to the chosen MultiROI&#x27;s label count. Default 0.</li>
+<li><strong>Channel threshold</strong> spin box: available only for Channel input; foreground = voxels with intensity &gt;= this value. Default 0.5, 4 decimals.</li>
+</ul>
+<h3 id="minkowski-functionals-to-report-group">Minkowski functionals to report group</h3>
+<p>Four checkboxes - <strong>Volume</strong>, <strong>Surface area</strong>, <strong>Integral mean curvature</strong>, <strong>Euler characteristic</strong> - <strong>all checked by default</strong>. Unchecking one omits it from the results.</p>
+<p>Plus a checkbox <strong>Use voxel size from grid geometry (physical units)</strong>, <strong>checked by default</strong>: when on, functionals are reported in physical units using the source object&#x27;s spacing; when off, they use a unit voxel (=1).</p>
+<h3 id="morphology-group-optional">Morphology group (optional)</h3>
+<p>Titled &quot;Morphology (optional; publishes a new binary Channel)&quot;.</p>
+<ul>
+<li><strong>Operation</strong> dropdown: none, erode, dilate, open, close (default none). none publishes no morphology Channel.</li>
+<li><strong>Radius (voxels)</strong> spin box: structuring-element radius, 1-100, default 1.</li>
+</ul>
+<h3 id="environment-group">Environment group</h3>
+<p>Titled &quot;Environment (QuantImPy venv - GPL, kept arm&#x27;s-length)&quot;.</p>
+<ul>
+<li><strong>Base Python</strong> text field: blank = this Dragonfly&#x27;s Python; or a Python path, or a command like py -3.11.</li>
+<li><strong>Status</strong> label: shows whether the environment is ready (&quot;Ready: &lt;path&gt;&quot; or a prompt to click Setup Environment).</li>
+</ul>
+<h3 id="action-buttons-and-output-area">Action buttons and output area</h3>
+<ul>
+<li><strong>Setup Environment</strong> button: builds/reuses the venv and installs dependencies (see Section 4).</li>
+<li><strong>Compute Minkowski Functionals</strong> button: runs the computation on the selected input.</li>
+<li><strong>Summary label</strong>: a single line listing the functional values plus foreground / total voxel counts; selectable for copying.</li>
+<li><strong>Log text box</strong> (read-only): scrolls the details of setup and computation, including any error tracebacks.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<h3 id="workflow-a-functionals-of-a-binary-roi">Workflow A: functionals of a binary ROI</h3>
+<p><strong>1. </strong>Load/generate a binary ROI in Dragonfly and open the plugin panel.</p>
+<p><strong>2. </strong>On first use, click <strong>Setup Environment</strong> and wait until the Status shows &quot;Ready&quot;.</p>
+<p><strong>3. </strong>Set <strong>Input type</strong> to ROI, click <strong>Refresh</strong>, and pick the target ROI in <strong>Object</strong>.</p>
+<p><strong>4. </strong>Tick the functionals you want under <strong>Minkowski functionals to report</strong> (all four by default).</p>
+<p><strong>5. </strong>Keep <strong>Use voxel size from grid geometry</strong> ticked for physical units, or untick it for unit-voxel results.</p>
+<p><strong>6. </strong>Click <strong>Compute Minkowski Functionals</strong>; read the values in the summary label and log.</p>
+<h3 id="workflow-b-one-label-of-a-multiroi">Workflow B: one label of a MultiROI</h3>
+<p><strong>1. </strong>Set <strong>Input type</strong> to MultiROI, click <strong>Refresh</strong>, and select the MultiROI.</p>
+<p><strong>2. </strong>Enter the label number in <strong>MultiROI label (0=all)</strong> (0 = union of all labels).</p>
+<p><strong>3. </strong>Choose the functionals and the voxel-size option.</p>
+<p><strong>4. </strong>Click <strong>Compute Minkowski Functionals</strong> to get the functionals for that label (or the union).</p>
+<h3 id="workflow-c-a-channel-plus-a-threshold">Workflow C: a Channel plus a threshold</h3>
+<p><strong>1. </strong>Set <strong>Input type</strong> to Channel, click <strong>Refresh</strong>, and select the Channel.</p>
+<p><strong>2. </strong>Set the <strong>Channel threshold</strong> (foreground = intensity &gt;= this value; default 0.5).</p>
+<p><strong>3. </strong>Choose the functionals and the voxel-size option.</p>
+<p><strong>4. </strong>Click <strong>Compute Minkowski Functionals</strong>.</p>
+<h3 id="workflow-d-run-a-morphology-op-and-publish-a-channel">Workflow D: run a morphology op and publish a Channel</h3>
+<p><strong>1. </strong>Pick the input as in workflow A/B/C.</p>
+<p><strong>2. </strong>In the <strong>Morphology</strong> group choose erode / dilate / open / close and set <strong>Radius</strong>.</p>
+<p><strong>3. </strong>Click <strong>Compute Minkowski Functionals</strong>: alongside the functionals, the plugin applies the morphology operation and publishes the result as a <strong>new binary Channel</strong> back into Dragonfly, aligned with the source grid.</p>
+<p><strong>4. </strong>Confirm success on the &quot;Published channels&quot; log line and view the new Channel in Dragonfly&#x27;s object list.</p>
+<p>About opening/closing: in QuantImPy open is an alias for dilate and close an alias for erode. The plugin therefore composes a true opening as &quot;erode then dilate&quot; (dilate∘erode) and a true closing as &quot;dilate then erode&quot; (erode∘dilate) for intuitive results.</p>
+<h2 id="7-parameter-reference">7. Parameter reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Input type</td><td>ROI</td><td>Input source: ROI / MultiROI / Channel.</td></tr><tr><td>Object</td><td>First item in the list</td><td>Pick from the objects of the chosen type in the current Dragonfly session. Refresh re-scans.</td></tr><tr><td>MultiROI label (0=all)</td><td>0</td><td>MultiROI only: the label to measure; 0 = union of all labels. The upper bound follows the chosen MultiROI&#x27;s label count.</td></tr><tr><td>Channel threshold</td><td>0.5</td><td>Channel only: foreground = voxels with intensity &gt;= this value (4 decimals).</td></tr><tr><td>Volume</td><td>checked</td><td>Whether to report the volume functional.</td></tr><tr><td>Surface area</td><td>checked</td><td>Whether to report the surface-area functional.</td></tr><tr><td>Integral mean curvature</td><td>checked</td><td>Whether to report the integral mean curvature functional.</td></tr><tr><td>Euler characteristic</td><td>checked</td><td>Whether to report the Euler characteristic (both QuantImPy&#x27;s raw value and the topological value).</td></tr><tr><td>Use voxel size from grid geometry</td><td>checked</td><td>On = physical units from the source object&#x27;s spacing; off = unit voxel (=1).</td></tr><tr><td>Morphology Operation</td><td>none</td><td>none / erode / dilate / open / close; none publishes no Channel.</td></tr><tr><td>Radius (voxels)</td><td>1</td><td>Structuring-element radius in voxels, range 1-100.</td></tr><tr><td>Base Python</td><td>blank (Dragonfly&#x27;s Python)</td><td>Base interpreter for building the venv; a path or py -3.11. Blank = this Dragonfly&#x27;s own Python.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>After a computation, the plugin produces two kinds of output:</p>
+<ul>
+<li><strong>Functional values (in the panel)</strong>: the selected Minkowski functionals are listed in the summary label and the log. The log also gives the foreground / total voxel counts; when the Euler characteristic is selected, it lists both Euler characteristic (QuantImPy) (the raw fourth value) and Euler characteristic (topological) (the recovered true topological Euler number).</li>
+<li><strong>Morphology result Channel (optional, published to Dragonfly)</strong>: when the Morphology operation is not none, the plugin publishes the resulting binary mask as a <strong>new binary Channel</strong> back into Dragonfly, named like &quot;&lt;source object&gt; - &lt;op&gt; r&lt;radius&gt; (binary)&quot;, aligned with the source object&#x27;s grid geometry (spacing / origin).</li>
+</ul>
+<p>How to view: the functional values are read directly in the panel (selectable for copying); the published Channel appears in Dragonfly&#x27;s object/data browser and can be shown in 2D/3D views, analysed further, or exported like any other Channel.</p>
+<p>Physical units depend on &quot;Use voxel size from grid geometry&quot;: when on, results follow the ratios of the source object&#x27;s spacing (QuantImPy normalizes internally by the minimum spacing, so only the relative ratios between axes affect the result).</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and troubleshooting</h2>
+<h3 id="q1-compute-says-environment-not-set-up">Q1: Compute says &quot;environment not set up&quot;?</h3>
+<p>The venv has not been built yet. Click <strong>Setup Environment</strong> first and wait until the Status shows &quot;Ready: &lt;python path&gt;&quot; before computing.</p>
+<h3 id="q2-setup-environment-fails-on-venv-or-numpy-scipy-install">Q2: Setup Environment fails on venv or numpy/scipy install?</h3>
+<p>Common causes: the base Python has no venv module, or that Python version has no matching numpy&lt;2 / scipy wheels. Fix: put a CPython 3.10-3.12 path into <strong>Base Python</strong> (e.g. C:\Python312\python.exe) and retry. Also make sure PyPI is reachable during the first setup.</p>
+<h3 id="q3-an-import-error-like-numpy-dtype-size-changed-abi-mismatch">Q3: An import error like &quot;numpy.dtype size changed&quot; (ABI mismatch)?</h3>
+<p>This is numpy 2.x being incompatible with the published quantimpy build&#x27;s C-ABI. The requirements pin numpy&lt;2; if you altered the environment manually, re-run Setup Environment to restore numpy&lt;2 and scipy&lt;1.14.</p>
+<h3 id="q4-no-foreground-voxels-nothing-to-measure">Q4: &quot;No foreground voxels: nothing to measure&quot;?</h3>
+<p>The selected input has no foreground voxels under the current settings. For a Channel, check whether the <strong>Channel threshold</strong> is too high; for a MultiROI, make sure the <strong>MultiROI label</strong> points at a label that actually has voxels (or use 0 for the union of all labels); for an ROI, confirm it is non-empty.</p>
+<h3 id="q5-computation-reports-out-of-memory">Q5: Computation reports &quot;Out of memory&quot;?</h3>
+<p>Very large volumes can exhaust memory. Try computing on a smaller ROI, or downsample the volume before measuring.</p>
+<h3 id="q6-the-plugin-does-not-appear-in-the-menu">Q6: The plugin does not appear in the menu?</h3>
+<p>Menus are scanned only at Dragonfly startup. Confirm the app is <strong>ticked</strong> in the install dialog or the Menu Item Manager, then <strong>fully quit and restart</strong> Dragonfly.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and known limitations</h2>
+<ul>
+<li><strong>GPL isolation</strong>: QuantImPy is GPL-3.0-or-later and runs only in the plugin&#x27;s own venv subprocess; it is never imported into Dragonfly&#x27;s own Python. Do not manually install quantimpy into Dragonfly&#x27;s Python_env.</li>
+<li><strong>numpy must stay &lt; 2</strong>: the published quantimpy build targets the numpy 1.x C-ABI; the requirements pin numpy&lt;2 and scipy&lt;1.14.</li>
+<li><strong>Whole-object scalars only</strong>: outputs are whole-object Minkowski functionals, not a per-label table; use Dragonfly&#x27;s built-in MultiROI measurement tools for per-label needs.</li>
+<li><strong>Physical units depend on spacing</strong>: with &quot;Use voxel size from grid geometry&quot; on, results follow the source object&#x27;s spacing ratios; QuantImPy normalizes internally by the minimum spacing, so only the relative ratios between axes matter.</li>
+<li><strong>Internal boundary padding</strong>: the core pads the mask with a False border so the object never touches the array boundary, avoiding surface-area / Euler artifacts.</li>
+<li><strong>Platform</strong>: the panel and install paths are designed for Windows (the venv lives at venv\Scripts\python.exe inside the code folder).</li>
+<li><strong>Internet once</strong>: only Setup Environment needs internet; later use is offline. No GPU, no WSL, no external software.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>QuantImPy project page (GPL-3.0-or-later): https://github.com/boeleman/quantimpy</li>
+<li>Full Package install / enable / uninstall guide: the bundled UserManual_用户手册.docx and the README in the installer folder.</li>
+<li>Change your choices inside Dragonfly: Developer ▸ Prototype Labs... ▸ Menu Item Manager.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>QuantImPy-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

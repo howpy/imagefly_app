@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create Rotational Views · Dragonfly Prototype Apps</title>
+<meta name="description" content="Create Rotational Views - User Manual Dragonfly Prototype Apps · Create Rotational Views... Version 1.0 · 2026-07-26 English Manual Contents 1. Introductio…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Create Rotational Views</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Create Rotational Views...</div>
+    <h1>Create Rotational Views</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-when-to-use-it">2. When to use it</a></li><li class="t2"><a href="#3-features">3. Features</a></li><li class="t2"><a href="#4-how-to-use">4. How to use</a></li><li class="t2"><a href="#5-requirements">5. Requirements</a></li><li class="t2"><a href="#6-tips-notes">6. Tips &amp; notes</a></li></ul></nav>
+  <main class="manual"><p><strong>Create Rotational Views - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Create Rotational Views...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Create Rotational Views</strong> rotates a published image Channel around a chosen axis and stacks the per-angle 2D views into a <strong>brand-new image stack</strong> — one slice per angle. For a <strong>3D volume</strong> it rotates about the axis and then projects perpendicular to it, giving a <strong>turntable</strong> series of 2D views; for a <strong>2D image</strong> it rotates in-plane and the rotated image is the view (a spin series).</p>
+<p>The new Channel is placed at the <strong>world origin</strong> with <strong>no shape or coordinate correspondence</strong> to the source — it is a standalone visualization/synthesis result, not an in-place transform of the original volume. The whole UI switches <strong>中文 / English</strong> live, following the App Store language toggle.</p>
+<p>The plugin runs <strong>purely in-process</strong> on Dragonfly&#x27;s own Python (<strong>numpy + scipy</strong>) — <strong>no venv, no internet, no GPU and no admin rights</strong> are required.</p>
+<h2 id="2-when-to-use-it">2. When to use it</h2>
+<ul>
+<li>Generate a &#x27;turntable&#x27; rotation series / synthetic tilt series of a volume — for visualization, rendering, or as forward projections feeding a reconstruction.</li>
+<li>Turn a single 2D image into a stack of rotated views for a demo, an animation, or data augmentation.</li>
+<li>Quickly inspect an object&#x27;s <strong>MIP / mean / sum / min</strong> projection from many angles.</li>
+</ul>
+<h2 id="3-features">3. Features</h2>
+<ul>
+<li><strong>Input image Channel:</strong> a dropdown listing <strong>all currently published image channels</strong> with each one&#x27;s size (X×Y×Z); click <strong>Refresh</strong> to re-read the list.</li>
+<li><strong>Center (voxels):</strong> editable X / Y / Z spin boxes defaulting to the selected image&#x27;s geometric center, with a one-click <strong>Reset to image center</strong>.</li>
+<li><strong>Rotation axis:</strong> choose X, Y or Z.</li>
+<li><strong>Axis from:</strong> <strong>Image grid</strong> (the array axes, default) or <strong>World system</strong> — if the grid is not axis-aligned, the world axis is snapped to the nearest grid axis and a note is written to the log.</li>
+<li><strong>Projection reduction:</strong> <strong>MIP (max, default)</strong>, <strong>Mean</strong>, <strong>Sum</strong> or <strong>Min</strong> (applies to the 3D-volume projection).</li>
+<li><strong>Angle range and step:</strong> start (default 0°), end (default 360°) and step (default 1°) are all editable; a full 360° turn automatically drops the duplicate final frame (0° and 360° are the same view).</li>
+<li><strong>Output name:</strong> optional (blank = auto-named). A <strong>progress bar and log</strong> track the run, which happens on a background thread so the UI never freezes.</li>
+</ul>
+<h2 id="4-how-to-use">4. How to use</h2>
+<p>1. In Dragonfly, open <strong>Prototype Apps ▸ Reconstruction &amp; Imaging ▸ Create Rotational Views...</strong>.</p>
+<p>2. In the <strong>Input image</strong> dropdown, pick the image Channel to rotate (click <strong>Refresh</strong> if it isn&#x27;t listed).</p>
+<p>3. Set the <strong>Center (voxels)</strong> X / Y / Z; usually keep the default or click <strong>Reset to image center</strong> to use the image center.</p>
+<p>4. Choose the <strong>Rotation axis</strong> and <strong>Axis from</strong> (Image grid / World system); for a 3D volume also choose the <strong>Projection</strong>.</p>
+<p>5. Set <strong>Start / End / Step</strong> in degrees to define how many angles to generate.</p>
+<p>6. (Optional) Type a name in <strong>Output name</strong>; leave blank for an auto-generated name.</p>
+<p>7. Click <strong>Create</strong> and watch the progress bar; when finished the new view stack is published back into Dragonfly at the world origin.</p>
+<h2 id="5-requirements">5. Requirements</h2>
+<ul>
+<li>Runs <strong>in-process</strong> on Dragonfly&#x27;s own Python (<strong>numpy + scipy</strong>); <strong>no</strong> venv, model download, internet, GPU or admin rights.</li>
+<li>Works on first run — the plugin installs with Prototype Apps and has no one-time setup step.</li>
+</ul>
+<h2 id="6-tips-notes">6. Tips &amp; notes</h2>
+<p><strong>Performance:</strong> every angle rotates and projects the whole volume, so <strong>dense angle steps (small step) or large volumes</strong> are compute-heavy — mind the time and memory. Try a coarse step first, then refine.</p>
+<ul>
+<li>The output has <strong>no shape correspondence</strong> to the source and is placed at the world origin — it is a standalone view stack, not an in-place edit of the original volume.</li>
+<li>For a <strong>2D image</strong> the rotation is always in-plane, so the <strong>rotation-axis choice is ignored</strong> and the projection mode does not apply (the rotated image is used directly as the view).</li>
+<li>When <strong>World system</strong> is chosen and the image grid is not axis-aligned, the world axis is snapped to the nearest grid axis and a note is logged — for precise control, prefer the <strong>Image grid</strong> system.</li>
+<li>Rotated views can have different sizes (rotation grows the canvas); the plugin <strong>center-pads</strong> all views to a common size before stacking them into the output.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>RotationalViews-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

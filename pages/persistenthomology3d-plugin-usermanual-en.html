@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Structure Scale Analyzer · Dragonfly Prototype Apps</title>
+<meta name="description" content="Structure Scale Analyzer - User Manual Dragonfly Prototype Apps · Structure Scale Analyzer... Version 1.0 · 2026-08-01 English Manual Contents 1. Introduct…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Structure Scale Analyzer</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Structure Scale Analyzer...</div>
+    <h1>Structure Scale Analyzer</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-08-01</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-setup">1. Setup</a></li><li class="t3"><a href="#2-input-analysis-mode">2. Input &amp; Analysis Mode</a></li><li class="t3"><a href="#3-parameters-physical-scale">3. Parameters &amp; Physical Scale</a></li><li class="t3"><a href="#4-preview-run">4. Preview &amp; Run</a></li><li class="t3"><a href="#5-curve-results">5. Curve &amp; Results</a></li><li class="t3"><a href="#6-batch-export">6. Batch &amp; Export</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Structure Scale Analyzer - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Structure Scale Analyzer...</p>
+<p>Version 1.0 · 2026-08-01</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>This plugin answers a question that sounds simple and is easy to get wrong: <strong>how big is this structure, really?</strong> It erodes (or dilates) a segmented ROI or MultiROI step by step and records how many connected components survive each step. When a population of similarly sized structures disappears together, the component count drops sharply — and that step corresponds to their characteristic scale.</p>
+<p>The panel has 6 numbered steps. Changing anything upstream invalidates every downstream result, so an exported number always matches what is on screen; the analysis runs on a worker thread, and cancel or failure publishes nothing.</p>
+<p><strong>The reported radius comes from the Euclidean distance transform, not from counting erosion steps.</strong> A step count can only resolve the scale to half a voxel, and the sign of that error depends on where the true radius falls between two integers: measured against phantoms, spheres came out systematically half a voxel too large and slabs half a voxel too small. The distance transform has no such bias and gives an exact physical length for any voxel aspect ratio. The erosion-step estimate is still reported separately as <strong>Step estimate (±½ voxel)</strong> for comparison.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Porous materials: pore size and pore-wall thickness.</li>
+<li>Fibres, vessels, trabeculae: diameter and the spacing between them.</li>
+<li>Coatings, membranes, vessel walls: thickness (use the thickness mode).</li>
+<li>Grain packings: the characteristic grain size.</li>
+<li>When the structure is interconnected and cannot be split into countable objects, a morphological scale is one of the few measurements still available.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install the Prototype Apps package (or tick this plugin in the App Store).</p>
+<p>2. This plugin is <strong>disabled by default</strong> — enable it in the App Store or the Menu Item Manager.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> (plugins are discovered at startup only).</p>
+<p>4. Open it from: Prototype Apps ▸ Structure Scale Analyzer… (group: Measurements &amp; Analysis).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>Nothing to install or configure.</strong> It runs entirely in Dragonfly&#x27;s own Python using the NumPy and SciPy it already ships. No internet, no download, no GPU, no virtual environment.</p>
+<p>Step 1 shows what this Dragonfly build supports: whether an ROI can be created from an array, whether a Channel can be published, whether MultiROI labels are readable. Unavailable actions are disabled up front rather than failing after a long run.</p>
+<h2 id="5-interface">5. Interface</h2>
+<p>The header always shows the environment, the current input, the running task, a progress bar and <strong>Cancel</strong>.</p>
+<h3 id="1-setup">1. Setup</h3>
+<p>A short description of the method plus the capability probe.</p>
+<h3 id="2-input-analysis-mode">2. Input &amp; Analysis Mode</h3>
+<p>Pick an ROI mask or a MultiROI (<strong>published objects only</strong>). A MultiROI takes precedence and unlocks the per-label batch in step 6. Three modes: <strong>structure scale</strong> and <strong>thickness</strong> both erode (the first looks at the overall characteristic scale, the second at local half-thickness); <strong>spacing between objects</strong> dilates instead, measuring the scale on the background side. Connectivity is 6-connected (faces) or 26-connected (faces + edges + corners).</p>
+<h3 id="3-parameters-physical-scale">3. Parameters &amp; Physical Scale</h3>
+<p>The voxel size is read from Dragonfly&#x27;s geometry (in millimetres); tick <strong>Override voxel size</strong> to set it by hand for objects without geometry. <strong>Resample anisotropic data to isotropic</strong> matters because otherwise one erosion step means a different physical distance along each axis. The iteration limit bounds the curve; smoothing sigma and the peak offset only affect the erosion-step estimate and <strong>not</strong> the reported radius.</p>
+<h3 id="4-preview-run">4. Preview &amp; Run</h3>
+<p><strong>Load mask</strong> reads the data from Dragonfly and reports its shape and foreground voxel count, <strong>Run analysis</strong> runs the main measurement, and <strong>Run per-label batch</strong> analyses every label of a MultiROI independently.</p>
+<h3 id="5-curve-results">5. Curve &amp; Results</h3>
+<p>The plot shows component count against erosion step (dashed = smoothed, red line = the derivative peak). The table lists the characteristic radius, full width, number of objects measured, min/max radius, the peak erosion step, the step estimate, the distribution FWHM, the voxel size and why the curve stopped. Warnings appear underneath.</p>
+<h3 id="6-batch-export">6. Batch &amp; Export</h3>
+<p>The per-label table; publishing the peak-state ROI (the mask eroded to the peak step) and a local half-thickness Channel (each voxel&#x27;s distance to background, in mm); and export to CSV or JSON.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. In step 2 pick an ROI or MultiROI and choose the mode and connectivity.</p>
+<p>2. In step 3 confirm the voxel size (leave resampling on for anisotropic data).</p>
+<p>3. In step 4 click Load mask and sanity-check the shape and foreground count.</p>
+<p>4. In step 4 click Run analysis.</p>
+<p>5. In step 5 read the characteristic radius and check the warnings and stop reason.</p>
+<p>6. For per-label numbers run the batch from step 4; publish or export in step 6.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Analysis mode</td><td>structure scale</td><td>structure / thickness / spacing</td><td>the first two erode; spacing dilates and measures the background side</td></tr><tr><td>Connectivity</td><td>6-connected</td><td>6 / 26</td><td>component labelling and the erosion structuring element; 26 also joins diagonal neighbours</td></tr><tr><td>Override voxel size</td><td>off</td><td>on / off</td><td>set the voxel size by hand for objects without geometry</td></tr><tr><td>Voxel size</td><td>read from the object</td><td>1e−6 … 1000 mm</td><td>editable only when Override is ticked</td></tr><tr><td>Resample to isotropic</td><td>on</td><td>on / off</td><td>resamples anisotropic data first; off means one erosion step is a different physical distance per axis</td></tr><tr><td>Max iterations</td><td>64</td><td>1 … 512</td><td>how far the curve may run; hitting the limit makes the result a lower bound and raises a warning</td></tr><tr><td>Smoothing sigma</td><td>1.0</td><td>0 … 10</td><td>Gaussian smoothing of the component curve, used only to locate the derivative peak</td></tr><tr><td>Peak offset (voxels)</td><td>0.5</td><td>0 … 1</td><td>erosion removes a discrete shell; this compensates between the peak step and the true radius. Affects the step estimate only</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Output</th><th>Meaning</th></tr><tr><td>Characteristic radius</td><td>the characteristic radius in mm — the median inscribed radius over objects, from the distance transform</td></tr><tr><td>Full width (2 × radius)</td><td>the diameter, or the full thickness</td></tr><tr><td>Objects measured</td><td>how many objects contributed (object pairs in spacing mode)</td></tr><tr><td>min / max</td><td>the smallest and largest object radius</td></tr><tr><td>Peak erosion step</td><td>the step at which the component count falls fastest</td></tr><tr><td>Step estimate (±½ voxel)</td><td>the radius implied by the erosion-step count, for comparison only</td></tr><tr><td>Distribution FWHM</td><td>full width at half maximum of the derivative peak — how broad the size distribution is</td></tr><tr><td>Stopped because</td><td>mask_empty / converged / single_component / max_iterations / cancelled</td></tr><tr><td>Peak-state ROI</td><td>the mask eroded to the peak step, published as a new ROI</td></tr><tr><td>Local half-thickness Channel</td><td>each voxel&#x27;s Euclidean distance to background in mm, published as a new Channel</td></tr></table></div>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>&quot;the peak is at the first erosion step&quot;</strong> — the structure is at or below the voxel size, so the number is a lower bound. Acquire at a higher resolution.</li>
+<li><strong>&quot;the iteration limit was reached&quot;</strong> — the structure is larger than 64 steps. Raise Max iterations in step 3.</li>
+<li><strong>Spacing mode says no ridge was found between objects</strong> — the mask has a single component, or the objects touch. Spacing needs at least two separate objects.</li>
+<li><strong>Publish peak-state ROI fails</strong> — this Dragonfly build does not expose an ROI-from-array factory to Python. Export instead, or publish the half-thickness Channel.</li>
+<li><strong>The result is off by an order of magnitude</strong> — check the spacing shown in step 2. If the object carries no geometry, set the voxel size by hand in step 3.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li><strong>Spacing is measured at each object pair&#x27;s closest approach.</strong> An earlier implementation took values along the whole background ridge, which open space inflated; only the minimum along each pair&#x27;s ridge is used now.</li>
+<li><strong>Spacing mode ignores background regions that touch the volume border</strong>, because empty space outside the sample is not a spacing between structures.</li>
+<li>Components are labelled with scipy.ndimage (BSD). The faster connected-components-3d is LGPL and this plugin ships as sourceless bytecode inside a commercial package, so it is deliberately not used.</li>
+<li>The input must be a <strong>published</strong> ROI or MultiROI; unpublished objects do not appear in the pickers.</li>
+<li>The whole volume is read into memory. Crop very large volumes to the region of interest first.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<p>Morphological granulometry: G. Matheron, Random Sets and Integral Geometry, Wiley, 1975. Local thickness and the distance transform: T. Hildebrand &amp; P. Rüegsegger, &quot;A new method for the model-independent assessment of thickness in three-dimensional images&quot;, Journal of Microscopy 185(1), 1997.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>PersistentHomology3D-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

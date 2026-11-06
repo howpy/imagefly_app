@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compute Overall Measurements (Mesh) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Compute Overall Measurements (Mesh) - User Manual Dragonfly Prototype Apps · Compute Overall Measurements (Mesh)... Version 1.0 · 2026-07-04 English Manual…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Compute Overall Measurements (Mesh)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Compute Overall Measurements (Mesh)...</div>
+    <h1>Compute Overall Measurements (Mesh)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Compute Overall Measurements (Mesh) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Compute Overall Measurements (Mesh)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Compute Overall Measurements (Mesh)</strong> is a Dragonfly Prototype Apps plugin that reports a full set of <strong>whole-mesh (global) scalar</strong> measurements for any surface mesh <strong>already present</strong> in your scene. Simply pick a mesh from the dropdown, click <strong>Compute</strong>, and the panel shows the results directly as a grouped table: topology and integrity checks, size measurements, shape descriptors, convexity metrics, and principal moments of inertia.</p>
+<p>The plugin is <strong>read-only</strong>: it reads the mesh vertices and triangle faces, computes the scalars, and displays the table in the panel. <strong>Nothing is written back</strong> onto the mesh, and no scene object is modified. A <strong>Copy results</strong> button exports the whole table as tab-separated text for pasting into reports or spreadsheets.</p>
+<p><strong>Underlying engine and algorithms:</strong> the geometry compute runs in an <strong>isolated Windows venv subprocess</strong> built on permissive open-source scientific Python libraries. The dependencies and version constraints are: trimesh&gt;=4.0,&lt;5.0 (area, volume, inertia, convex hull, watertightness / Euler number, bounding boxes), scipy&gt;=1.10 (convex hull via qhull + oriented bounding box), and numpy&gt;=1.24,&lt;2.0. All ship prebuilt wheels — no local compilation is required.</p>
+<p><strong>License notes:</strong> the three dependencies trimesh, scipy, and numpy are all permissively licensed (MIT / BSD). There is no libigl, CGAL, or any GPL component, which makes the plugin suitable for commercial and internal engineering workflows.</p>
+<p>This plugin reports <strong>whole-mesh</strong> scalars. If you need <strong>per-vertex</strong> scalar fields written back onto the mesh with a colormap (curvature, thickness, geodesic distance, roughness, …), use the companion plugin <strong>Compute Vertex Measurements (Mesh)</strong>.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin is ideal for <strong>quantitatively characterizing objects that were segmented and reconstructed as meshes</strong>. Typical applications include:</p>
+<ul>
+<li><strong>Particle / grain shape analysis in materials science</strong> — describe particle or grain shape with sphericity, solidity, and compactness.</li>
+<li><strong>Porosity and defect checks in industrial CT of castings and additive-manufactured (AM) parts</strong> — verify the enclosed volume of pores and defects.</li>
+<li><strong>Morphology measurements in life-science imaging</strong> — measure surface area, volume, bounding boxes, and inertia of cells, bones, or organs.</li>
+<li><strong>Quality check before 3D printing or simulation</strong> — quickly confirm whether a mesh is <strong>watertight</strong> and topologically sound (connected components, genus) before sending it downstream.</li>
+</ul>
+<p>Any object that can be represented as a surface mesh in Dragonfly can serve as input for overall measurement.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>The plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the package to a short path (e.g. C:\PL\; avoid a deep Downloads folder or a OneDrive-redirected Desktop to prevent path-too-long errors).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose a core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick</strong> <strong>Compute Overall Measurements (Mesh)</strong> in the Prototype Apps list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> so the menu is re-scanned.</p>
+<p><strong>This plugin is OFF by default.</strong> The package enables only the light menu items by default; all plugins (including this one) are off and must be ticked at install time or enabled afterward in the Menu Item Manager.</p>
+<p>After the restart the menu appears at <strong>Prototype Apps ▸ Compute Overall Measurements (Mesh)...</strong> (in the Measurements &amp; Analysis group). Click it to open a dockable floating panel.</p>
+<p><strong>Changing your choices later:</strong> the easiest way is inside Dragonfly — open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong>, find this plugin in the bottom “Prototype Apps (Full Package)” list, tick = deploy the menu entry, untick = remove it, then restart Dragonfly to apply. Disabling <strong>never</strong> deletes the plugin&#x27;s built environment; re-enabling is instant.</p>
+<p><strong>Uninstall:</strong> double-click <strong>`Uninstall_FullPackage.bat`</strong> to remove all Full-Package menu items and plugins. Uninstall keeps each plugin&#x27;s built environment (venv) and lists its paths at the end so you can delete them manually to reclaim disk space.</p>
+<h2 id="4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</h2>
+<p>The geometry compute does not run directly in Dragonfly&#x27;s bundled Python (Python_env). Instead it runs in an <strong>isolated virtual environment (venv)</strong> as a subprocess, to avoid polluting Dragonfly&#x27;s runtime. This venv must be <strong>built once on first use</strong>.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p><strong>What the Setup environment button does:</strong></p>
+<p><strong>1. </strong>Selects a base Python with a working pip — it prefers <strong>this Dragonfly&#x27;s own python.exe</strong> (Dragonfly 2025.1 / 2027.1 both bundle a full CPython 3.10 whose venv + pip work), so you need <strong>no separate Python install</strong>; outside Dragonfly it falls back to a system Python.</p>
+<p><strong>2. </strong>Creates a venv inside the plugin&#x27;s code folder and pip-installs the three dependencies numpy, scipy, and trimesh.</p>
+<p><strong>3. </strong>Records the full path to the venv&#x27;s python in venv_python.txt so it can be reused on later runs.</p>
+<p><strong>Internet / GPU / WSL / external apps:</strong> building the environment needs the <strong>internet</strong> once (downloads roughly 100–200 MB of packages). <strong>No GPU</strong> is required, no WSL, and no external application. After setup, all subsequent computation runs fully locally and offline.</p>
+<p><strong>Where the environment lives:</strong> the venv and runtime files reside inside the installed plugin code folder (under %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\OverallMeasurements\runner\):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Path</th><th>Purpose</th></tr><tr><td>runner\venv</td><td>The isolated virtual environment created on first Setup environment click</td></tr><tr><td>runner\venv_python.txt</td><td>Records the venv python path so the plugin can reuse it</td></tr><tr><td>runner\jobs</td><td>Per-compute temporary job directories (input / results / status files)</td></tr></table></div>
+<p><strong>Fallback if setup fails:</strong> the panel automatically tries several base-Python candidates (Dragonfly&#x27;s own python, the py launcher, python on PATH, common install locations, and Miniconda / Miniforge). If the Dragonfly interpreter fails, it retries with a system Python that has pip. If all fail, check your network connection and PyPI access, then click <strong>Setup environment</strong> again. All setup progress and error messages appear in the log box at the bottom of the panel.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel is a dockable floating window composed, top to bottom, of the following controls (matching the code exactly):</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Description</th></tr><tr><td>Mesh</td><td>Dropdown</td><td>Lists every representable mesh object in the scene by title. Populated automatically when the panel opens.</td></tr><tr><td>Refresh</td><td>Button</td><td>Re-scans the scene for meshes and refreshes the dropdown (use after creating or deleting a mesh in Dragonfly).</td></tr><tr><td>Results table</td><td>Table</td><td>Three columns: Measurement, Value, Unit. After compute, all results appear grouped; group-title rows are bold and span the row.</td></tr><tr><td>Warning bar</td><td>Text bar</td><td>Shown only when warnings exist (e.g. a non-watertight mesh); lists each note in orange text.</td></tr><tr><td>Environment</td><td>Text label</td><td>Shows the environment state: checking... / ready / not set up / setup failed.</td></tr><tr><td>Setup environment</td><td>Button</td><td>Click once on first use to build the isolated venv and install dependencies (see Chapter 4).</td></tr><tr><td>Compute</td><td>Button</td><td>Computes overall measurements for the currently selected mesh. It is the default button.</td></tr><tr><td>Copy results</td><td>Button</td><td>Copies the current results table to the clipboard as tab-separated text. Disabled until a result exists.</td></tr><tr><td>Progress bar</td><td>Progress bar</td><td>Shows a busy state during compute or environment setup.</td></tr><tr><td>Log box</td><td>Read-only text</td><td>Shows run logs: number of meshes found, vertices/faces read, progress percentage, error traces, etc.</td></tr></table></div>
+<p>All mesh reads and scene access run on Dragonfly&#x27;s UI thread, while the heavy geometry compute runs in a background thread / subprocess, so the interface stays responsive during computation.</p>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p><strong>Input requirement:</strong> the scene must contain at least one representable surface mesh object. If none exists, first import or reconstruct a mesh (e.g. from a segmentation) in Dragonfly.</p>
+<p><strong>End-to-end steps:</strong></p>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Compute Overall Measurements (Mesh)...</strong>; the panel appears.</p>
+<p><strong>2. </strong><strong>On first use</strong>, click <strong>Setup environment</strong> and wait until the log shows “Environment ready” and the state becomes ready. This is done only once.</p>
+<p><strong>3. </strong>Select the mesh to measure in the <strong>Mesh</strong> dropdown. If the list is empty or missing a new mesh, click <strong>Refresh</strong>.</p>
+<p><strong>4. </strong>Click <strong>Compute</strong>. The progress bar activates and the log shows the vertex/face counts read and the compute progress.</p>
+<p><strong>5. </strong>When compute finishes, the results table is filled. If the mesh is not watertight, the warning bar shows the relevant note in orange.</p>
+<p><strong>6. </strong>To export: click <strong>Copy results</strong> — the table enters the clipboard as tab-separated text, ready to paste into Excel or a report.</p>
+<p><strong>What you get:</strong> a grouped results table (topology &amp; integrity, size, shape, convexity, inertia) plus any warning notes. The process never changes any scene object.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<p>The plugin has no numeric algorithm parameters to set; the actionable items and their default states are listed below.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Item</th><th>Default / default state</th><th>Description</th></tr><tr><td>Mesh dropdown</td><td>First mesh selected when the panel opens</td><td>Choose the target mesh; contents come from the scene scan.</td></tr><tr><td>Setup environment</td><td>Not built at first; path remembered after setup</td><td>Builds the venv and installs numpy/scipy/trimesh; only needed once.</td></tr><tr><td>Compute</td><td>The default button (triggerable with Enter)</td><td>Runs overall measurements on the selected mesh.</td></tr><tr><td>Copy results</td><td>Disabled until a result exists</td><td>Copies the results table as tab-separated text.</td></tr><tr><td>Dependency versions</td><td>trimesh&gt;=4.0,&lt;5.0; scipy&gt;=1.10; numpy&gt;=1.24,&lt;2.0</td><td>Installed once by Setup environment; no manual choice needed.</td></tr></table></div>
+<p>The measurements themselves have no adjustable thresholds: whether values such as volume or sphericity are reported depends on whether the mesh is watertight (see the “watertight gating” notes in Chapters 8 and 10).</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>The output is <strong>not</strong> a new Dragonfly object — the plugin creates no Channel, ROI, MultiROI, or new mesh, and writes nothing back to the source mesh. All results are presented as an <strong>in-panel table plus copyable text</strong>. The table has five groups:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Group</th><th>Measurements included</th><th>Unit</th></tr><tr><td>Topology &amp; integrity</td><td>vertices, faces, edges, connected components, open boundary edges, watertight, winding consistent, convex, Euler number χ, genus</td><td>count / yes-no</td></tr><tr><td>Size</td><td>surface area, enclosed volume, AABB extents, oriented bbox (OBB) extents, bounding-sphere radius, centroid, center of mass</td><td>length / length² / length³</td></tr><tr><td>Shape</td><td>sphericity (Wadell), compactness (isoperimetric quotient)</td><td>[0, 1]</td></tr><tr><td>Convexity</td><td>convex-hull volume, convex-hull area, solidity (V / V_hull), convexity (A_hull / A)</td><td>length³ / length² / [0, 1]</td></tr><tr><td>Inertia (unit density)</td><td>principal moments I₁, I₂, I₃</td><td>length⁵</td></tr></table></div>
+<p><strong>How to view:</strong> results appear directly in the panel&#x27;s table with bold group-title rows. Numbers show with compact significant figures; vectors (e.g. bounding-box extents, centroid) show as (x, y, z); values that cannot be computed show as <strong>N/A</strong>.</p>
+<p><strong>About units:</strong> values are expressed in the mesh&#x27;s own world-coordinate units (length = a length unit, length² = area, length³ = volume, length⁵ = moment of inertia). Sphericity, compactness, solidity, and convexity are dimensionless ratios in the range [0, 1].</p>
+<p><strong>Watertight gating:</strong> volume, sphericity, compactness, solidity, genus, and principal inertia are only meaningful for a <strong>closed, watertight mesh</strong>. If the mesh has open boundaries, those rows show <strong>N/A</strong> and the warning bar explains why — this prevents silently reporting a meaningless volume for an open CT surface.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: I can&#x27;t find “Compute Overall Measurements (Mesh)...” in the menu.</strong></p>
+<p>A: Check three things: (1) you ticked this plugin at install (it is off by default); (2) you <strong>fully quit and restarted</strong> Dragonfly after installing (menus are scanned only at startup); (3) the plugin is ticked in Developer ▸ Prototype Labs... ▸ Menu Item Manager. Any change to the ticks needs one more restart.</p>
+<p><strong>Q: Volume, sphericity, genus, etc. show N/A.</strong></p>
+<p>A: These quantities are only defined for a watertight mesh. When the mesh has open boundary edges (Open boundary edges &gt; 0, Watertight = no) they show N/A — this is <strong>expected behavior</strong> and the warning bar explains why. If you truly need these values, repair the mesh in Dragonfly so it is closed (no open boundaries) and recompute.</p>
+<p><strong>Q: Setup environment failed — what now?</strong></p>
+<p>A: Check that your network can reach PyPI (the first build downloads roughly 100–200 MB). The panel automatically tries several base Pythons (Dragonfly&#x27;s own, a system Python, Miniconda, …); read the error in the log box at the bottom, fix your network or proxy settings, then click Setup environment again. Disabling / restarting never deletes an already-built environment.</p>
+<p><strong>Q: The Mesh dropdown is empty.</strong></p>
+<p>A: The scene contains no representable mesh object. Import a mesh or reconstruct one from a segmentation first, then click <strong>Refresh</strong> to re-scan.</p>
+<p><strong>Q: Compute is slow or seems unresponsive.</strong></p>
+<p>A: Convex-hull and inertia computations scale with mesh size. For meshes with very large vertex/face counts, compute may take a while; the progress bar and log keep updating. Compute runs in the background and does not block Dragonfly — wait for “Done.” in the log.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Read-only</strong>: the plugin never modifies scene objects and creates no new objects; results are shown in the panel and can be copied out.</li>
+<li><strong>Watertight gating</strong>: volume, sphericity, compactness, solidity, genus, and principal inertia are reported only for closed watertight meshes; otherwise N/A. This is intentional, to avoid misleading numbers.</li>
+<li><strong>Winding consistency</strong>: if the mesh winding is inconsistent (Winding consistent = no), the sign of volume / inertia may be wrong; the warning bar flags this.</li>
+<li><strong>Units follow the mesh</strong>: all dimensioned values use the mesh&#x27;s own world-coordinate units; the plugin does no unit conversion.</li>
+<li><strong>Internet only on first setup</strong>: only the first Setup environment needs the internet to download dependencies; afterward it works offline. No GPU required.</li>
+<li><strong>Input type</strong>: only existing surface meshes (Mesh) are supported; it does not process volume data (Channel) or ROI/MultiROI directly — reconstruct them into a mesh first.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li><strong>trimesh</strong> (mesh geometry: area, volume, inertia, convex hull, watertightness / Euler number, bounding boxes) — https://trimesh.org/</li>
+<li><strong>SciPy</strong> (convex hull via qhull, oriented bounding box) — https://scipy.org/</li>
+<li><strong>NumPy</strong> (fundamental numerical computing library) — https://numpy.org/</li>
+<li>Definitions of sphericity (Wadell) and the isoperimetric quotient (compactness) are given in standard morphology / image-analysis literature.</li>
+<li>Companion plugin: <strong>Compute Vertex Measurements (Mesh)</strong> (per-vertex scalar measurements with a colormap).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>OverallMeasurements-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

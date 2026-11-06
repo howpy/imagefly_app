@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skeleton Analysis (skan) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Skeleton Analysis (skan) - User Manual Dragonfly Prototype Apps · Skeleton Analysis (skan)... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview …">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Skeleton Analysis (skan)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Skeleton Analysis (skan)...</div>
+    <h1>Skeleton Analysis (skan)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#underlying-engine-and-algorithm">Underlying engine and algorithm</a></li><li class="t3"><a href="#license-notes">License notes</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t3"><a href="#changing-your-choices-later">Changing your choices later</a></li><li class="t2"><a href="#4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-internet-and-hardware-requirements">Download size, internet and hardware requirements</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#fallback-when-setup-fails">Fallback when setup fails</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t2"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t2"><a href="#5-2-analyze-tab">5.2 Analyze tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#6-1-first-use-build-the-environment">6.1 First use: build the environment</a></li><li class="t2"><a href="#6-2-analyze-an-roi-binary-mask">6.2 Analyze an ROI (binary mask)</a></li><li class="t2"><a href="#6-3-analyze-a-multiroi-per-label">6.3 Analyze a MultiROI (per-label)</a></li><li class="t2"><a href="#6-4-analyze-a-channel-by-threshold">6.4 Analyze a Channel (by threshold)</a></li><li class="t2"><a href="#6-5-export-and-review">6.5 Export and review</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#8-1-branch-statistics-table">8.1 Branch-statistics table</a></li><li class="t2"><a href="#8-2-skeleton-channel">8.2 Skeleton Channel</a></li><li class="t2"><a href="#8-3-intermediate-files-on-disk">8.3 Intermediate files on disk</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Skeleton Analysis (skan) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Skeleton Analysis (skan)...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Skeleton Analysis (skan)</strong> is a Dragonfly plugin that thins a binary structure in your 3D data down to a <strong>one-voxel-thick centerline network</strong> (a skeleton) and measures it. In the panel you pick an input — an ROI (binary mask), a MultiROI (per-label), or a Channel binarized by an intensity threshold — then click Run. The plugin thins the shape to its centerlines in 3D and computes branch statistics: the number of branches, each branch&#x27;s length, endpoint/junction types, straight-line distance, tortuosity, and more.</p>
+<p>Results appear as a <strong>branch table</strong> in the panel (exportable to CSV), and the computed skeleton is published back into the scene as a <strong>new uint8 Channel aligned to your original data</strong>, so you can overlay the source structure and its centerlines in 3D.</p>
+<h3 id="underlying-engine-and-algorithm">Underlying engine and algorithm</h3>
+<p>The heavy computation does NOT run inside Dragonfly&#x27;s own Python. Instead it runs in a <strong>dedicated virtual environment (venv)</strong> as a subprocess, communicating over JSON files. The open-source components used are:</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<ul>
+<li><strong>skan</strong> (Skeleton Analysis, skeleton-analysis.org): parses skeleton voxels into a branch graph and summarizes branch statistics (skan.Skeleton + skan.summarize). Requires skan&gt;=0.11.</li>
+<li><strong>scikit-image</strong> (skimage.morphology.skeletonize): thins the binary mask in 3D to centerline voxels. Requires scikit-image&gt;=0.22.</li>
+<li><strong>numpy</strong> (&gt;=1.24), <strong>pandas</strong> (&gt;=2.0), <strong>networkx</strong> (&gt;=3.0), <strong>imageio</strong> (&gt;=2.31): numerics, table building, graph structures, and image I/O.</li>
+</ul>
+<p>All dependencies come from the default PyPI index and are <strong>lightweight</strong> — this plugin needs <strong>no CUDA / PyTorch and no GPU</strong>.</p>
+<h3 id="license-notes">License notes</h3>
+<p>skan, scikit-image, numpy, pandas, networkx, and imageio are widely used open-source scientific libraries under their own permissive licenses (typically BSD-style). They are downloaded from PyPI only when you first click Setup Environment, and are installed into the plugin&#x27;s own venv — never into Dragonfly&#x27;s bundled Python. The authoritative license terms are those published by each upstream project (see References).</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin is useful anywhere you need to <strong>quantify a network- or fiber-like structure itself</strong> (not just its volume). It reduces a complex structure to a centerline network and then reports lengths and connectivity, which makes structures easy to compare statistically. Typical applications:</p>
+<ul>
+<li><strong>Life-science imaging</strong>: measuring branch length and connectivity of blood vessels, neurons, or plant roots.</li>
+<li><strong>Materials science and industrial CT</strong>: characterizing fiber, crack, or pore-channel networks.</li>
+<li><strong>General 3D image analysis</strong>: analyzing filament, dendrite, or other branching structures.</li>
+</ul>
+<p>Inputs may be a single 2D slice or a full 3D volume; the skeletonize and skan pipeline adapts automatically to 2D or 3D.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships with the <strong>Prototype Labs &amp; Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the package into a short folder (e.g. C:\PL\); avoid very deep paths.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick a core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>), then <strong>tick &quot;Skeleton Analysis (skan)&quot;</strong> in the plugin list.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>Note: all plugins are <strong>unchecked by default</strong> in the installer. You must tick &quot;Skeleton Analysis (skan)&quot; for it to be deployed. Only the lightweight menu items are on by default.</p>
+<p>After the restart, the plugin appears in the Dragonfly menu here:</p>
+<ul>
+<li><strong>Prototype Apps ▸ Skeleton Analysis (skan)...</strong> (grouped under &quot;Measurements &amp; Analysis&quot;). Clicking it opens a dockable / floating panel window.</li>
+</ul>
+<h3 id="changing-your-choices-later">Changing your choices later</h3>
+<p>To enable or disable the plugin later, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and find this plugin&#x27;s checkbox in the &quot;Prototype Apps (Full Package)&quot; list at the bottom — tick = deploy, untick = remove the menu entry; restart Dragonfly to apply. Disabling <strong>never deletes</strong> the plugin&#x27;s built environment (venv); re-enabling is instant.</p>
+<p>Alternatively, you can re-run the installer anytime (it remembers your previous choices as the new defaults). Even after deleting the unzipped folder, run %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat.</p>
+<h2 id="4-runtime-environment-and-first-run-setup">4. Runtime Environment and First-Run Setup</h2>
+<p>This plugin uses an &quot;environment-in-code&quot; (venv_in_code) approach: the heavy compute libraries are NOT installed into Dragonfly&#x27;s Python but into a dedicated virtual environment inside the plugin&#x27;s code folder. <strong>Nothing is downloaded at install time</strong> — the environment is built (with internet) only when you first click Setup Environment.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p><strong>1. </strong>Creates a virtual environment (&lt;code&gt;\venv) inside the plugin&#x27;s code folder. The base interpreter defaults to <strong>this machine&#x27;s own Dragonfly Python</strong> (Python_env\python.exe) — Dragonfly 2025.1 / 2027.1 both bundle a complete CPython 3.10 whose stdlib venv + ensurepip work, so you need <strong>no separate Python install</strong>.</p>
+<p><strong>2. </strong>Upgrades pip / setuptools / wheel inside that venv.</p>
+<p><strong>3. </strong>Runs pip install for skan, scikit-image, numpy, pandas, networkx, imageio from the default PyPI index.</p>
+<p><strong>4. </strong>Runs an import self-check and reports versions; on success it records the venv Python path to the plugin config and fills the panel&#x27;s &quot;Analysis venv python&quot; field.</p>
+<h3 id="download-size-internet-and-hardware-requirements">Download size, internet and hardware requirements</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Item</th><th>Requirement</th></tr><tr><td>Internet</td><td>Needed only for the first-time environment setup (downloading dependencies from PyPI, a few hundred MB). All later analysis runs offline.</td></tr><tr><td>GPU</td><td>Not required. Everything is CPU-only.</td></tr><tr><td>WSL / external software</td><td>Not required. Runs as a subprocess on Windows by default (the panel keeps a &quot;wsl&quot; run-mode option, but this plugin ships for Windows).</td></tr><tr><td>Tokens / accounts</td><td>None. No API token or login required.</td></tr></table></div>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<ul>
+<li><strong>Virtual environment</strong>: inside the deployed plugin code folder&#x27;s venv\ subfolder (i.e. ...\pythonUserExtensions\GenericMenuItems\SkanAnalysis\venv), built in place by the panel&#x27;s Setup Environment button.</li>
+<li><strong>Job root (output)</strong>: C:\SkanJobs by default (changeable on the Setup tab). Each run writes its intermediate files (mask, skeleton, status, results, CSV) beneath it.</li>
+</ul>
+<h3 id="fallback-when-setup-fails">Fallback when setup fails</h3>
+<p>If building the environment with Dragonfly&#x27;s bundled Python fails (e.g. a particular install lacks ensurepip), enter a working CPython 3.9+ interpreter in the Setup tab&#x27;s <strong>&quot;Base Python (build)&quot;</strong> field and click Setup Environment again. For example:</p>
+<p>C:\Python312\python.exe</p>
+<p>(or, if on PATH:  py -3.12)</p>
+<p>Tip: when the &quot;Base Python&quot; field is blank, the plugin prefers this machine&#x27;s Dragonfly Python; once you enter a path or a command like py -3.12, that wins. The setup script self-heals — if it finds a half-built venv (python present but pip broken), it deletes and rebuilds it.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The top of the panel shows a blue note describing the plugin. The body is a two-tab widget (<strong>Setup</strong> and <strong>Analyze</strong>); the bottom has a green result status line and a read-only <strong>Log</strong> text box. Below, each tab&#x27;s controls are described (matching the actual code).</p>
+<h2 id="5-1-setup-tab">5.1 Setup tab</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default / description</th></tr><tr><td>Analysis venv python</td><td>text field</td><td>Path to the analysis venv&#x27;s Python. Usually filled automatically by Setup Environment; rarely edited by hand.</td></tr><tr><td>Base Python (build)</td><td>text field</td><td>Base interpreter used to build the venv. Blank = use this machine&#x27;s Dragonfly python.exe (recommended); or enter a path or a command like py -3.12.</td></tr><tr><td>Run mode</td><td>dropdown</td><td>windows / wsl, default windows. This plugin ships for Windows; keep windows.</td></tr><tr><td>Job root</td><td>text field</td><td>Root output directory, default `C:\SkanJobs`.</td></tr><tr><td>Setup Environment (build venv + install skan)</td><td>button</td><td>Builds the venv and installs the skan stack (a couple of minutes on first run).</td></tr></table></div>
+<h2 id="5-2-analyze-tab">5.2 Analyze tab</h2>
+<p><strong>Input group:</strong></p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default / description</th></tr><tr><td>Input type</td><td>dropdown + Refresh button</td><td>Input category, one of: ROI (binary) / MultiROI (per-label) / Channel (threshold), default ROI. Click Refresh to rescan objects in the scene.</td></tr><tr><td>Object</td><td>dropdown</td><td>Lists the matching objects in the scene for the chosen input type (by title).</td></tr><tr><td>Channel threshold (&gt;=)</td><td>double spinbox</td><td>Enabled only for a Channel input. Binarizes as foreground = intensity &gt;= threshold. Default 1.0, up to 4 decimals.</td></tr><tr><td>MultiROI label (0 = all)</td><td>spinbox</td><td>Enabled only for a MultiROI input. Picks a single label; 0 = all labels (shown as &quot;(all labels)&quot;). Default 0.</td></tr><tr><td>Use voxel spacing for distances</td><td>checkbox</td><td>When checked, uses voxel spacing to convert distances to physical units. Default checked.</td></tr><tr><td>Publish skeleton as a new Channel</td><td>checkbox</td><td>When checked, publishes the computed skeleton back into the scene as a new Channel. Default checked.</td></tr><tr><td>Result title</td><td>text field</td><td>Title for the skeleton Channel; blank = auto-named.</td></tr></table></div>
+<p><strong>Action button row:</strong></p>
+<ul>
+<li><strong>Run Skeleton Analysis</strong> (blue button): starts skeletonization and statistics.</li>
+<li><strong>Export CSV</strong>: exports the current branch-statistics table to a CSV file (enabled once results exist).</li>
+<li><strong>Open Output Folder</strong>: opens the output folder for the current run.</li>
+</ul>
+<p><strong>Branch statistics table:</strong> a table widget listing one row per branch (see the column descriptions in the Outputs chapter).</p>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h2 id="6-1-first-use-build-the-environment">6.1 First use: build the environment</h2>
+<p><strong>1. </strong>Open <strong>Prototype Apps ▸ Skeleton Analysis (skan)...</strong>.</p>
+<p><strong>2. </strong>Go to the <strong>Setup</strong> tab (usually leave &quot;Base Python&quot; blank to use Dragonfly&#x27;s own Python).</p>
+<p><strong>3. </strong>Make sure you are online, then click <strong>Setup Environment</strong>. The Log shows build/install progress; when done, &quot;Analysis venv python&quot; is filled automatically.</p>
+<h2 id="6-2-analyze-an-roi-binary-mask">6.2 Analyze an ROI (binary mask)</h2>
+<p><strong>1. </strong>Prepare a binary ROI of your target structure (foreground = non-zero voxels).</p>
+<p><strong>2. </strong>On the <strong>Analyze</strong> tab, set <strong>Input type</strong> to <strong>ROI (binary)</strong>; click <strong>Refresh</strong> if needed.</p>
+<p><strong>3. </strong>Select the ROI in the <strong>Object</strong> dropdown.</p>
+<p><strong>4. </strong>Set the &quot;Use voxel spacing&quot; and &quot;Publish skeleton&quot; checkboxes as desired.</p>
+<p><strong>5. </strong>Click <strong>Run Skeleton Analysis</strong>. When it finishes, the table below shows the branch statistics, the status line shows branch count and total length, and (if publishing is on) a new skeleton Channel appears in the scene.</p>
+<h2 id="6-3-analyze-a-multiroi-per-label">6.3 Analyze a MultiROI (per-label)</h2>
+<p><strong>1. </strong>Set <strong>Input type</strong> to <strong>MultiROI (per-label)</strong> and select the target MultiROI in <strong>Object</strong>.</p>
+<p><strong>2. </strong>Enter the single label number in <strong>MultiROI label (0 = all)</strong>; if you enter <strong>0</strong> (shown as &quot;(all labels)&quot;), all non-zero labels of the MultiROI are merged into one mask before analysis.</p>
+<p><strong>3. </strong>Click <strong>Run Skeleton Analysis</strong> to view results.</p>
+<h2 id="6-4-analyze-a-channel-by-threshold">6.4 Analyze a Channel (by threshold)</h2>
+<p><strong>1. </strong>Set <strong>Input type</strong> to <strong>Channel (threshold)</strong> and select the target Channel in <strong>Object</strong>.</p>
+<p><strong>2. </strong>Set the <strong>Channel threshold (&gt;=)</strong> — voxels with intensity greater than or equal to it are treated as foreground.</p>
+<p><strong>3. </strong>Click <strong>Run Skeleton Analysis</strong>. If the result is empty, adjust the threshold and retry.</p>
+<h2 id="6-5-export-and-review">6.5 Export and review</h2>
+<p><strong>1. </strong>Click <strong>Export CSV</strong>, choose a save location, and export the branch-statistics table to CSV.</p>
+<p><strong>2. </strong>Click <strong>Open Output Folder</strong> to open the run directory, which contains summary.csv, summary.json, skeleton.npy, and other intermediate files.</p>
+<p><strong>3. </strong>In Dragonfly&#x27;s 3D view, overlay the newly published skeleton Channel on your original data to confirm the centerlines follow the structure.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Input type</td><td>ROI (binary)</td><td>Input category: ROI (binarized by non-zero) / MultiROI (per-label) / Channel (by threshold).</td></tr><tr><td>Channel threshold (&gt;=)</td><td>1.0</td><td>Binarization threshold for a Channel; foreground = intensity &gt;= threshold. Channel only; up to 4 decimals.</td></tr><tr><td>MultiROI label (0 = all)</td><td>0 (all labels)</td><td>Single label to analyze for a MultiROI; 0 merges all non-zero labels. MultiROI only.</td></tr><tr><td>Use voxel spacing for distances</td><td>checked</td><td>Whether to use voxel spacing to convert branch lengths to physical distances; unchecked = voxel units.</td></tr><tr><td>Publish skeleton as a new Channel</td><td>checked</td><td>Whether to publish the skeleton as a new uint8 Channel in the scene.</td></tr><tr><td>Result title</td><td>blank (auto)</td><td>Title of the published skeleton Channel.</td></tr><tr><td>Base Python (build)</td><td>blank (= Dragonfly Python)</td><td>Base interpreter for building the venv; blank uses Dragonfly&#x27;s Python, or enter a CPython 3.9+ path/command.</td></tr><tr><td>Run mode</td><td>windows</td><td>Subprocess run mode; this plugin ships for Windows, so keep windows.</td></tr><tr><td>Job root</td><td>C:\SkanJobs</td><td>Root directory for each run&#x27;s intermediate files and results.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>On success the plugin produces two kinds of output: the <strong>branch-statistics table</strong> in the panel and a new <strong>skeleton Channel</strong> in the scene.</p>
+<h2 id="8-1-branch-statistics-table">8.1 Branch-statistics table</h2>
+<p>Each table row represents one branch in the skeleton network. The exact columns depend on the installed skan version; the plugin normalizes skan&#x27;s raw column names to stable display names. Common columns include:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Column</th><th>Meaning</th></tr><tr><td>skeleton-id</td><td>The skeleton (connected component) this branch belongs to.</td></tr><tr><td>branch-distance</td><td>Path length along the branch (physical distance when voxel spacing is enabled).</td></tr><tr><td>branch-type</td><td>Branch type code (integer).</td></tr><tr><td>branch-type-name</td><td>Human-readable name for the branch type (see below), appended by the plugin from the type code.</td></tr><tr><td>euclidean-distance</td><td>Straight-line distance between the branch&#x27;s two endpoints.</td></tr><tr><td>tortuosity</td><td>Tortuosity = path length / straight-line length (&gt;= 1; a closed loop is 1).</td></tr><tr><td>src-coord-0/1/2, dst-coord-0/1/2</td><td>Coordinates of the branch&#x27;s start and end (z, y, x in 3D; missing coordinate columns are omitted in 2D).</td></tr></table></div>
+<p>The branch-type codes map to names as follows:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Code</th><th>Name</th><th>Meaning</th></tr><tr><td>0</td><td>endpoint-to-endpoint (isolated)</td><td>Endpoint to endpoint (isolated branch).</td></tr><tr><td>1</td><td>junction-to-endpoint</td><td>Junction to endpoint.</td></tr><tr><td>2</td><td>junction-to-junction</td><td>Junction to junction.</td></tr><tr><td>3</td><td>isolated-cycle</td><td>Isolated cycle (loop).</td></tr></table></div>
+<p>The status line also reports summary figures such as branch count, total branch length, and mean branch length.</p>
+<h2 id="8-2-skeleton-channel">8.2 Skeleton Channel</h2>
+<p>If &quot;Publish skeleton as a new Channel&quot; is checked, the plugin writes the skeleton voxels as a <strong>uint8 (0/1) Channel</strong> and aligns its grid spacing and origin to the source object, so it overlays exactly on the original structure in 3D. You can set the title via &quot;Result title&quot;.</p>
+<h2 id="8-3-intermediate-files-on-disk">8.3 Intermediate files on disk</h2>
+<p>Each run writes the following files to the job directory (under C:\SkanJobs by default), reachable via <strong>Open Output Folder</strong>:</p>
+<ul>
+<li>summary.csv — CSV version of the branch-statistics table (same content as Export CSV).</li>
+<li>summary.json — JSON of the headers, rows, raw columns, records, and stats.</li>
+<li>skeleton.npy — the skeleton mask as a numpy array.</li>
+<li>status.json / results.json — run status and results (polled by the panel; includes a full traceback on error).</li>
+</ul>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: Run says &quot;analysis venv not set. Click &#x27;Setup Environment&#x27; first.&quot; — what now?</strong></p>
+<p>A: The analysis environment has not been built yet. Go to the <strong>Setup</strong> tab, click <strong>Setup Environment</strong> to build the venv and install dependencies; once &quot;Analysis venv python&quot; is filled, run again.</p>
+<p><strong>Q: Setup Environment fails (no venv module, or venv creation failed).</strong></p>
+<p>A: This usually means the base interpreter is unsuitable. Enter a CPython 3.9+ with stdlib venv + pip (e.g. C:\Python312\python.exe) in <strong>Base Python (build)</strong> and click Setup Environment again. The setup script deletes any half-built venv and rebuilds. Also confirm you are online for the first install.</p>
+<p><strong>Q: The result says &quot;the binarized mask is empty (no foreground voxels)&quot; or the skeleton is empty.</strong></p>
+<p>A: No foreground voxels survived binarization. For a Channel input, lower the <strong>Channel threshold</strong>; for a MultiROI, confirm the <strong>label</strong> number exists (or use 0 for all labels); for an ROI, confirm it actually contains non-zero voxels.</p>
+<p><strong>Q: My object doesn&#x27;t show in the Object dropdown.</strong></p>
+<p>A: First make sure <strong>Input type</strong> matches the object&#x27;s category (ROI / MultiROI / Channel), then click <strong>Refresh</strong> to rescan the scene. The Log reports how many ROIs / MultiROIs / Channels were found.</p>
+<p><strong>Q: What units are the measured lengths?</strong></p>
+<p>A: With &quot;Use voxel spacing for distances&quot; checked, lengths are in physical units derived from voxel spacing (axis order z, y, x in 3D); unchecked, they are in voxel counts.</p>
+<p><strong>Q: It&#x27;s slow or runs out of memory on very large 3D volumes.</strong></p>
+<p>A: skeletonize and skan can use a lot of memory/time on huge 3D masks; if you hit a memory error (error category oom), crop to a region of interest or downsample before analyzing.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li>Computation runs in a <strong>subprocess</strong> using the plugin&#x27;s dedicated venv, never in Dragonfly&#x27;s Python; the panel shows &quot;Running…&quot; while it works.</li>
+<li>First-run environment setup requires <strong>internet</strong>; later analysis runs offline.</li>
+<li>Skeletonization thins the structure to one voxel wide, so thin branches or noise can affect branch counts — denoise / clean up the input (morphology) beforehand if needed.</li>
+<li>The skan.summarize column set varies slightly across skan versions; the plugin maps multiple column spellings and omits columns skan did not emit (e.g. the third coordinate for 2D input).</li>
+<li>For a MultiROI with a single label chosen, only that label is analyzed; entering 0 merges all non-zero labels into one mask and skeletonizes them together.</li>
+<li>Menus are scanned only at Dragonfly startup, so enabling/disabling the plugin requires one restart.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>skan (Skeleton Analysis) project homepage: https://skeleton-analysis.org/</li>
+<li>scikit-image docs (skimage.morphology.skeletonize): https://scikit-image.org/</li>
+<li>NumPy: https://numpy.org/ , pandas: https://pandas.pydata.org/ , NetworkX: https://networkx.org/ , imageio: https://imageio.readthedocs.io/</li>
+<li>Full Package install / enable / uninstall instructions: see the bundled README.md (Prototype Labs &amp; Apps — Full Package).</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Skan-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

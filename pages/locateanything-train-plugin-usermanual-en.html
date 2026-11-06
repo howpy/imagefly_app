@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Train Custom Model: LocateAnything · Dragonfly Prototype Apps</title>
+<meta name="description" content="Train Custom Model: LocateAnything - User Manual Dragonfly Prototype Apps · Train Custom Model: LocateAnything... Version 1.0 · 2026-07-04 English Manual C…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Train Custom Model: LocateAnything</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Train Custom Model: LocateAnything...</div>
+    <h1>Train Custom Model: LocateAnything</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t2"><a href="#4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#5-1-group-1-environment-base-model-from-the-inference-plugin">5.1 Group 1: Environment &amp; Base Model (from the inference plugin)</a></li><li class="t3"><a href="#5-2-group-2-dataset-add-one-example-per-labeled-slice">5.2 Group 2: Dataset (add one example per labeled slice)</a></li><li class="t3"><a href="#5-3-group-3-lora-training">5.3 Group 3: LoRA &amp; Training</a></li><li class="t3"><a href="#5-4-bottom-buttons-and-log">5.4 Bottom Buttons and Log</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-build-the-training-set">6.1 Build the Training Set</a></li><li class="t3"><a href="#6-2-train">6.2 Train</a></li><li class="t3"><a href="#6-3-use-the-new-model-in-the-inference-plugin">6.3 Use the New Model in the Inference Plugin</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Train Custom Model: LocateAnything - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Train Custom Model: LocateAnything...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p>The <strong>Train Custom Model: LocateAnything</strong> plugin fine-tunes the <strong>NVIDIA LocateAnything-3B</strong> AI detection model on your own labeled data, so it learns to find the objects specific to your samples. General-purpose models often perform poorly on specialized targets such as pores, cracks, or particular cell types. With this plugin you build a small training set directly from your Dragonfly session — pick an image Channel, a MultiROI containing your labeled objects, a slice, and a category name (e.g. &quot;pores&quot;), then add examples one by one — and start training with a single click. The result is a <strong>custom model folder</strong> that you simply select as the Model folder in the LocateAnything (inference) plugin to detect your objects in new images.</p>
+<p>Under the hood, training uses <strong>LoRA</strong> (low-rank adaptation) parameter-efficient fine-tuning: the Hugging Face <strong>PEFT</strong> library injects LoRA adapter layers into the language-model part of LocateAnything-3B, and the plugin runs standard supervised fine-tuning (SFT) on the autoregressive target string, using <strong>fp16</strong> mixed precision and gradient checkpointing to save VRAM. After training, the LoRA weights are by default <strong>merged back into the base model</strong> (merge_and_unload) and saved as a full model folder that the inference plugin can load directly. The whole training process runs as a subprocess in the dedicated Python virtual environment already built by the LocateAnything (inference) plugin (torch + transformers + peft + accelerate) — <strong>entirely outside Dragonfly</strong>, never touching Dragonfly&#x27;s own Python.</p>
+<p>License: the LocateAnything-3B base model comes from NVIDIA; any fine-tuned model inherits its license terms and is for <strong>non-commercial / research use only</strong>. Do not use trained models commercially.</p>
+<p>Experimental feature: NVIDIA has not published an official training recipe for LocateAnything; this plugin implements standard LoRA SFT as an approximation. After training, set the generation mode (generation_mode) in the inference plugin to <strong>slow</strong> or <strong>hybrid</strong> before running detection, to match what was trained.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is for anyone whose <strong>objects of interest are not detected well by the general-purpose model</strong>. A handful of labeled slices is enough to teach the model your specific object category. Typical scenarios:</p>
+<ul>
+<li>Materials science and industrial CT scans: automatic detection of pores, cracks, inclusions, fibers, and other defects or microstructures;</li>
+<li>Life-science images: locating and counting cells and other biological structures;</li>
+<li>Any dataset you have already annotated with Dragonfly MultiROIs, where you want to &quot;teach&quot; your labeling expertise to an AI detection model;</li>
+<li>LoRA fine-tuning needs little data — a curated small dataset of a few labeled slices is enough to start training.</li>
+</ul>
+<p>Workflow positioning: this plugin does the <strong>training</strong>; detection (inference) is done by the companion <strong>LocateAnything</strong> inference plugin. The two share the same virtual environment and the same base model, and the trained model folder produced here can be loaded directly by the inference plugin.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin ships with the <strong>Prototype Labs Full Package</strong> installer:</p>
+<p><strong>1. </strong>Unzip the package to a short path (e.g. C:\PL\; avoid deep folders because of the Windows 260-character path limit);</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>;</p>
+<p><strong>3. </strong>In the dialog, tick the Prototype Apps you want. Note: <strong>this plugin is unchecked by default</strong> (all heavy plugins are off by default) — tick &quot;Train Custom Model: LocateAnything...&quot; manually, and it is recommended to also tick the &quot;LocateAnything...&quot; inference plugin it depends on;</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish;</p>
+<p><strong>5. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are only scanned at startup).</p>
+<p>After the restart, the menu entry appears under <strong>Prototype Apps ▸ Train Custom Model: LocateAnything...</strong> (in the &quot;Train Custom Model&quot; group). Clicking it opens a floating panel window titled <strong>Train Custom LocateAnything</strong>.</p>
+<p>Enable / disable later: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> — the &quot;Prototype Apps (Full Package)&quot; list at the bottom has a checkbox per app; tick or untick this plugin and restart Dragonfly to apply. Disabling <strong>never</strong> deletes any settings or environments; re-enabling is instant. You can also re-run the installer anytime (your previous choices are the new defaults): %LOCALAPPDATA%\DragonflyPrototypeLabs\FullPackage\installer\Install_FullPackage.bat.</p>
+<p>Uninstall: double-click <strong>`Uninstall_FullPackage.bat`</strong> (also kept in the installer folder above). It removes all Full-Package menu items, plugins and the central store, but keeps every plugin environment; the removable paths are listed at the end. Everything installs per-user (%LOCALAPPDATA%); no admin rights are needed.</p>
+<h2 id="4-runtime-environment-and-first-time-setup">4. Runtime Environment and First-Time Setup</h2>
+<p>This plugin <strong>downloads and installs nothing of its own</strong> and has no separate Setup Environment step — it directly <strong>reuses the virtual environment already built by the LocateAnything (inference) plugin</strong> (which contains torch, transformers, peft and accelerate). Before first use you must therefore complete these prerequisites:</p>
+<p><strong>1. </strong>Install the <strong>LocateAnything (inference) plugin</strong> and run its <strong>Setup Environment</strong> once (it builds a venv from Dragonfly&#x27;s bundled Python and pip-installs CUDA torch + transformers; about 5–15 minutes and a few GB of downloads; requires internet);</p>
+<p><strong>2. </strong>Set the inference plugin&#x27;s <strong>Model folder</strong> (the LocateAnything-3B base weights, downloaded separately via huggingface-cli — no token needed — to a user path outside Dragonfly);</p>
+<p><strong>3. </strong>Have an <strong>NVIDIA GPU with at least 24 GB of VRAM</strong> (the minimum for LoRA on a 3B vision-language model; 48 GB is ample). Turing GPUs have no bf16, so training automatically uses fp16.</p>
+<p>Once these are done, open this plugin&#x27;s panel: the <strong>Base model folder</strong> and <strong>Inference venv python</strong> fields are pre-filled automatically from the inference plugin&#x27;s saved configuration (read from locateanything_config.json in the inference plugin&#x27;s install folder and from %LOCALAPPDATA%\LocateAnything\config.json). Normally no manual editing is needed.</p>
+<p>Disk paths used by this plugin:</p>
+<ul>
+<li>%LOCALAPPDATA%\LocateAnything\config.json — the inference plugin&#x27;s shared configuration (venv python path, base model path, run mode); this plugin reads it for defaults;</li>
+<li>%LOCALAPPDATA%\LocateAnythingTrain\config.json — this plugin&#x27;s own saved panel settings (written automatically on each Add example / Train / panel close);</li>
+<li>C:\TrainJobs — the default job root (configurable in the panel); dataset folders and per-run job folders are created here.</li>
+</ul>
+<p>Internet and GPU: running this plugin itself <strong>needs no internet</strong> (once the prerequisites are in place), but an <strong>NVIDIA GPU is mandatory</strong> — the training script checks for CUDA at startup and fails if it is unavailable. Advanced option: the run mode can be set to wsl to run the training script inside a user-configured WSL distribution (paths are translated to /mnt/... form automatically); typical Windows users should keep the default windows.</p>
+<p>If the panel reports that the inference venv is not set or the base model is missing, go back to the LocateAnything (inference) plugin and complete its Setup Environment and model download first — that is the only &quot;environment setup&quot; path for this plugin.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel is a single page: a blue introductory note at the top (summarizing the LoRA workflow and the experimental caveat), three group boxes in a scrollable area, and at the bottom the <strong>Train</strong> / <strong>Open Output Folder</strong> buttons, a result status line, and a read-only log window. Each group is described below, control by control.</p>
+<h3 id="5-1-group-1-environment-base-model-from-the-inference-plugin">5.1 Group 1: Environment &amp; Base Model (from the inference plugin)</h3>
+<ul>
+<li><strong>Base model folder</strong> (text field + &quot;…&quot; browse button): the LocateAnything-3B base model folder. Defaults to the inference plugin&#x27;s Model folder automatically;</li>
+<li><strong>Inference venv python</strong> (text field): the full path of the python interpreter inside the inference plugin&#x27;s venv, created by its Setup Environment; pre-filled automatically;</li>
+<li><strong>Run mode</strong> (dropdown, windows / wsl, default windows): how the training subprocess is launched; wsl is an advanced option requiring a user-configured WSL distribution;</li>
+<li><strong>Job root</strong> (text field, default C:\TrainJobs): the root folder where dataset and training-job folders are created.</li>
+</ul>
+<h3 id="5-2-group-2-dataset-add-one-example-per-labeled-slice">5.2 Group 2: Dataset (add one example per labeled slice)</h3>
+<ul>
+<li><strong>Image Channel</strong> (dropdown + <strong>Refresh</strong> button): pick an image Channel from the current Dragonfly session; Refresh rescans the session for Channels and MultiROIs;</li>
+<li><strong>MultiROI (labels)</strong> (dropdown): pick the MultiROI holding your annotations — <strong>each label is one object instance</strong>; at export each label becomes one bounding box;</li>
+<li><strong>Orientation</strong> (dropdown, XY / XZ / YZ, default XY): the slicing direction;</li>
+<li><strong>Slice index</strong> (spinbox): the slice number; the range updates automatically with the selected Channel and orientation, and initially defaults to the middle slice;</li>
+<li><strong>Category (prompt)</strong> (text field, default objects): the category name shared by all labels of this MultiROI — i.e. the training prompt, e.g. pores;</li>
+<li><strong>Max image size (px)</strong> (spinbox, 256–4096, step 128, default 1024): the maximum long-edge size of the exported image; larger slices are downscaled proportionally;</li>
+<li><strong>Intensity window</strong> (lo / hi text fields, empty = auto): the grayscale window; when empty, the 1st–99th percentile of the slice is stretched to 8-bit automatically;</li>
+<li><strong>Add example</strong> button: exports the current Channel + MultiROI + slice + category as one training example (appended to the dataset); a new dataset is created automatically if none exists yet;</li>
+<li><strong>New dataset</strong> button: creates a fresh empty dataset folder (dataset_&lt;date&gt;_&lt;time&gt;) under the Job root to start collecting examples anew;</li>
+<li><strong>Dataset status line</strong>: shows the current example count and the dataset folder path.</li>
+</ul>
+<h3 id="5-3-group-3-lora-training">5.3 Group 3: LoRA &amp; Training</h3>
+<ul>
+<li><strong>Output model folder</strong> (text field + &quot;…&quot; browse button): where the trained model is saved, e.g. C:\models\LocateAnything-3B-mine;</li>
+<li><strong>LoRA rank (r)</strong> (spinbox, 1–256, default 16): the rank of the LoRA low-rank matrices;</li>
+<li><strong>LoRA alpha</strong> (spinbox, 1–512, default 32): the LoRA scaling factor;</li>
+<li><strong>LoRA dropout</strong> (text field, default 0.05): dropout ratio of the LoRA layers;</li>
+<li><strong>Learning rate</strong> (text field, default 0.0001): the learning rate;</li>
+<li><strong>Epochs</strong> (spinbox, 1–200, default 5): number of training epochs;</li>
+<li><strong>Grad accumulation</strong> (spinbox, 1–64, default 8): gradient-accumulation steps (the actual batch size is fixed at 1; accumulation simulates a larger batch);</li>
+<li><strong>Gradient checkpointing (save VRAM)</strong> (checkbox, checked by default): trades a little compute for VRAM savings;</li>
+<li><strong>Merge LoRA into a full model (drop-in for inference)</strong> (checkbox, checked by default): merges the LoRA weights into the base model after training and saves a full model; if unchecked, only the LoRA adapter is saved.</li>
+</ul>
+<h3 id="5-4-bottom-buttons-and-log">5.4 Bottom Buttons and Log</h3>
+<ul>
+<li><strong>Train</strong> (blue button): validates the settings and launches the training subprocess;</li>
+<li><strong>Open Output Folder</strong>: opens the output model folder (or the Job root) in Explorer;</li>
+<li><strong>Result status line</strong>: shows Training… / Done / Failed with a message;</li>
+<li><strong>Log window</strong> (read-only): streams example-export messages, training progress percentage, epoch / step / loss values, and error details.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p>The full workflow has three stages: build the training set, train, then use the new model in the inference plugin.</p>
+<h3 id="6-1-build-the-training-set">6.1 Build the Training Set</h3>
+<p><strong>1. </strong>Load your image Channel in Dragonfly and prepare the annotations: a MultiROI in which each label is one object instance of the same category (e.g. one label per pore);</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ Train Custom Model: LocateAnything...</strong> and click <strong>Refresh</strong>; the log reports how many Channels and MultiROIs were found;</p>
+<p><strong>3. </strong>Select the <strong>Image Channel</strong> and the <strong>MultiROI (labels)</strong>, choose the <strong>Orientation</strong> and a <strong>Slice index</strong> that actually carries labels;</p>
+<p><strong>4. </strong>Type the category name in <strong>Category (prompt)</strong>, e.g. pores (English prompts are the most reliable);</p>
+<p><strong>5. </strong>(Optional) adjust <strong>Max image size</strong> and the <strong>Intensity window</strong>;</p>
+<p><strong>6. </strong>Click <strong>Add example</strong>. The plugin reads that slice, windows the image to 8-bit RGB and saves it as input_&lt;k&gt;.npy, converts every MultiROI label on the same slice into a bounding box (normalized to the [0,1000] grid), builds the supervised target string, and appends one line to dataset.jsonl. The log shows &quot;Added example #n: m box(es), category &#x27;xxx&#x27;&quot;;</p>
+<p><strong>7. </strong>Repeat steps 3–6 for every labeled slice (you may switch slices, Channels or MultiROIs between adds). The dataset status line shows the running total;</p>
+<p><strong>8. </strong>To start over, click <strong>New dataset</strong> to create a fresh empty dataset folder.</p>
+<h3 id="6-2-train">6.2 Train</h3>
+<p><strong>1. </strong>Verify that <strong>Base model folder</strong> and <strong>Inference venv python</strong> are filled in (normally pre-filled automatically);</p>
+<p><strong>2. </strong>Set the <strong>Output model folder</strong> (where the new model will be saved);</p>
+<p><strong>3. </strong>Adjust the LoRA parameters (rank / alpha / dropout / learning rate / epochs / grad accumulation) as needed — the defaults are a good starting point;</p>
+<p><strong>4. </strong>Click <strong>Train</strong>. The plugin writes train_config.json into a job folder and launches train_runner.py as a subprocess using the inference plugin&#x27;s venv python;</p>
+<p><strong>5. </strong>Watch the log: base model loading → LoRA injection → epoch-by-epoch training (each step reports progress percentage, step and loss) → LoRA merge and model saving;</p>
+<p><strong>6. </strong>When finished, the status line shows <strong>Done</strong> and the log prints the output folder path; click <strong>Open Output Folder</strong> to open it directly.</p>
+<p>Training runs in a background subprocess, so you can keep using Dragonfly meanwhile; closing the panel terminates a training in progress. Training time depends on the number of examples, epochs, and your GPU.</p>
+<h3 id="6-3-use-the-new-model-in-the-inference-plugin">6.3 Use the New Model in the Inference Plugin</h3>
+<p><strong>1. </strong>Open the <strong>LocateAnything (inference) plugin</strong>;</p>
+<p><strong>2. </strong>Point its <strong>Model folder</strong> at this plugin&#x27;s output model folder;</p>
+<p><strong>3. </strong>Set the generation mode (generation_mode) to <strong>slow</strong> or <strong>hybrid</strong> (LoRA SFT trains the autoregressive target; the pure fast/MTP mode may not reflect the fine-tune);</p>
+<p><strong>4. </strong>Run detection on new images using the same category name you trained with as the prompt.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Base model folder</td><td>(inference plugin&#x27;s Model folder)</td><td>The LocateAnything-3B base model folder; pre-filled from the inference plugin&#x27;s config</td></tr><tr><td>Inference venv python</td><td>(inference plugin&#x27;s venv)</td><td>The Python interpreter used for training; created by the inference plugin&#x27;s Setup Environment</td></tr><tr><td>Run mode</td><td>windows</td><td>How the training subprocess runs: windows (native) or wsl (user-configured WSL distribution)</td></tr><tr><td>Job root</td><td>C:\TrainJobs</td><td>Root folder for dataset and training-job folders</td></tr><tr><td>Orientation</td><td>XY</td><td>Slicing direction: XY / XZ / YZ</td></tr><tr><td>Slice index</td><td>middle slice</td><td>Slice number; range follows the selected Channel and orientation</td></tr><tr><td>Category (prompt)</td><td>objects</td><td>Category name for all labels of the MultiROI; the training and detection prompt</td></tr><tr><td>Max image size (px)</td><td>1024</td><td>Long-edge cap of the exported image (256–4096, step 128); larger slices are downscaled</td></tr><tr><td>Intensity window lo/hi</td><td>auto</td><td>Grayscale window; empty = automatic 1st–99th percentile of the slice</td></tr><tr><td>Output model folder</td><td>(empty)</td><td>Where the trained model is saved; required</td></tr><tr><td>LoRA rank (r)</td><td>16</td><td>Rank of the LoRA matrices (1–256); higher = more capacity, more VRAM</td></tr><tr><td>LoRA alpha</td><td>32</td><td>LoRA scaling factor (1–512)</td></tr><tr><td>LoRA dropout</td><td>0.05</td><td>Dropout ratio of the LoRA layers</td></tr><tr><td>Learning rate</td><td>0.0001</td><td>AdamW optimizer learning rate</td></tr><tr><td>Epochs</td><td>5</td><td>Number of training epochs (1–200)</td></tr><tr><td>Grad accumulation</td><td>8</td><td>Gradient-accumulation steps (1–64); batch size is fixed at 1</td></tr><tr><td>Gradient checkpointing</td><td>checked</td><td>Gradient checkpointing to save VRAM</td></tr><tr><td>Merge LoRA into a full model</td><td>checked</td><td>Merge LoRA into the base model after training; unchecked saves only the adapter</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>This plugin <strong>creates no new objects inside Dragonfly</strong> (no Channel / ROI / Mesh); all outputs are folders and files on disk:</p>
+<ul>
+<li><strong>Dataset folder</strong> Job root\dataset_&lt;date&gt;_&lt;time&gt;\: one input_&lt;k&gt;.npy per example (the 8-bit RGB slice image) plus dataset.jsonl (one line per example: image path, category prompt, [0,1000]-normalized bounding boxes, and the supervised target string);</li>
+<li><strong>Training job folder</strong> Job root\train_&lt;date&gt;_&lt;time&gt;\: train_config.json (the full configuration of this run), status.json (live progress), and train_result.json (the final summary: success flag, example count, epochs, timing, etc.);</li>
+<li><strong>Output model folder</strong> (the Output model folder you chose): the merged full model (safetensors weights + tokenizer / processor / chat-template and custom code files, loadable directly by the inference plugin), plus a lora_adapter\ subfolder keeping the raw LoRA adapter for reference.</li>
+</ul>
+<p>To inspect the results, click <strong>Open Output Folder</strong> after training; to verify detection quality, point the LocateAnything (inference) plugin&#x27;s Model folder at the output folder and run it on your data.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q1: Clicking Train reports &quot;Inference venv not set (run Setup Environment in the inference plugin)&quot;.</strong>
+Cause: the LocateAnything (inference) plugin is not installed, or its Setup Environment has not been run. Fix: complete Setup Environment in the inference plugin&#x27;s panel first; the Inference venv python field here is then pre-filled automatically (or type the full path of python.exe inside that venv manually).</p>
+<p><strong>Q2: &quot;Base model folder not set/missing&quot;.</strong>
+Cause: the base model path is empty or the folder does not exist. Fix: this field defaults to the inference plugin&#x27;s Model folder — first download the LocateAnything-3B weights via huggingface-cli as described in the inference plugin&#x27;s manual and set its Model folder, then return here (or pick the model folder manually with the &quot;…&quot; button).</p>
+<p><strong>Q3: After Add example the log shows 0 box(es).</strong>
+Cause: the chosen slice contains no label pixels of that MultiROI. Fix: pick a Slice index / Orientation that actually carries annotations; each label&#x27;s pixel extent on the current slice defines its bounding box — labels on other slices are not counted.</p>
+<p><strong>Q4: Training fails with CUDA out of memory.</strong>
+Fix: keep Gradient checkpointing enabled; reduce Max image size (e.g. 768 or 512) and <strong>re-add the examples</strong> before training again; lower the LoRA rank. The hard requirement is an NVIDIA GPU with at least 24 GB of VRAM — smaller GPUs are not supported.</p>
+<p><strong>Q5: Training fails with &quot;CUDA not available to PyTorch&quot;.</strong>
+Cause: torch inside the inference plugin&#x27;s venv cannot see the GPU (missing driver, or a CPU-only build). Fix: verify the NVIDIA driver works (nvidia-smi), and if needed re-run Setup Environment in the inference plugin to install the CUDA build of torch.</p>
+<p><strong>Q6: The Channel / MultiROI dropdowns are empty.</strong>
+Fix: make sure the data is loaded in the current Dragonfly session, then click <strong>Refresh</strong>.</p>
+<p><strong>Q7: The trained model does not detect the fine-tuned objects in the inference plugin.</strong>
+Fix: make sure the inference plugin&#x27;s generation_mode is set to <strong>slow</strong> or <strong>hybrid</strong> (not pure fast); use exactly the same category name you trained with as the prompt; with very few or low-quality examples, add more labeled slices and/or increase the epochs.</p>
+<p><strong>Q8: &quot;peft not installed in the venv&quot;.</strong>
+Cause: the inference plugin&#x27;s venv lacks the peft / accelerate packages. Fix: re-run Setup Environment in the inference plugin (its dependency list already includes peft and accelerate; this plugin&#x27;s runner\requirements.txt is for reference only and normally nothing needs to be installed manually).</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>Experimental</strong>: NVIDIA has published no official training recipe; the LoRA SFT implemented here is an approximation, and training quality depends heavily on the quantity and quality of your labeled data;</li>
+<li><strong>License</strong>: fine-tuned models inherit the NVIDIA LocateAnything license — non-commercial / research use only;</li>
+<li><strong>One category per MultiROI</strong>: when adding an example, all labels of the MultiROI are treated as the single category you typed; per-label multi-class training is not yet supported;</li>
+<li><strong>Detect task only</strong>: point localization, grounding tasks, and importing pre-built datasets from disk are not yet supported;</li>
+<li><strong>fp16 training</strong> (Turing GPUs have no bf16); batch size is fixed at 1, with gradient accumulation simulating larger batches;</li>
+<li><strong>Examples are 2D slices</strong>: the training set consists of single slice images plus the label bounding boxes on that slice; the MultiROI should be geometrically aligned with the Channel (if the plane sizes differ, the mask is aligned by nearest-neighbor resizing, which may introduce small offsets);</li>
+<li><strong>Closing the panel terminates training</strong>: wait until the status line shows Done before closing;</li>
+<li><strong>Menu changes need a restart</strong>: enabling / disabling this plugin takes effect after restarting Dragonfly.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>NVIDIA <strong>LocateAnything-3B</strong>: the base vision-language detection model fine-tuned by this plugin (weights downloaded via Hugging Face&#x27;s huggingface-cli; see the inference plugin&#x27;s manual);</li>
+<li>Hugging Face <strong>Transformers</strong>: model and processor loading (trust_remote_code);</li>
+<li>Hugging Face <strong>PEFT</strong> (peft &gt;= 0.11): the LoRA parameter-efficient fine-tuning implementation;</li>
+<li>Hugging Face <strong>Accelerate</strong> (accelerate &gt;= 0.34): training acceleration support library;</li>
+<li>Companion plugin: the <strong>LocateAnything (inference) plugin</strong> user manual — environment setup (Setup Environment), base model download, and running detection are all covered there.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>LocateAnything-Train-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

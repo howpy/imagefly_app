@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CT Artifact Correction (Algotom) · Dragonfly Prototype Apps</title>
+<meta name="description" content="CT Artifact Correction (Algotom) - User Manual Dragonfly Prototype Apps · CT Artifact Correction (Algotom)... Version 1.0 · 2026-07-09 English Manual Conte…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">CT Artifact Correction (Algotom)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · CT Artifact Correction (Algotom)...</div>
+    <h1>CT Artifact Correction (Algotom)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-environment-first-run-setup">4. Environment &amp; First-Run Setup</a></li><li class="t2"><a href="#5-user-interface">5. User Interface</a></li><li class="t3"><a href="#input-channel">Input Channel</a></li><li class="t3"><a href="#operation">Operation</a></li><li class="t3"><a href="#ring-stripe-parameters">Ring/stripe parameters</a></li><li class="t3"><a href="#zinger-parameters">Zinger parameters</a></li><li class="t3"><a href="#paganin-phase-retrieval-parameters">Paganin phase-retrieval parameters</a></li><li class="t3"><a href="#environment-algotom-venv">Environment (Algotom venv)</a></li><li class="t3"><a href="#action-buttons-output">Action buttons &amp; output</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>CT Artifact Correction (Algotom) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · CT Artifact Correction (Algotom)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>CT Artifact Correction (Algotom)</strong> is a Dragonfly plugin for <strong>pre/post-reconstruction artifact correction</strong> of an image Channel. You pick an image Channel from the scene (a projection/sinogram stack, or already-reconstructed slices), choose a correction operation, set its parameters, and click <strong>Correct Artifacts</strong>. The plugin processes the whole volume <strong>slice-by-slice</strong> and publishes a new corrected Channel with <strong>exactly the same shape and geometry</strong> (voxel spacing, origin) as the source.</p>
+<p>This plugin is <strong>not a reconstructor</strong> - it cleans the data *around* reconstruction and is the complement to the <strong>TomoRecon</strong> plugin, which performs the reconstruction. The two are independent.</p>
+<p>The compute engine is the open-source toolkit <strong>Algotom</strong> (Apache-2.0, permissive), together with <strong>numpy</strong> and <strong>scipy</strong> (both BSD). Four operations are provided:</p>
+<ul>
+<li><strong>Ring/stripe removal (remove_all_stripe)</strong> - calls algotom.prep.removal.remove_all_stripe with snr / la_size / sm_size. Acts on the <strong>projection</strong> domain (each z-slice = one projection/sinogram); removes detector-defect stripes that become concentric rings after reconstruction.</li>
+<li><strong>Ring/stripe removal (sorting-based)</strong> - calls algotom.prep.removal.remove_stripe_based_sorting, using only sm_size. Also acts on the <strong>projection</strong> domain.</li>
+<li><strong>Zinger (bright-speckle) removal</strong> - calls algotom.prep.removal.remove_zinger with threshold / size; removes isolated bright scattering speckles. Works on either the projection or slice domain.</li>
+<li><strong>Paganin phase retrieval</strong> - calls algotom.prep.phase.paganin_filter with X-ray energy / sample-to-detector distance / pixel size / delta-over-beta ratio; single-material phase retrieval on flat-field-corrected projections to boost contrast on weakly absorbing samples.</li>
+</ul>
+<p>The plugin keeps Algotom strictly isolated in a dedicated Python virtual environment (venv), running it as a subprocess with JSON-file IPC; nothing is installed into Dragonfly&#x27;s own Python.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>The plugin targets pre/post-processing of <strong>synchrotron and lab CT</strong> data. Typical uses:</p>
+<ul>
+<li>Remove <strong>ring/stripe artifacts</strong> caused by detector defects - suppress the stripes in the projection domain so the concentric rings never appear after reconstruction.</li>
+<li>Remove <strong>zingers</strong> (isolated over-bright pixel speckles) caused by scattering.</li>
+<li>Perform <strong>single-material Paganin phase retrieval</strong> on <strong>weakly absorbing samples</strong> (soft tissue, polymers, composites) to substantially boost pre-reconstruction contrast.</li>
+<li>Run a standardized artifact cleanup before handing the data to reconstruction (e.g. the TomoRecon plugin) or downstream analysis.</li>
+</ul>
+<p>The corrected data comes back to the scene as a new Channel, ready for reconstruction, segmentation, measurement, or visualization.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>The plugin ships with the <strong>Prototype Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the Full Package to a <strong>short folder</strong> (e.g. C:\PL\, to avoid path-too-long issues).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, pick the core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick &quot;CT Artifact Correction (Algotom)&quot;</strong> in the app list. All plugins are <strong>unticked</strong> by default, so you must enable this plugin manually.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are discovered only at startup).</p>
+<p>After the restart, the plugin appears under <strong>Prototype Apps ▸ CT Artifact Correction (Algotom)...</strong> (in the &quot;Reconstruction &amp; Imaging&quot; section). Clicking it opens a dockable (floating) panel.</p>
+<p>To change your choice later: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick/untick this plugin in the &quot;Prototype Apps (Full Package)&quot; list at the bottom; restart Dragonfly to apply. Disabling <strong>never</strong> deletes the built environment - re-enabling is instant.</p>
+<p>Everything installs per-user under %LOCALAPPDATA%; no admin rights are needed. Every enable/disable change requires one Dragonfly restart.</p>
+<h2 id="4-environment-first-run-setup">4. Environment &amp; First-Run Setup</h2>
+<p>The plugin uses a <strong>venv-in-code</strong> environment model. Installation downloads <strong>nothing</strong>; before first use you click <strong>Setup Environment</strong> once in the panel.</p>
+<p><strong>What Setup Environment does:</strong></p>
+<ul>
+<li>Uses <strong>Dragonfly&#x27;s own Python</strong> by default (no separate interpreter to install) as the base and creates a dedicated venv inside the plugin&#x27;s code directory.</li>
+<li>Installs algotom + numpy + scipy (no CUDA) from the default PyPI index. These install as wheels on CPython 3.10-3.12.</li>
+<li>Runs a smoke check (imports numpy/scipy/algotom and the required functions) and records the venv&#x27;s Python path.</li>
+</ul>
+<p><strong>Download size:</strong> small (the algorithm library is pure Python plus scientific dependencies, no CUDA). <strong>Internet:</strong> needed only once for the first setup, not afterwards. <strong>GPU:</strong> <strong>not required</strong> (CPU-only). <strong>WSL / external apps:</strong> <strong>not required</strong>.</p>
+<p><strong>Where the environment lives:</strong> the venv is built inside the installed code directory, i.e. %LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\Algotom\venv. The venv Python path is saved in algotom_config.json in the same folder, and the panel auto-detects it next time.</p>
+<p><strong>Fallback if setup fails:</strong> if Dragonfly&#x27;s own Python cannot create a venv (e.g. no venv module), enter the path to another CPython 3.10+ interpreter (e.g. C:\Python312\python.exe) or a launcher command like py -3.11 in the <strong>Base Python</strong> field, then click <strong>Setup Environment</strong> again. The status line shows whether the environment is &quot;Ready&quot; or &quot;Not set up&quot;.</p>
+<p>Isolation: Algotom runs only inside this venv/subprocess, kept at arm&#x27;s length from Dragonfly&#x27;s own Python, so it never pollutes Dragonfly.</p>
+<h2 id="5-user-interface">5. User Interface</h2>
+<p>The panel is a stack of group boxes from top to bottom. Each control is described below (matching the code exactly).</p>
+<h3 id="input-channel">Input Channel</h3>
+<ul>
+<li><strong>Channel (dropdown)</strong> - the image Channel to process; entries read &quot;title (ZxYxX)&quot;. The <strong>Refresh</strong> button next to it re-scans the Channels in the current scene. With no Channels it shows &quot;(no channels - load a volume in Dragonfly)&quot;.</li>
+<li><strong>Input domain (dropdown)</strong> - two options: <strong>Projection / sinogram stack</strong> (each z-slice = one angle x detector projection; internal value projection, the default) and <strong>Reconstructed slices</strong> (internal value slice). This choice feeds the guidance note below.</li>
+<li><strong>Guidance line (grey small text)</strong> - shows a note matching the chosen operation and domain: choosing a projection-domain operation (ring/stripe removal, Paganin) with the domain set to slice warns it should act on the projection domain; Paganin on the projection domain notes it &quot;expects flat-field-corrected projections&quot;.</li>
+</ul>
+<h3 id="operation">Operation</h3>
+<ul>
+<li><strong>Operation (dropdown)</strong> - four options in order: ring/stripe removal remove_all_stripe (projection), ring/stripe removal sorting-based (projection), zinger (speckle) removal (projection or slice), and Paganin phase retrieval (projection). Selecting a different operation shows only its matching parameter group box below.</li>
+</ul>
+<h3 id="ring-stripe-parameters">Ring/stripe parameters</h3>
+<p>Shown for the two ring/stripe removal operations. For the sorting-based method only sm_size is used; snr and la_size are greyed out.</p>
+<ul>
+<li><strong>snr (double spinbox)</strong> - signal-to-noise ratio for detecting stripes, range 1.0-50.0, step 0.5, default <strong>3.0</strong>; larger is more conservative (fewer stripes flagged).</li>
+<li><strong>la_size (spinbox)</strong> - window (odd) for removing <strong>large</strong> stripes, range 1-501, step 2, default <strong>51</strong>.</li>
+<li><strong>sm_size (spinbox)</strong> - window (odd) for removing <strong>small</strong> stripes, range 1-201, step 2, default <strong>21</strong>; also the sorting-window size for the sorting-based method.</li>
+</ul>
+<h3 id="zinger-parameters">Zinger parameters</h3>
+<p>Shown for zinger removal.</p>
+<ul>
+<li><strong>threshold (double spinbox)</strong> - relative intensity-jump threshold above which a voxel is treated as a zinger, range 0.0-10.0, 3 decimals, step 0.01, default <strong>0.08</strong>.</li>
+<li><strong>size (spinbox)</strong> - median-window radius used to replace zingers, range 1-21, default <strong>2</strong>.</li>
+</ul>
+<h3 id="paganin-phase-retrieval-parameters">Paganin phase-retrieval parameters</h3>
+<p>Shown for Paganin phase retrieval.</p>
+<ul>
+<li><strong>energy (keV) (double spinbox)</strong> - X-ray energy in keV, range 1.0-1000.0, step 1.0, default <strong>30.0</strong>.</li>
+<li><strong>distance (m) (double spinbox)</strong> - sample-to-detector distance in metres, range 0.0-100.0, 4 decimals, step 0.05, default <strong>0.5</strong>.</li>
+<li><strong>pixel size (m) (double spinbox)</strong> - detector pixel size in metres, range 0.0-1.0, 9 decimals, step 1e-6, default <strong>1e-6</strong> (1 micrometre).</li>
+<li><strong>ratio (delta/beta) (double spinbox)</strong> - delta/beta ratio, range 0.0-1e6, 2 decimals, step 10.0, default <strong>100.0</strong>; larger = stronger smoothing.</li>
+</ul>
+<h3 id="environment-algotom-venv">Environment (Algotom venv)</h3>
+<ul>
+<li><strong>Base Python (text field)</strong> - optional; blank means this Dragonfly&#x27;s own Python, or enter a CPython path or a command like py -3.11.</li>
+<li><strong>Status (label)</strong> - shows the environment state: &quot;Ready: &lt;venv python path&gt;&quot; when set up, otherwise prompts you to click Setup Environment.</li>
+</ul>
+<h3 id="action-buttons-output">Action buttons &amp; output</h3>
+<ul>
+<li><strong>Setup Environment (button)</strong> - builds/reuses the venv and installs the dependencies (see Section 4).</li>
+<li><strong>Correct Artifacts (button)</strong> - runs the selected operation with the current parameters on the chosen Channel.</li>
+<li><strong>Summary label</strong> - after compute, shows one line: operation, input domain, slice count, output value range, mean, and non-finite count.</li>
+<li><strong>Log text area (read-only)</strong> - shows progress logs and any errors.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<p><strong>First use: build the environment</strong></p>
+<p><strong>1. </strong>Open the panel: <strong>Prototype Apps ▸ CT Artifact Correction (Algotom)...</strong>.</p>
+<p><strong>2. </strong>(Optional) set <strong>Base Python</strong>; leave blank to use Dragonfly&#x27;s own Python.</p>
+<p><strong>3. </strong>Click <strong>Setup Environment</strong> and wait for the ready message in the log; this first run needs internet. The status line turns to &quot;Ready: ...&quot; when done.</p>
+<p><strong>Ring/stripe removal workflow (kill the concentric rings)</strong></p>
+<p><strong>1. </strong>Load a <strong>projection/sinogram stack</strong> in Dragonfly (each z-slice = one angle x detector projection/sinogram).</p>
+<p><strong>2. </strong>Click <strong>Refresh</strong> at the top and select the stack in the <strong>Channel</strong> dropdown.</p>
+<p><strong>3. </strong>Set <strong>Input domain</strong> to <strong>Projection / sinogram stack</strong>.</p>
+<p><strong>4. </strong>In <strong>Operation</strong> choose <strong>remove_all_stripe</strong> or the <strong>sorting-based</strong> method.</p>
+<p><strong>5. </strong>Tune <strong>snr / la_size / sm_size</strong> (the sorting-based method needs only sm_size); an even la_size/sm_size is auto-incremented to be odd.</p>
+<p><strong>6. </strong>Click <strong>Correct Artifacts</strong>; the plugin processes slice-by-slice and publishes the corrected Channel, which you can then feed into reconstruction.</p>
+<p><strong>Zinger removal workflow</strong></p>
+<p><strong>1. </strong>Select a Channel containing isolated bright speckles (projection or slice domain both fine).</p>
+<p><strong>2. </strong>In <strong>Operation</strong> choose <strong>Zinger (speckle) removal</strong>.</p>
+<p><strong>3. </strong>Set <strong>threshold</strong> (relative intensity-jump) and <strong>size</strong> (median-window radius).</p>
+<p><strong>4. </strong>Click <strong>Correct Artifacts</strong> to get a new zinger-free Channel.</p>
+<p><strong>Paganin phase-retrieval workflow</strong></p>
+<p><strong>1. </strong>Load and select a stack of <strong>flat-field-corrected projections</strong>.</p>
+<p><strong>2. </strong>Set <strong>Input domain</strong> to <strong>Projection / sinogram stack</strong>.</p>
+<p><strong>3. </strong>In <strong>Operation</strong> choose <strong>Paganin phase retrieval</strong>.</p>
+<p><strong>4. </strong>Set <strong>energy (keV)</strong> / <strong>distance (m)</strong> / <strong>pixel size (m)</strong> / <strong>ratio (delta/beta)</strong> to match your acquisition geometry.</p>
+<p><strong>5. </strong>Click <strong>Correct Artifacts</strong> to publish the phase-retrieved projections, then reconstruct for a high-contrast result.</p>
+<p>Every operation is applied independently to each z-slice, so even a very large volume is processed with a bounded memory footprint.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col><col></colgroup><tr><th>Parameter</th><th>Operation</th><th>Default</th><th>Range</th><th>Description</th></tr><tr><td>snr</td><td>remove_all_stripe</td><td>3.0</td><td>1.0-50.0</td><td>Signal-to-noise ratio for stripe detection; larger = more conservative.</td></tr><tr><td>la_size</td><td>remove_all_stripe</td><td>51</td><td>1-501 (odd)</td><td>Window for removing large stripes; even values auto-incremented.</td></tr><tr><td>sm_size</td><td>remove_all_stripe / sorting</td><td>21</td><td>1-201 (odd)</td><td>Window for small stripes; also the sorting window for the sorting method.</td></tr><tr><td>threshold</td><td>zinger removal</td><td>0.08</td><td>0.0-10.0</td><td>Relative intensity-jump threshold for flagging a zinger.</td></tr><tr><td>size</td><td>zinger removal</td><td>2</td><td>1-21</td><td>Median-window radius to replace zingers.</td></tr><tr><td>energy (keV)</td><td>Paganin</td><td>30.0</td><td>1.0-1000.0</td><td>X-ray energy in keV.</td></tr><tr><td>distance (m)</td><td>Paganin</td><td>0.5</td><td>0.0-100.0</td><td>Sample-to-detector distance in metres.</td></tr><tr><td>pixel size (m)</td><td>Paganin</td><td>1e-6</td><td>0.0-1.0</td><td>Detector pixel size in metres (default 1 micrometre).</td></tr><tr><td>ratio (delta/beta)</td><td>Paganin</td><td>100.0</td><td>0.0-1e6</td><td>delta/beta ratio; larger = stronger smoothing.</td></tr></table></div>
+<p>Environment-related settings are below.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Setting</th><th>Default</th><th>Description</th></tr><tr><td>Base Python</td><td>(blank)</td><td>Blank = this Dragonfly&#x27;s own Python; or a CPython 3.10+ path / py -3.11.</td></tr><tr><td>Input domain</td><td>Projection / sinogram stack</td><td>Input domain; feeds the guidance note, does not change the per-slice compute.</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>When the compute finishes, the plugin <strong>publishes a new Channel</strong> into the Dragonfly scene:</p>
+<ul>
+<li>The <strong>new Channel</strong> is named &quot;source title - operation label&quot;, has <strong>exactly the same shape</strong> as the source, and reuses the source&#x27;s <strong>voxel spacing</strong> and <strong>origin</strong> (geometry-aligned).</li>
+<li>Output data type is float32; non-finite values (NaN/Inf) are set to 0 on import.</li>
+<li>A 2D input is auto-promoted to 3D internally, and the output preserves the same dimensionality as the input.</li>
+</ul>
+<p><strong>How to view:</strong> the corrected Channel appears in the object tree / scene immediately (no restart needed). The summary label shows one line of statistics: operation, input domain, slice count, output value range [min, max], mean, and non-finite count. You can display it in 2D/3D views like any Channel, or feed it into reconstruction, segmentation, and measurement.</p>
+<p>This plugin only corrects; it does not reconstruct. If you processed a projection/sinogram stack, you still need a reconstruction tool (e.g. the TomoRecon plugin) to get the final slices.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q1: I can&#x27;t find &quot;CT Artifact Correction (Algotom)...&quot; in the menu.</strong></p>
+<p>A: Make sure you <strong>ticked</strong> this plugin in the installer or the Menu Item Manager (all plugins are unticked by default), and that you <strong>fully restarted</strong> Dragonfly. The menu is under Prototype Apps ▸ Reconstruction &amp; Imaging.</p>
+<p><strong>Q2: Correct Artifacts says &quot;environment not set up&quot;.</strong></p>
+<p>A: The venv has not been built yet. Click <strong>Setup Environment</strong> first (internet needed the first time); once the status line reads &quot;Ready: ...&quot;, run again.</p>
+<p><strong>Q3: Setup Environment fails, saying there is no venv module or creation failed.</strong></p>
+<p>A: Enter the path to a CPython 3.10+ interpreter with stdlib venv + pip (e.g. C:\Python312\python.exe) or py -3.11 in the <strong>Base Python</strong> field and retry. Also confirm you have internet for the first setup (algotom/numpy/scipy are downloaded from PyPI).</p>
+<p><strong>Q4: There are still obvious concentric rings after reconstruction - the correction didn&#x27;t help.</strong></p>
+<p>A: Ring/stripe removal must act on the <strong>projection</strong> domain. Confirm the input is a projection/sinogram stack and that <strong>Input domain</strong> is set to Projection; applying it to reconstructed slices triggers a warning in the guidance line and may not remove rings correctly.</p>
+<p><strong>Q5: It reports &quot;Out of memory&quot;.</strong></p>
+<p>A: Although processing is slice-by-slice, the full volume still needs to be read in. Try cropping a smaller ROI first, or downsample the volume before running.</p>
+<p><strong>Q6: The dropdown shows &quot;(no channels - load a volume in Dragonfly)&quot;.</strong></p>
+<p>A: There is no usable Channel in the current scene. Load a volume in Dragonfly, then click <strong>Refresh</strong> on the panel to update the list.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li>This plugin <strong>only corrects artifacts; it does not reconstruct</strong> - use TomoRecon or another tool for reconstruction.</li>
+<li><strong>The input domain matters</strong>: ring/stripe removal and Paganin retrieval target the <strong>projection</strong> domain; zinger removal works on either domain. A mismatch triggers a note but is not blocked.</li>
+<li>la_size / sm_size are forced to be <strong>odd</strong> (median/sorting windows require it); an even value is auto-incremented by 1.</li>
+<li>Paganin phase retrieval assumes a <strong>single-material</strong> sample and <strong>flat-field-corrected projections</strong>; parameters (energy, distance, pixel size) must match the real acquisition geometry to be physically meaningful.</li>
+<li>Compute runs on the CPU (no GPU acceleration); very large volumes can be slow - crop or downsample for a trial run.</li>
+<li>The environment setup <strong>needs internet only the first time</strong>; runs are offline afterwards. Nothing is installed into Dragonfly&#x27;s own Python.</li>
+<li>Disabling/uninstalling the plugin <strong>does not</strong> delete the built venv; to reclaim disk space, manually delete the venv folder inside the code directory.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Algotom project &amp; source: https://github.com/algotom/algotom (Apache-2.0)</li>
+<li>Functions used: algotom.prep.removal.remove_all_stripe, remove_stripe_based_sorting, remove_zinger; algotom.prep.phase.paganin_filter.</li>
+<li>Dependencies: numpy (BSD), scipy (BSD).</li>
+<li>Related plugin: TomoRecon (CT/TEM reconstruction) - this plugin complements it on the artifact-correction side.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Algotom-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

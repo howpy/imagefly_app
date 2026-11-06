@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo2Mesh: SAM3D · Dragonfly Prototype Apps</title>
+<meta name="description" content="Photo2Mesh: SAM3D - User Manual Dragonfly Prototype Apps · Photo2Mesh: SAM3D... Version 1.0 · 2026-07-04 English Manual Contents 1. Overview 2. Use Cases 3…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Photo2Mesh: SAM3D</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Photo2Mesh: SAM3D...</div>
+    <h1>Photo2Mesh: SAM3D</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-04</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#engine-and-algorithms">Engine and algorithms</a></li><li class="t3"><a href="#licensing">Licensing</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-and-enabling">3. Installation and Enabling</a></li><li class="t3"><a href="#changing-your-choices-later">Changing your choices later</a></li><li class="t3"><a href="#uninstall">Uninstall</a></li><li class="t2"><a href="#4-environment-and-first-run-setup">4. Environment and First-Run Setup</a></li><li class="t3"><a href="#what-setup-environment-does">What Setup Environment does</a></li><li class="t3"><a href="#download-size-and-prerequisites">Download size and prerequisites</a></li><li class="t3"><a href="#where-the-environment-is-installed">Where the environment is installed</a></li><li class="t3"><a href="#if-setup-fails-common-on-windows">If Setup fails (common on Windows)</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#environment-shared-by-both-tabs">Environment (shared by both tabs)</a></li><li class="t3"><a href="#tab-1-photo-to-point-cloud">Tab 1: Photo to Point Cloud</a></li><li class="t3"><a href="#tab-2-point-cloud-to-mesh">Tab 2: Point Cloud to Mesh</a></li><li class="t3"><a href="#right-side-common-area">Right-side common area</a></li><li class="t2"><a href="#6-usage-steps">6. Usage Steps</a></li><li class="t3"><a href="#workflow-a-photo-to-surface-mesh-end-to-end">Workflow A: photo to surface mesh (end to end)</a></li><li class="t3"><a href="#workflow-b-mesh-an-existing-point-cloud-standalone">Workflow B: mesh an existing point cloud (standalone)</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t3"><a href="#environment-parameters">Environment parameters</a></li><li class="t3"><a href="#photo-to-point-cloud-tab-1">Photo to Point Cloud (Tab 1)</a></li><li class="t3"><a href="#point-cloud-to-mesh-tab-2-open3d">Point Cloud to Mesh (Tab 2, Open3D)</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-and-troubleshooting">9. FAQ and Troubleshooting</a></li><li class="t2"><a href="#10-notes-and-known-limitations">10. Notes and Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Photo2Mesh: SAM3D - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Photo2Mesh: SAM3D...</p>
+<p>Version 1.0 · 2026-07-04</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Photo2Mesh: SAM3D</strong> is a Dragonfly plugin that reconstructs a 3D surface mesh of an object from a <strong>single photograph</strong>. The workflow is split into two consecutive stages that map to the panel&#x27;s two tabs: the first stage uses Meta&#x27;s <strong>SAM 3D Objects</strong> AI model to reconstruct a 3D point cloud from one image; the second stage uses <strong>Open3D</strong> to turn that point cloud into a triangle surface mesh, which is imported into the Dragonfly scene as a mesh object ready for visualization and measurement.</p>
+<p>The plugin belongs to the Photo2Mesh family (alongside Meshroom, COLMAP and gsplat) and appears in the menu as <strong>Prototype Apps ▸ Photo2Mesh: SAM3D...</strong>. Unlike photogrammetry methods that require many views, SAM3D infers 3D shape from just <strong>one</strong> photo.</p>
+<h3 id="engine-and-algorithms">Engine and algorithms</h3>
+<ul>
+<li><strong>SAM 3D Objects</strong> (repo facebookresearch/sam-3d-objects): Meta&#x27;s single-image-to-3D AI model. It takes one image plus a whole-image mask (the whole frame is the object) and emits a Gaussian-splat 3D point set. The plugin then extracts a clean XYZ (optionally RGB) point cloud points.ply.</li>
+<li><strong>Open3D</strong> (surface reconstruction): after estimating and orienting normals, it reconstructs triangles with one of three methods — <strong>Poisson</strong> (default), <strong>Ball-Pivoting / BPA</strong>, or <strong>Alpha</strong> shapes — then cleans duplicate vertices and degenerate triangles to produce mesh.ply.</li>
+<li>The heavy compute stack is based on <strong>torch 2.5.1 (CUDA cu121)</strong> and depends on PyTorch3D and kaolin. It runs entirely in the plugin&#x27;s own dedicated virtual environment, never inside Dragonfly&#x27;s bundled Python.</li>
+<li>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12 or 3.13) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</li>
+</ul>
+<h3 id="licensing">Licensing</h3>
+<ul>
+<li><strong>SAM 3D Objects</strong> ships under the <strong>SAM License</strong>: royalty-free, <strong>commercial use allowed</strong>, no MAU or enterprise cap. Conditions: include a copy of the license with any redistribution, attribute in publications, and obey the trade-control / no-military terms.</li>
+<li><strong>Open3D</strong> is licensed under <strong>Apache-2.0</strong>.</li>
+<li>The plugin is therefore safe to ship in a product.</li>
+</ul>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is ideal when you have <strong>only a single photograph</strong> but want to quickly digitize a physical sample, part, or specimen into a 3D model. Typical uses include reverse engineering, documentation, teaching, and presentation in materials science, industrial inspection, and life-science labs.</p>
+<ul>
+<li>Works best on <strong>opaque, well-textured objects that fill the frame</strong>.</li>
+<li>The mesh has <strong>arbitrary scale and orientation</strong> — after import into Dragonfly you usually need to rescale and reorient it to match real-world dimensions.</li>
+<li>The second tab (Point Cloud to Mesh) also works <strong>standalone</strong>: it meshes any existing point-cloud file (.ply / .pcd / .xyz) without the AI reconstruction stage.</li>
+</ul>
+<p>SAM3D performs single-image 3D inference, so the result is the model&#x27;s best guess at the object&#x27;s shape — not a calibrated, metrology-grade reconstruction. It excels at producing shapes quickly for visualization, not at supplying dimensional ground truth.</p>
+<h2 id="3-installation-and-enabling">3. Installation and Enabling</h2>
+<p>This plugin is distributed with the <strong>Prototype Labs &amp; Apps Full Package</strong>. Install it as follows:</p>
+<p><strong>1. </strong>Unzip the package to a short folder path (e.g. C:\PL\; avoid very deep or OneDrive-redirected paths).</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose a core install mode (<strong>Fresh</strong> = clean install / <strong>Compatible</strong> = keep your own blocks &amp; recipes; this choice only affects the Prototype Labs core, not any plugin&#x27;s environment).</p>
+<p><strong>4. </strong><strong>Tick Photo2Mesh: SAM3D</strong> in the app list. Note: all plugins are <strong>unchecked (off) by default</strong> and must be selected manually.</p>
+<p><strong>5. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>6. </strong><strong>Fully quit and restart Dragonfly</strong> (menus are only scanned at startup).</p>
+<p>After the restart the plugin appears under <strong>Prototype Apps ▸ Photo2Mesh: SAM3D...</strong> (in the Photo2Mesh group). Clicking it opens a dockable (floating by default) panel.</p>
+<h3 id="changing-your-choices-later">Changing your choices later</h3>
+<p>The easiest way is from inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and, in the &quot;Prototype Apps (Full Package)&quot; list at the bottom, find this plugin&#x27;s checkbox — tick = deploy the menu item, untick = remove it. <strong>Restart Dragonfly to apply.</strong> Disabling <strong>never</strong> deletes a plugin&#x27;s built environment; re-enabling is instant. You can also re-run the installer at any time; it remembers your previous choices as the new defaults.</p>
+<h3 id="uninstall">Uninstall</h3>
+<p>Double-click <strong>`Uninstall_FullPackage.bat`</strong> to remove all Full-Package menu items and plugins. Uninstall <strong>keeps</strong> each plugin&#x27;s built environment (venv / downloads); their paths are listed at the end so you can delete them manually to reclaim disk space.</p>
+<h2 id="4-environment-and-first-run-setup">4. Environment and First-Run Setup</h2>
+<p>SAM3D&#x27;s heavy AI stack is <strong>not</strong> downloaded at install time. Instead, on <strong>first use</strong>, you build it by clicking <strong>Setup Environment</strong> in the panel&#x27;s <strong>Environment</strong> box. This box is shared by both tabs.</p>
+<h3 id="what-setup-environment-does">What Setup Environment does</h3>
+<p><strong>1. </strong>Creates a dedicated virtual environment (venv) from a <strong>base Python</strong>. If &quot;Base Python&quot; is blank, it defaults to the <strong>current Dragonfly&#x27;s `Python_env\python.exe`</strong> (a full CPython with venv and pip), so usually no separate Python install is needed; you may also specify any CPython 3.9+ path or a launcher like py -3.11.</p>
+<p><strong>2. </strong>Installs <strong>torch 2.5.1 (cu121)</strong> and a matching torchvision (index from the &quot;Torch CUDA wheel index&quot; field, default https://download.pytorch.org/whl/cu121).</p>
+<p><strong>3. </strong><strong>Clones the `facebookresearch/sam-3d-objects` repo</strong> with git and runs its editable installs .[dev], .[p3d], .[inference] (including PyTorch3D and kaolin).</p>
+<p><strong>4. </strong>Installs <strong>Open3D + plyfile + huggingface_hub</strong> CLI.</p>
+<p><strong>5. </strong>If an <strong>HF token</strong> is provided, downloads the <strong>gated</strong> facebook/sam-3d-objects checkpoints into the checkpoints/hf folder.</p>
+<p><strong>6. </strong>Runs a smoke test (checks torch/CUDA, Open3D, and that sam-3d-objects imports).</p>
+<h3 id="download-size-and-prerequisites">Download size and prerequisites</h3>
+<ul>
+<li><strong>Internet</strong>: required. The environment is a multi-GB download (torch cu121 alone is ~2.5 GB, plus the model checkpoints).</li>
+<li><strong>NVIDIA GPU</strong>: required. SAM 3D inference needs CUDA (cu121); CPU cannot run it.</li>
+<li><strong>HuggingFace account and token</strong>: the model is gated. Before the first download, create a free account at huggingface.co, <strong>accept the license</strong> at https://huggingface.co/facebook/sam-3d-objects, create a <strong>token</strong> (Settings ▸ Access Tokens), and paste it into the <strong>HF token</strong> field. Without a token, Setup <strong>skips the checkpoint download</strong> (everything else still installs) and the Photo tab later reports &quot;checkpoints not found&quot;.</li>
+<li><strong>Git</strong>: Setup needs git on PATH to clone the repo; if you don&#x27;t have it, install Git or point the panel at an existing checkout.</li>
+</ul>
+<h3 id="where-the-environment-is-installed">Where the environment is installed</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Path</th><th>Contents</th></tr><tr><td>%LOCALAPPDATA%\Photo2Mesh\sam3d_venv</td><td>Dedicated virtual environment (venv)</td></tr><tr><td>%LOCALAPPDATA%\Photo2Mesh\sam-3d-objects</td><td>Cloned model repo (default, next to the venv); its checkpoints\hf holds the weights</td></tr><tr><td>%LOCALAPPDATA%\Photo2Mesh\sam3d_config.json</td><td>User config (remembers the fields you filled in the panel)</td></tr><tr><td>C:\Photo2MeshJobs</td><td>Default job root; each run creates a timestamped subfolder for intermediate and result files</td></tr></table></div>
+<p>Because the environment lives outside the code directory, <strong>reinstalling the plugin code never touches the built environment</strong>, so updates are safe.</p>
+<h3 id="if-setup-fails-common-on-windows">If Setup fails (common on Windows)</h3>
+<p>PyTorch3D and kaolin are notoriously hard to pip-install into a bare Windows venv. The reliable fallback is the project&#x27;s documented <strong>conda / mamba</strong> setup; then <strong>skip the Setup button</strong> and simply fill three fields in the Environment box by hand:</p>
+<ul>
+<li><strong>venv python</strong> → that conda env&#x27;s python.exe</li>
+<li><strong>sam-3d-objects repo</strong> → your repo checkout</li>
+<li><strong>checkpoints dir</strong> → the folder containing pipeline.yaml (usually …/checkpoints/hf)</li>
+</ul>
+<p>The run only needs those three paths (venv python, repo, checkpoints dir). The Setup button is a convenience, not a requirement — you can build the environment manually and just point the plugin at it.</p>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The panel&#x27;s left side holds the <strong>Environment box plus two tabs</strong>; the right side holds the <strong>progress bar, result label, and log</strong>. A blue note at the top left summarizes what the plugin does and warns that the first Setup is heavy.</p>
+<h3 id="environment-shared-by-both-tabs">Environment (shared by both tabs)</h3>
+<ul>
+<li><strong>venv python</strong>: path to the virtual environment&#x27;s python. Filled by Setup, or point it at an existing SAM 3D python.</li>
+<li><strong>sam-3d-objects repo</strong>: the model repo checkout directory (with a &quot;…&quot; browse button).</li>
+<li><strong>checkpoints dir</strong>: the weights directory; must contain pipeline.yaml (with browse button).</li>
+<li><strong>Base Python (build)</strong>: the Python used to build the env; blank = this Dragonfly&#x27;s python, or a path, or py -3.11.</li>
+<li><strong>Torch CUDA wheel index</strong>: the torch wheel index URL, default https://download.pytorch.org/whl/cu121.</li>
+<li><strong>HF token</strong>: HuggingFace access token (masked as a password); accept the license on the site before downloading the gated model.</li>
+<li><strong>Setup Environment</strong> button: one-click build of venv + clone + checkpoints.</li>
+</ul>
+<h3 id="tab-1-photo-to-point-cloud">Tab 1: Photo to Point Cloud</h3>
+<p><strong>Image input</strong> area, choose one (SAM 3D takes a single image; the whole frame is the object):</p>
+<ul>
+<li><strong>Active channel slice</strong> radio: take one slice from a channel in the current session. Optional <strong>Red / primary</strong>, <strong>Green (optional)</strong> and <strong>Blue (optional)</strong> dropdowns compose colour; <strong>Refresh</strong> rescans channels; <strong>Slice index</strong> spinner picks the slice (its range is set automatically from the chosen primary channel&#x27;s depth).</li>
+<li><strong>Image file</strong> radio: pick an image on disk directly (png/jpg/jpeg/bmp/tif/tiff).</li>
+</ul>
+<p><strong>Options</strong> area: <strong>Job root</strong>, <strong>Seed</strong>, and <strong>Max image size (px)</strong>. At the bottom is the blue <strong>Reconstruct Point Cloud</strong> button.</p>
+<h3 id="tab-2-point-cloud-to-mesh">Tab 2: Point Cloud to Mesh</h3>
+<ul>
+<li><strong>Point cloud input</strong>: a path field (with browse button) accepting .ply / .pcd / .xyz; auto-filled from Tab 1, or browse.</li>
+<li><strong>Reconstruction (Open3D)</strong>: <strong>Method</strong> dropdown (poisson / bpa / alpha), <strong>Normal neighbours (k)</strong>, <strong>Poisson depth</strong>, <strong>Poisson density trim (quantile)</strong>, <strong>BPA radius x avg-spacing</strong>, and <strong>Alpha (0 = auto)</strong>.</li>
+<li>At the bottom is the blue <strong>Reconstruct Mesh</strong> button.</li>
+</ul>
+<h3 id="right-side-common-area">Right-side common area</h3>
+<ul>
+<li><strong>Cancel</strong> button: requests cancellation of the current run.</li>
+<li><strong>Open Job Folder</strong> button: opens the most recent job directory in Explorer.</li>
+<li><strong>Progress bar</strong>, a <strong>result label</strong> (green success summary such as points / vertices / faces), and a <strong>Log</strong> text box.</li>
+</ul>
+<h2 id="6-usage-steps">6. Usage Steps</h2>
+<h3 id="workflow-a-photo-to-surface-mesh-end-to-end">Workflow A: photo to surface mesh (end to end)</h3>
+<p><strong>1. </strong>On first use, build the environment in the <strong>Environment</strong> box (see Chapter 4): enter your HF token and click <strong>Setup Environment</strong>, then wait for it to finish and auto-fill venv python / repo / checkpoints.</p>
+<p><strong>2. </strong>Switch to the <strong>Photo to Point Cloud</strong> tab and choose the image source: for a channel slice, click <strong>Refresh</strong>, pick the primary channel in <strong>Red / primary</strong> (optionally Green/Blue for colour), and choose the layer with <strong>Slice index</strong>; for a file, select <strong>Image file</strong> and browse to a photo.</p>
+<p><strong>3. </strong>Set <strong>Job root</strong>, <strong>Seed</strong>, and <strong>Max image size</strong> as needed.</p>
+<p><strong>4. </strong>Click <strong>Reconstruct Point Cloud</strong>. The plugin exports the image, generates a full white mask, runs SAM 3D inference (GPU, may take a while), extracts a clean point cloud and <strong>publishes it to the scene</strong>; the cloud path is auto-filled into Tab 2.</p>
+<p><strong>5. </strong>Switch to the <strong>Point Cloud to Mesh</strong> tab (the cloud path is pre-filled). Choose a <strong>Method</strong> and adjust its parameters.</p>
+<p><strong>6. </strong>Click <strong>Reconstruct Mesh</strong>. Open3D estimates normals and reconstructs the surface; the resulting mesh is imported as a Dragonfly mesh object and the result label reports vertex and face counts.</p>
+<p><strong>7. </strong>Inspect the mesh in Dragonfly; because scale/orientation are arbitrary, you usually need to rescale and reorient it.</p>
+<h3 id="workflow-b-mesh-an-existing-point-cloud-standalone">Workflow B: mesh an existing point cloud (standalone)</h3>
+<p><strong>1. </strong>Open the <strong>Point Cloud to Mesh</strong> tab directly.</p>
+<p><strong>2. </strong>Browse and select an existing .ply / .pcd / .xyz file in the point-cloud input.</p>
+<p><strong>3. </strong>Choose the method and parameters, then click <strong>Reconstruct Mesh</strong> to import the mesh. This path does not invoke SAM 3D, but still needs Open3D available in the venv.</p>
+<p>You can click <strong>Cancel</strong> at any time to request a stop; click <strong>Open Job Folder</strong> to inspect intermediate files (input image, splat.ply, points.ply, mesh.ply, etc.).</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<h3 id="environment-parameters">Environment parameters</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>venv python</td><td>(blank, set by Setup)</td><td>Virtual-environment python path; required to run either task</td></tr><tr><td>sam-3d-objects repo</td><td>(blank, set by Setup)</td><td>Model repo checkout directory</td></tr><tr><td>checkpoints dir</td><td>(blank, set by Setup)</td><td>Weights directory; must contain pipeline.yaml</td></tr><tr><td>Base Python (build)</td><td>(blank)</td><td>Base Python for building the venv; blank = this Dragonfly&#x27;s python</td></tr><tr><td>Torch CUDA wheel index</td><td>https://download.pytorch.org/whl/cu121</td><td>torch wheel index URL (CUDA build)</td></tr><tr><td>HF token</td><td>(blank)</td><td>HuggingFace token; required to download the gated model</td></tr></table></div>
+<h3 id="photo-to-point-cloud-tab-1">Photo to Point Cloud (Tab 1)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Image source</td><td>Active channel slice</td><td>Channel slice OR image file, choose one</td></tr><tr><td>Slice index</td><td>0</td><td>Channel slice index; range set automatically from the primary channel&#x27;s depth</td></tr><tr><td>Job root</td><td>C:\Photo2MeshJobs</td><td>Job root; each run creates a timestamped subfolder</td></tr><tr><td>Seed</td><td>42</td><td>Random seed (range 0 to 2^31-1)</td></tr><tr><td>Max image size (px)</td><td>1024</td><td>Maximum image edge for export/resize (256-8192, step 128)</td></tr></table></div>
+<h3 id="point-cloud-to-mesh-tab-2-open3d">Point Cloud to Mesh (Tab 2, Open3D)</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Method</td><td>poisson</td><td>Reconstruction method: poisson / bpa / alpha</td></tr><tr><td>Normal neighbours (k)</td><td>30</td><td>Neighbour count for normal estimation (5-200)</td></tr><tr><td>Poisson depth</td><td>9</td><td>Poisson octree depth (5-14); higher = finer but slower</td></tr><tr><td>Poisson density trim (quantile)</td><td>0.03</td><td>Trim low-confidence outer faces by density quantile (0-0.5); 0 = no trim</td></tr><tr><td>BPA radius x avg-spacing</td><td>1.5</td><td>Ball-pivoting radius = this multiple x average point spacing (0.5-10)</td></tr><tr><td>Alpha (0 = auto)</td><td>0.0</td><td>Alpha-shape radius; 0 means auto (about 5x the average point spacing)</td></tr></table></div>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>In the Dragonfly scene, the plugin creates the following objects:</p>
+<ul>
+<li><strong>Point cloud object</strong> (from Tab 1): named like SAM3D_cloud_&lt;time&gt;. Because Dragonfly has no first-class point-cloud object, the cloud is published as a vertices-only mesh through the native mesh loader (best-effort); the on-disk points.ply is the authoritative hand-off to Tab 2.</li>
+<li><strong>Surface mesh object</strong> (from Tab 2): named like SAM3D_mesh_&lt;time&gt;, a Dragonfly mesh (FaceVertexMesh); the result label reports vertex and face counts.</li>
+</ul>
+<p>The corresponding disk files are saved in the job directory (a timestamped subfolder under Job root), viewable via <strong>Open Job Folder</strong>:</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>File</th><th>Meaning</th></tr><tr><td>input.png</td><td>Input image exported from the channel slice (absent when using an image file)</td></tr><tr><td>splat.ply</td><td>Raw Gaussian-splat points emitted by SAM 3D</td></tr><tr><td>points.ply</td><td>Extracted clean XYZ (optionally RGB) point cloud</td></tr><tr><td>mesh.ply</td><td>Triangle surface mesh reconstructed by Open3D</td></tr></table></div>
+<p>Results have arbitrary scale and orientation. After import, rescale/reorient in Dragonfly before visualization or measurement.</p>
+<h2 id="9-faq-and-troubleshooting">9. FAQ and Troubleshooting</h2>
+<p><strong>Q: The Photo tab reports &quot;SAM 3D checkpoints not found&quot;.</strong></p>
+<p>A: The weights were not downloaded, or the checkpoints dir does not point at a folder containing pipeline.yaml. Accept the license for facebook/sam-3d-objects on huggingface.co, create a token, paste it into <strong>HF token</strong>, and re-run <strong>Setup Environment</strong>; or download the weights manually and point <strong>checkpoints dir</strong> at …/checkpoints/hf.</p>
+<p><strong>Q: PyTorch3D or kaolin fails to install during Setup (WARNING).</strong></p>
+<p>A: This is common on a bare Windows venv. The reliable route is to build the environment manually with conda/mamba per the upstream docs, then skip the Setup button and fill venv python, sam-3d-objects repo, and checkpoints dir by hand.</p>
+<p><strong>Q: Clicking Reconstruct says &quot;venv not set&quot;.</strong></p>
+<p>A: The <strong>venv python</strong> field is empty. Run <strong>Setup Environment</strong> first, or point it at an existing SAM 3D python.</p>
+<p><strong>Q: After meshing I get &quot;no faces / reconstruction produced no faces&quot;.</strong></p>
+<p>A: Try a different <strong>Method</strong>, provide a denser point cloud, or increase <strong>Alpha</strong>; for Poisson, lower the <strong>Poisson density trim</strong> quantile so fewer faces are trimmed.</p>
+<p><strong>Q: The channel dropdowns are empty.</strong></p>
+<p>A: Make sure image data is loaded in the current Dragonfly session, then click <strong>Refresh</strong> to rescan channels.</p>
+<p><strong>Q: venv creation fails, saying the base Python has no venv module.</strong></p>
+<p>A: Point <strong>Base Python (build)</strong> at a normal CPython 3.10-3.12 (e.g. C:\Python311\python.exe) and retry.</p>
+<h2 id="10-notes-and-known-limitations">10. Notes and Known Limitations</h2>
+<ul>
+<li><strong>An NVIDIA GPU and internet are required</strong>; the first environment build is a multi-GB download, so allow time and disk space.</li>
+<li>The model is gated — you <strong>must accept the license on HuggingFace and use a token</strong>, otherwise the checkpoints are not downloaded.</li>
+<li>SAM 3D performs <strong>single-image 3D inference</strong>; the result is a shape estimate with <strong>arbitrary scale and orientation</strong>, not a metrology-grade reconstruction; rescale after import.</li>
+<li>Works best on <strong>opaque, well-textured objects that fill the frame</strong>; transparent, reflective, hollow, or texture-poor objects give poorer results.</li>
+<li>The current version uses a <strong>whole-image mask</strong> (the whole frame is the object); automatic segmentation/cut-out is not provided.</li>
+<li>The point cloud is published in Dragonfly as a best-effort vertices-only mesh; the on-disk .ply is the authoritative data.</li>
+<li>pip installation of PyTorch3D / kaolin may fail on Windows — a manual conda setup is provided as a fallback.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>SAM 3D Objects project: https://github.com/facebookresearch/sam-3d-objects</li>
+<li>Gated model weights (license acceptance required): https://huggingface.co/facebook/sam-3d-objects</li>
+<li>Open3D project home: https://www.open3d.org</li>
+<li>PyTorch (CUDA wheel index): https://download.pytorch.org/whl/cu121</li>
+<li>Full Package install / enable / uninstall guide: the bundled README.md</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>SAM3D-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

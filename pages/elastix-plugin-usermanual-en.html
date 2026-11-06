@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volume Registration (Elastix) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Volume Registration (Elastix) - User Manual Dragonfly Prototype Apps · Volume Registration (Elastix)... Version 1.0 · 2026-08-01 English Manual Contents 1.…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Volume Registration (Elastix)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Volume Registration (Elastix)...</div>
+    <h1>Volume Registration (Elastix)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-08-01</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-setup">1. Setup</a></li><li class="t3"><a href="#2-input-masks">2. Input &amp; Masks</a></li><li class="t3"><a href="#3-transform-parameters">3. Transform &amp; Parameters</a></li><li class="t3"><a href="#4-preview-run">4. Preview &amp; Run</a></li><li class="t3"><a href="#5-results">5. Results</a></li><li class="t3"><a href="#6-apply-export">6. Apply &amp; Export</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Volume Registration (Elastix) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Volume Registration (Elastix)...</p>
+<p>Version 1.0 · 2026-08-01</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Aligns one 3D Channel (the <strong>moving</strong> image) onto another (the <strong>fixed</strong> image) using the open-source <strong>elastix</strong> toolkit (Apache 2.0, built on ITK). Translation, rigid, affine and B-spline free-form deformation are available alone or chained — &quot;rigid + bspline&quot; does a global alignment first and a local deformation second, which is the standard elastix workflow.</p>
+<p>The panel has 6 numbered steps. Changing anything upstream invalidates the result; registration runs on a worker thread in a separate process, and cancelling or failing publishes nothing.</p>
+<p><strong>Everything is computed in physical millimetres.</strong> Anisotropic voxels need <strong>no resampling</strong> — passing elastix the true spacing is both correct and lossless. (This differs from the Structure Scale Analyzer, where an erosion step is a voxel operation and resampling genuinely is required.)</p>
+<p><strong>A registration that made things worse is not dressed up as success.</strong> The results tab reports RMS before and after with an improvement percentage; if the alignment got worse it says so, and publishing the registered Channel is refused.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Aligning two scans of one specimen: in-situ experiments, before/after loading, ageing, corrosion.</li>
+<li>Multi-modal or multi-energy registration (use the Mattes mutual-information metric).</li>
+<li>Carrying a finished segmentation from one scan to another, via the ROI / MultiROI warping in step 4.</li>
+<li>Template or atlas registration.</li>
+<li>Aligning data acquired at different resolutions or fields of view.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install the Prototype Apps package (or tick this plugin in the App Store).</p>
+<p>2. This plugin is <strong>disabled by default</strong> — enable it in the App Store or the Menu Item Manager.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> (plugins are discovered at startup only).</p>
+<p>4. Open it from: Prototype Apps ▸ Volume Registration (Elastix)… (group: Reconstruction &amp; Imaging).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p>On first use press <strong>Set up environment (numpy + itk-elastix)</strong> in <strong>step 1</strong>. It builds an isolated virtual environment and downloads about <strong>120 MB</strong> of prebuilt wheels (CPython 3.10 / Windows, no compiler needed). After that it works offline.</p>
+<p><strong>Why an isolated environment?</strong> ITK ships its own copies of several libraries that Dragonfly also carries, and the repo rule is that Dragonfly&#x27;s bundled Python is never modified. Registration therefore runs as a subprocess, exchanging .npy files through a job folder.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>Setup finishes by importing itk once and checking the elastix entry points — better to fail during setup, with the pip log still on screen, than during the user&#x27;s first registration. <strong>Check environment</strong> re-verifies at any time and reports the ITK version.</p>
+<p>The <strong>job root</strong> defaults to C:\ElastixJobs and follows the App Store&#x27;s global job-root setting. Each run creates a timestamped subfolder holding the inputs, elastix.log, runner_log.txt, the transform files and every output.</p>
+<h2 id="5-interface">5. Interface</h2>
+<p>The header always shows the environment, the current input, the running task, a progress bar and <strong>Cancel</strong>.</p>
+<h3 id="1-setup">1. Setup</h3>
+<p>The venv interpreter, an optional base interpreter, the job root, and the setup / check buttons.</p>
+<h3 id="2-input-masks">2. Input &amp; Masks</h3>
+<p>Pick the fixed and moving Channels (<strong>published objects only</strong>), the timestep, and optional fixed / moving mask ROIs. Shapes and spacings are shown, with warnings where they matter: mismatched shapes, anisotropic spacing, or the same object picked twice.</p>
+<h3 id="3-transform-parameters">3. Transform &amp; Parameters</h3>
+<p>The transform chain, number of resolutions, iterations per resolution, metric, B-spline final grid spacing, samples per iteration, whether to compute the deformation field, and a manual voxel size for objects that carry no geometry.</p>
+<h3 id="4-preview-run">4. Preview &amp; Run</h3>
+<p>One line spelling out <strong>exactly what will run</strong> — including the auto-generated grid-spacing schedule and any parameter forced by a mask — plus the optional ROI / MultiROI to warp alongside, then Run.</p>
+<h3 id="5-results">5. Results</h3>
+<p>RMS before and after, improvement percentage, the stages actually run, timing, shape, ITK version, the job folder, and (if computed) the maximum and mean deformation magnitude.</p>
+<h3 id="6-apply-export">6. Apply &amp; Export</h3>
+<p>Publish the registered Channel, the deformation-magnitude Channel, or the warped ROI / MultiROI; export the results as JSON; open the job folder.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Press Set up environment in step 1 (first time only) and wait for &quot;itk-elastix ready&quot;.</p>
+<p>2. In step 2 pick the fixed and moving Channels, adding masks if useful.</p>
+<p>3. In step 3 try the default rigid chain first and confirm the global alignment works.</p>
+<p>4. For local deformation switch to rigid+bspline and set the grid spacing to your structure scale.</p>
+<p>5. In step 4 optionally choose an ROI / MultiROI to warp too, then Run.</p>
+<p>6. Check the improvement percentage in step 5, then publish or export in step 6.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Transform chain</td><td>rigid</td><td>6 chains</td><td>each stage is initialised from the previous one, coarse to fine</td></tr><tr><td>Resolutions</td><td>4</td><td>1…8</td><td>pyramid levels; changing this automatically regenerates the B-spline grid-spacing schedule</td></tr><tr><td>Iterations per resolution</td><td>256</td><td>1…5000</td><td>maximum optimiser iterations at each level</td></tr><tr><td>Metric</td><td>mattes</td><td>mattes / ssd / ncc</td><td>mattes across modalities; ssd for identical intensities; ncc for a linear relationship</td></tr><tr><td>B-spline final grid spacing</td><td>finest voxel × 10</td><td>0.1…1000 mm</td><td>how soft the deformation is — smaller is softer and easier to overfit</td></tr><tr><td>Samples per iteration</td><td>2048</td><td>64…100000</td><td>random samples; more is steadier but slower</td></tr><tr><td>Compute the deformation field</td><td>off</td><td>on / off</td><td>per-voxel displacement magnitude in mm, publishable as a Channel</td></tr><tr><td>Override voxel size</td><td>off</td><td>on / off</td><td>only for objects that carry no geometry</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Output</th><th>Meaning</th></tr><tr><td>RMS before / after</td><td>root-mean-square intensity difference between fixed and moving</td></tr><tr><td>improvement %</td><td>how much misalignment was removed; negative means the registration made it worse</td></tr><tr><td>stages</td><td>the stages actually run</td></tr><tr><td>max / mean deformation (mm)</td><td>deformation magnitude statistics, when the field was computed</td></tr><tr><td>Registered (elastix)</td><td>the aligned moving image, published as a new Channel</td></tr><tr><td>Deformation magnitude (mm)</td><td>per-voxel displacement, published as a new Channel</td></tr><tr><td>Registered ROI / labels</td><td>the segmentation warped by the same transform, nearest neighbour</td></tr><tr><td>TransformParameters.N.txt</td><td>the fitted transform, kept in the job folder and reusable</td></tr></table></div>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>The improvement percentage is negative</strong> — the optimiser diverged. Try fewer resolutions or the plain rigid chain; for multi-modal data make sure the metric is mattes; a mask that excludes background often helps. The plugin will not publish in this state.</li>
+<li><strong>A failure mentions elastix.log</strong> — the tail of elastix&#x27;s own log is attached to the error and names the parameter it objected to. The full log is in the job folder.</li>
+<li><strong>Set up environment fails</strong> — usually network or proxy; the error carries the tail of the pip log. You can point step 1 at a specific base interpreter (Python 3.10).</li>
+<li><strong>The two Channels have different shapes</strong> — elastix can still register them, but RMS before/after cannot be computed. The panel says the comparison is unavailable rather than showing 0.</li>
+<li><strong>Warped labels contain odd values</strong> — this should not happen: ROI and MultiROI warping is forced to nearest neighbour. If you see it, please report the job folder.</li>
+<li><strong>B-spline is slow</strong> — expected; it is an order of magnitude slower than rigid. Explore parameters at a low resolution/iteration count first.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>The <strong>whole volume is read into memory</strong> and written to the job folder as float32. Crop very large volumes first.</li>
+<li>Inputs must be <strong>published</strong> Channels; unpublished objects do not appear in the pickers.</li>
+<li><strong>Publishing is a separate step.</strong> Nothing is published automatically when a run finishes — choose it explicitly in step 6.</li>
+<li><strong>A moving mask automatically turns ErodeMask off</strong>, otherwise the mask erodes to nothing at the coarsest resolution and elastix reports that every sample fell outside the image.</li>
+<li>No registration algorithm is reimplemented here — elastix does the work; the plugin provides the Dragonfly integration and the parameter handling.</li>
+<li>Reinstalling the plugin refreshes the code and runner but <strong>keeps</strong> the venv and elastix_config.json.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<p>S. Klein, M. Staring, K. Murphy, M.A. Viergever, J.P.W. Pluim, &quot;elastix: a toolbox for intensity based medical image registration&quot;, IEEE Transactions on Medical Imaging, 29(1), pp. 196–205, 2010. Please cite it if you publish results obtained with this plugin. elastix and ITK are both Apache 2.0 licensed.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Elastix-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom Context Menus · Dragonfly Prototype Apps</title>
+<meta name="description" content="Custom Context Menus - User Manual Dragonfly Prototype Apps · Custom Context Menus... Version 1.1 · 2026-08-10 English Manual Contents 1. Introduction 2. U…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Custom Context Menus</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Custom Context Menus...</div>
+    <h1>Custom Context Menus</h1>
+    <div class="meta"><span class="badge">Version 1.1 · 2026-08-10</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-using-the-clipboard-entry">4. Using the clipboard entry</a></li><li class="t2"><a href="#5-cropping-a-sub-volume">5. Cropping a sub-volume</a></li><li class="t3"><a href="#what-happens-when-the-box-does-not-fit">What happens when the box does not fit</a></li><li class="t3"><a href="#what-is-preserved">What is preserved</a></li><li class="t3"><a href="#why-only-one-object-at-a-time">Why only one object at a time</a></li><li class="t2"><a href="#6-interface">6. Interface</a></li><li class="t2"><a href="#7-where-the-configuration-lives">7. Where the configuration lives</a></li><li class="t2"><a href="#8-how-it-works-and-what-it-is-not">8. How it works, and what it is not</a></li><li class="t2"><a href="#9-adding-more-actions-later">9. Adding more actions later</a></li><li class="t2"><a href="#10-limitations">10. Limitations</a></li></ul></nav>
+  <main class="manual"><p><strong>Custom Context Menus - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Custom Context Menus...</p>
+<p>Version 1.1 · 2026-08-10</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Adds your own entries to <strong>Dragonfly&#x27;s own context menus</strong> and manages them from one place: add, remove, enable, disable. Changes need no Dragonfly restart: on the view canvas they take effect immediately, and on the object list at your next right-click. The one thing that does need a restart is an entry appearing for the <strong>very first time</strong>, right after the plugin is installed or updated — see <em>Installation &amp; enabling</em>.</p>
+<p><strong>Two entries ship enabled, on two different menus.</strong> <em>Copy current view to clipboard</em> is on the 2D/3D <strong>view canvas</strong>: right-click a canvas, click it, and a screenshot of the view you right-clicked - at its own size on screen - is on the system clipboard, ready to paste into a report, an email, a chat or a slide. <em>Crop and create a sub-volume</em> is on the <strong>object list</strong> (Data Properties and Settings): right-click one image, ROI or Multi-ROI and cut a preset-sized block out of it in two clicks.</p>
+<p><strong>A marker shows which entries are ours - and this manual quotes names without it.</strong> Every entry this plugin adds is displayed with one glyph in front of its name, ● by default, so you can see at a glance that Prototype Apps added it and Dragonfly did not; Dragonfly&#x27;s own entries never carry one. So the first entry above is named <em>Copy current view to clipboard</em>, and with the default marker it reads ● Copy current view to clipboard on the menu. <strong>Every label quoted in this manual is the name, without the marker.</strong> That is deliberate: the marker is a display prefix only, and you can change it (•, ▪, @) or switch it off completely in the <strong>Mark our entries on Dragonfly&#x27;s menus</strong> group of the <em>1 Entries</em> tab, so the plain name is the one form that is correct whichever setting you chose - and it is also what the panel&#x27;s own list of entries shows. Changing it needs no restart, and the two routes differ by one right-click: the view-canvas entries are re-labelled immediately, and the object-list entry picks the new marker up the next time you right-click.</p>
+<p><strong>The source is never modified.</strong> Cropping publishes a NEW object and leaves the original exactly as it was.</p>
+<p><strong>No file, no object.</strong> Nothing is written to disk and nothing appears in Dragonfly&#x27;s object tree. The temporary image the capture needs is deleted immediately.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<p>Grabbing the same view over and over while writing a report, without going through <em>Export Screenshot of View</em>, choosing a folder, saving a file and then finding it again.</p>
+<p>Sending a colleague or a customer the view you are looking at, right now, in a chat window.</p>
+<p>Cutting a fixed-size cube out of a large dataset - a trial run before committing to a long computation, a training block for deep learning, or a region of interest to analyse on its own - without opening a full cropping tool and typing index ranges.</p>
+<p>Keeping the custom right-click features you will keep adding managed in one place, instead of installing a separate plugin for each one.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Open <strong>Prototype Apps ▸ App Store</strong>, find <em>Custom Context Menus</em> in the <strong>Menu Manager</strong> group, and enable it.</p>
+<p>2. Restart Dragonfly. Plugins are discovered at startup, so a restart is required.</p>
+<p>3. Nothing else is needed. The engine starts with Dragonfly and adds the enabled entries by itself; the panel does not have to be opened first.</p>
+<p>4. The panel is at <strong>Prototype Apps ▸ Custom Context Menus...</strong> if you want to add, remove or turn entries off.</p>
+<p>5. <strong>Crop and create a sub-volume</strong> appears in the object list&#x27;s right-click menu after that restart. Dragonfly reads a plugin&#x27;s menus only when it starts, so the very first appearance needs the restart; ticking and unticking the entry afterwards is immediate, like every other entry.</p>
+<p>No install, no internet, no GPU, no virtual environment — pure in-process PyQt6.</p>
+<h2 id="4-using-the-clipboard-entry">4. Using the clipboard entry</h2>
+<p>1. Right-click anywhere on a 2D or 3D view canvas.</p>
+<p>2. Click <strong>Copy current view to clipboard</strong> - shown with the marker in front of it, unless you switched the marker off - at the bottom of the menu below a separator.</p>
+<p>3. Paste with Ctrl+V into whatever you are writing.</p>
+<p>The captured image is the view&#x27;s actual size on screen, in device pixels. Right-clicking a view canvas makes that view the current view, which is how the entry knows which of several views you meant.</p>
+<p><strong>⚠ If the captured image looks blank the Log tab says so instead of leaving you to discover it after pasting. A view that has just been created or is mid-render can capture flat; right-click and copy again.</strong></p>
+<h2 id="5-cropping-a-sub-volume">5. Cropping a sub-volume</h2>
+<p>Select <strong>one</strong> image, ROI or Multi-ROI in the object list (Data Properties and Settings), right-click it, and choose <strong>Crop and create a sub-volume</strong> - again shown with the marker in front of it, unless you switched the marker off. It sits with Dragonfly&#x27;s own crop entries under <em>Modify and Transform</em>.</p>
+<p>1. Pick a size: <strong>300 x 300 x 300</strong>, <strong>400 x 400 x 400</strong>, <strong>500 x 500 x 500</strong>, or <strong>Custom</strong> for any size per axis.</p>
+<p>2. Leave the centre alone to crop around the source&#x27;s own centre, or set the X / Y / Z offsets. The offsets are in <strong>voxels</strong>: +1 on X moves the block one voxel towards higher X.</p>
+<p>3. Read the <strong>What will be created</strong> line. It updates as you type and gives the exact extent, the voxel count, the approximate size, and whether the source boundary decided any axis.</p>
+<p>4. Press <strong>Create the sub-volume</strong>. The new object appears in the object list, named <em>&lt;source&gt; crop 500x500x450</em>.</p>
+<h3 id="what-happens-when-the-box-does-not-fit">What happens when the box does not fit</h3>
+<p><strong>The source&#x27;s own boundary becomes the boundary of the new object, and nothing is padded.</strong> The result is the overlap between what you asked for and what exists, so it contains only real data.</p>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Source</th><th>Requested</th><th>Offset</th><th>Result</th></tr><tr><td>1000 x 1000 x 450</td><td>500 x 500 x 500</td><td>0, 0, 0</td><td>500 x 500 x 450 (clamped on Z)</td></tr><tr><td>300 x 200 x 100</td><td>500 x 500 x 500</td><td>0, 0, 0</td><td>300 x 200 x 100 (the whole source)</td></tr><tr><td>1000 x 1000 x 450</td><td>300 x 300 x 300</td><td>400, 0, 0</td><td>250 x 300 x 300 (clamped on X)</td></tr></table></div>
+<p>The dialog states this before you commit, naming the axis, so a smaller result is something you read rather than discover afterwards.</p>
+<p><strong>⚠ If an offset is large enough to push the box </strong><strong>completely outside</strong><strong> the source, the crop is </strong><strong>refused</strong><strong> and the dialog says which axis and which offsets would work. It is not quietly clamped down to a sliver - a box at 2250..2749 in a 1000-voxel axis would otherwise produce a 1-voxel object that looks like a successful crop.</strong></p>
+<h3 id="what-is-preserved">What is preserved</h3>
+<p>Voxel size, axis directions and the world origin are inherited from the source, so the sub-volume sits exactly where that part of the source sat and measurements stay comparable. Nothing is resampled or interpolated: the crop is Dragonfly&#x27;s own native subset operation, the same one the built-in <em>Crop...</em> uses.</p>
+<p>A Multi-ROI keeps its label names, colours and scalar values. A 4-D dataset is cropped on <strong>every</strong> time step, and the dialog says how many there are.</p>
+<h3 id="why-only-one-object-at-a-time">Why only one object at a time</h3>
+<p>The entry appears for exactly one image, ROI or Multi-ROI, and for nothing else - not for a mesh, not for a graph, not for an annotation, and not for a multi-selection. The dialog previews one result, and two objects rarely have the same extent, so the same box would mean a different crop for each of them and the preview would be right for at most one. Dragonfly&#x27;s own <em>Crop...</em> works the same way. When several objects that could be cropped are selected, the reason is written to Dragonfly&#x27;s Python log.</p>
+<h2 id="6-interface">6. Interface</h2>
+<p><strong>1 Entries</strong> - one row per entry: enabled tick box, its label, the action it performs, the menu it appears on, <strong>when it is shown</strong>, and whether it is built in or one you added. Tick and untick to turn an entry on and off, live. The <em>Shown when</em> column matters for the crop entry: it appears only for one selected image, ROI or Multi-ROI, so without that column a correctly working entry could look broken. <em>Add entry...</em> creates a new one, <em>Remove selected</em> deletes it, <em>Apply now</em> re-asserts everything, <em>Reset to defaults</em> returns to the two built-in entries.</p>
+<p><em>Add entry...</em> offers only the actions that can be aimed at a menu of your choosing. The crop entry is not among them: Dragonfly decides where it appears, so a second copy pointed somewhere else could not show up.</p>
+<p>The same tab carries <strong>Mark our entries on Dragonfly&#x27;s menus</strong>. <em>Marker in front of the name</em> offers the dot (the default), the bullet, the small square, the at sign, and <em>no marker</em> to turn the feature off; the line under it shows an entry exactly as the menu will render it, so you choose by what you will actually see. A change is immediate for the view-canvas entries, and the object-list entry picks it up the next time you right-click. <em>Reset to defaults</em> restores the marker along with the entries. The list of entries above stays plain whatever you choose - every entry in this panel is ours already, so a marker there would tell you nothing.</p>
+<p><strong>2 Discovered menus</strong> — every named menu alive in the running Dragonfly, with its objectName, how many instances exist, how many items it has, how many of them are ours, and its first few entries. This is where you find the objectName to aim a new entry at. The list comes from the running application, so it is right for the Dragonfly version you are using rather than a list fixed when the plugin was written. A menu Dragonfly has not built yet is not listed: open that part of the interface once, then press Refresh.</p>
+<p><strong>3 Log</strong> — the result of every click: which view was copied and at what size, or why it could not be. Also records entries being added, removed and re-asserted.</p>
+<h2 id="7-where-the-configuration-lives">7. Where the configuration lives</h2>
+<p>%LOCALAPPDATA%\DragonflyPrototypeLabs\CustomContextMenus\items.json, written atomically. It sits outside the plugin folder and outside the App Store&#x27;s package store, so it survives a plugin reinstall, an App Store update and a new Dragonfly version, and every installed Dragonfly version shares the same configuration.</p>
+<p>A corrupt or hand-edited file never leaves you without the feature: the entries fall back to the shipped default. A file written by an older build gains any newly shipped built-in entry, while an entry you deliberately turned off stays off.</p>
+<h2 id="8-how-it-works-and-what-it-is-not">8. How it works, and what it is not</h2>
+<p>This plugin adds to the context menus <strong>Dragonfly itself builds</strong>, and it uses whichever of Dragonfly&#x27;s two mechanisms actually fits the menu in question. They are not interchangeable.</p>
+<p><strong>The view canvas is native.</strong> Its menu is built by Dragonfly&#x27;s C++ code - the text <em>Export Screenshot of View</em> appears in no Python file in the whole installation - and the selection it offers is not something a Python contextual menu item will accept: all 182 installed subclasses decline it, and the canvas menu is identical whether or not an object is selected. So nothing written that way can appear there.</p>
+<p>It is, however, an ordinary Qt menu living in the same process as this plugin, so an entry can simply be added to it. Two measured details decide how: Dragonfly creates a <strong>new</strong> menu object for every right-click and keeps the old ones, and it does <strong>not</strong> emit Qt&#x27;s aboutToShow on them. So the plugin notices each menu as it is created and adds the entry then — which is why an entry appears without a restart, and why a menu Dragonfly rebuilds gets the entry straight back.</p>
+<p><strong>The object list is the opposite case.</strong> Its menu is built in Python and filled from the objects you have <strong>selected</strong>, which is exactly Dragonfly&#x27;s supported contextual-menu channel. So the crop entry is registered the official way, with the plugin itself deciding - each time you right-click - whether the selection is one image, ROI or Multi-ROI. There is no injection, no monitoring and no polling involved, and the entry can never land on a menu it was not meant for. Because Dragonfly reads a plugin&#x27;s menus at startup, that entry needs one restart the first time; after that, turning it on and off is immediate.</p>
+<p>Nothing existing is removed or altered. Only a separator and the entries you enabled are added, and only to the menus concerned. A Dragonfly restart clears everything the plugin did in memory; the configuration file is what brings the entries back.</p>
+<h2 id="9-adding-more-actions-later">9. Adding more actions later</h2>
+<p>The clipboard entry is the first of a growing set, and the plugin is built so a new action is a small, local change: one entry in the action table in custom_menus_core.py giving its English and Chinese label, a one-line description and the function to run. It then appears in <em>Add entry...</em> for every discovered menu, with no change to the panel, the persistence or the menu machinery.</p>
+<p>An entry on the object list is a little more than that, because Dragonfly - not this plugin - decides where it appears: it also needs registering with Dragonfly&#x27;s own contextual-menu mechanism, which is what allows it to state the exact selection it wants. The panel still lists and toggles it like any other entry.</p>
+<h2 id="10-limitations">10. Limitations</h2>
+<p>Entries can only be added to menus Dragonfly has already created, which is why the <em>Discovered menus</em> tab exists and why it asks you to open the relevant part of the interface first.</p>
+<p>The plugin does not remove or reorder Dragonfly&#x27;s own entries, and does not change what they do.</p>
+<p>On the view canvas an entry is added at the end of the menu; placement inside that menu is not configurable in this version. The crop entry&#x27;s position is decided by Dragonfly, which puts it with the other <em>Modify and Transform</em> tools.</p>
+<p>Cropping handles one object per run and only along the voxel axes - there is no rotated or arbitrary-shape crop here, and no resampling. Use Dragonfly&#x27;s own <em>Crop...</em> when you need to type exact index ranges, or its shape-based extraction for a rotated box.</p>
+<p>The crop entry needs one Dragonfly restart after the plugin is first installed or updated, because a plugin&#x27;s menus are read at startup.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CustomContextMenus-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

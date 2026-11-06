@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create Synthetic CAD Models (STEP) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Create Synthetic CAD Models (STEP) - User Manual Dragonfly Prototype Apps · Create Synthetic CAD Models (STEP)... Version 1.0 · 2026-07-26 English Manual C…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Create Synthetic CAD Models (STEP)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Create Synthetic CAD Models (STEP)...</div>
+    <h1>Create Synthetic CAD Models (STEP)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-available-shapes">2. Available shapes</a></li><li class="t2"><a href="#3-how-to-use">3. How to use</a></li><li class="t2"><a href="#4-requirements">4. Requirements</a></li><li class="t2"><a href="#5-tips">5. Tips</a></li></ul></nav>
+  <main class="manual"><p><strong>Create Synthetic CAD Models (STEP) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Create Synthetic CAD Models (STEP)...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Create Synthetic CAD Models (STEP)</strong> builds real CAD solids from a menu of preset <strong>parametric shapes/designs</strong> and writes them as <strong>STEP</strong> files. On Dragonfly 2027.1+, it can also load a STEP into the current scene as a Mesh with one click.</p>
+<p>Geometry is built with the open-source <strong>cadquery</strong> library (OpenCASCADE / cadquery-ocp, Apache-2.0), running in the plugin&#x27;s dedicated venv as a subprocess so it never touches Dragonfly&#x27;s own Python. All dimensions are in <strong>millimetres (mm)</strong>.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12, 3.13 or 3.14) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. Use at your own risk.</p>
+<h2 id="2-available-shapes">2. Available shapes</h2>
+<p>Shapes are organised into three groups in the dropdown:</p>
+<ul>
+<li><strong>Primitives</strong>: box, cylinder, sphere, cone/frustum, torus, square pyramid, wedge.</li>
+<li><strong>Mechanical Parts</strong>: hex bolt, hex nut, washer, spur gear, L-bracket, bolt-circle flange, pipe.</li>
+<li><strong>Test Artifacts</strong>: hole-array plate (CAD porosity phantom), step gauge, sphere-on-stem (CT), perforated cube, fillet/chamfer block.</li>
+</ul>
+<p>Selecting a shape lists its parameters (length/width/height, radius, tooth count, hole diameter, …) for you to edit.</p>
+<h2 id="3-how-to-use">3. How to use</h2>
+<p>1. Pick a shape/design from the dropdown and set its parameters.</p>
+<p>2. Confirm the STEP output folder under &#x27;Output&#x27; (or &#x27;Browse…&#x27;).</p>
+<p>3. First time only: click &#x27;⚙ Setup Environment&#x27; once to build the cadquery venv (needs internet, a few hundred MB).</p>
+<p>4. Click &#x27;<strong>Create CAD Model and Save STEP File</strong>&#x27; — a &lt;shape&gt;_&lt;timestamp&gt;.step appears in the chosen folder.</p>
+<p>5. (Optional) Click &#x27;<strong>Load to Dragonfly</strong>&#x27; to import the STEP you just created as a Mesh.</p>
+<h2 id="4-requirements">4. Requirements</h2>
+<p>The first &#x27;Setup Environment&#x27; builds a venv at %LOCALAPPDATA%\DragonflyPrototypeLabs\CreateSyntheticCAD\venv (a <strong>short</strong> path, to keep OpenCASCADE DLLs under the Windows MAX_PATH limit) from Dragonfly&#x27;s own Python and installs cadquery + numpy. After that, generation needs no internet and no GPU.</p>
+<p>&#x27;Load to Dragonfly&#x27; works only on <strong>Dragonfly 2027.1+</strong> (older versions have no STEP import). On older versions the button is disabled with a tooltip; the STEP file is still produced for use in other software.</p>
+<h2 id="5-tips">5. Tips</h2>
+<ul>
+<li>STEP is a B-rep (exact boundary) solid; loading into Dragonfly triangulates it into a Mesh via OpenCASCADE (MeshHelper.importSTEPFile).</li>
+<li>The STEP files are also ready for downstream meshing, FE/CFD simulation, reverse engineering, or as standard parts for algorithm testing.</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>CreateSyntheticCAD-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

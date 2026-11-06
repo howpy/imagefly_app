@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load Sanying CT Image Files · Dragonfly Prototype Apps</title>
+<meta name="description" content="Load Sanying CT Image Files - User Manual Dragonfly Prototype Apps · Load Sanying CT Image Files... Version 1.0 · 2026-07-26 English Manual Contents 1. Int…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Load Sanying CT Image Files</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Load Sanying CT Image Files...</div>
+    <h1>Load Sanying CT Image Files</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-26</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-how-dimensions-parameters-are-determined">2. How dimensions &amp; parameters are determined</a></li><li class="t2"><a href="#3-how-to-use">3. How to use</a></li><li class="t2"><a href="#4-requirements">4. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Load Sanying CT Image Files - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Load Sanying CT Image Files...</p>
+<p>Version 1.0 · 2026-07-26</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><strong>Load Sanying CT Image Files</strong> imports <strong>Sanying (三英) micro-CT reconstructed RAW volumes</strong> into Dragonfly. After reconstruction the Recon folder typically holds FdkRecon-&lt;type&gt;-&lt;X&gt;x&lt;Y&gt;x&lt;Z&gt;.raw (default ushort = 16-bit unsigned) and a Reconstruct.txt. The plugin auto-parses these, previews a mid-slice, and loads the volume as an image Channel.</p>
+<p>This feature is provided by a third party (Prototype Labs / Apps), not officially developed or supported by Dragonfly. Use at your own risk.</p>
+<h2 id="2-how-dimensions-parameters-are-determined">2. How dimensions &amp; parameters are determined</h2>
+<p>Parameters come from the [ReconstructItem] section of Reconstruct.txt plus the raw filename:</p>
+<ul>
+<li><strong>X = VoxelX, Y = VoxelY</strong> (always from the txt).</li>
+<li><strong>Z</strong>: for a circle-trajectory scan (CircleNum = 1) use VoxelZ; for a <strong>helical</strong> scan (CircleNum ≠ 1, e.g. 4) VoxelZ is wrong, so Z is the <strong>3rd integer in the raw filename</strong>.</li>
+<li><strong>Voxel size = VoxelDis</strong> (millimetres, isotropic).</li>
+<li><strong>Data type</strong> defaults to 16-bit unsigned (the ushort in the filename).</li>
+</ul>
+<p>The plugin also cross-checks against the <strong>file size</strong> and auto-corrects Z if needed. Every parameter is editable in the panel.</p>
+<h2 id="3-how-to-use">3. How to use</h2>
+<p>1. Click &#x27;Browse File…&#x27; to pick FdkRecon-*.raw, or &#x27;Browse Folder…&#x27; to pick the Recon folder (the raw is found automatically).</p>
+<p>2. Check the auto-detected dimensions / data type / byte order / voxel size / scan mode (edit if needed).</p>
+<p>3. For very large volumes, pick a <strong>Downsample</strong> factor or set <strong>Z from / Z to</strong> to load a sub-range; the estimated loaded size is shown.</p>
+<p>4. Use &#x27;Preview mid-slice&#x27; to confirm the read is correct.</p>
+<p>5. Click &#x27;<strong>Load into Dragonfly</strong>&#x27; — the volume appears as a new image Channel in the object list.</p>
+<h2 id="4-requirements">4. Requirements</h2>
+<p>No install, no internet, no GPU, no venv. Reads with Dragonfly&#x27;s own numpy via <strong>memory-mapping</strong>, slice-by-slice for big volumes; downsampling is stride subsampling, so peak memory ≈ one slice + the output volume.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>LoadSanyingCT-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Porosity Threshold Confidence · Dragonfly Prototype Apps</title>
+<meta name="description" content="Porosity Threshold Confidence - User Manual Dragonfly Prototype Apps · Porosity Threshold Confidence... Version 1.0 · 2026-08-01 English Manual Contents 1.…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Porosity Threshold Confidence</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Porosity Threshold Confidence...</div>
+    <h1>Porosity Threshold Confidence</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-08-01</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-inputs">1. Inputs</a></li><li class="t3"><a href="#2-calibration-preprocessing">2. Calibration &amp; Preprocessing</a></li><li class="t3"><a href="#3-parameters">3. Parameters</a></li><li class="t3"><a href="#4-preview-qc">4. Preview &amp; QC</a></li><li class="t3"><a href="#5-run">5. Run</a></li><li class="t3"><a href="#6-results-export">6. Results &amp; Export</a></li><li class="t3"><a href="#share-report">Share Report</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Porosity Threshold Confidence - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Porosity Threshold Confidence...</p>
+<p>Version 1.0 · 2026-08-01</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>A pore diameter or porosity figure obtained by thresholding is only as good as the threshold, and the usual workflow never tells you how much the number moved. This plugin sweeps the threshold and measures the pore <strong>identically</strong> at every step: largest connected pore, per-slice boundary extraction, least-squares circle fit.</p>
+<p><strong>The threshold-to-diameter curve is the real result.</strong> Its flat region is where the measurement is insensitive to the threshold, and the spread across that region is the real uncertainty. The single reported number is a summary of that flat region.</p>
+<p><strong>Circles are fitted in physical coordinates (mm).</strong> Fitting in voxel indices and multiplying by a spacing afterwards is only valid when the in-plane voxels are square; on anisotropic data it fits an ellipse to a circle and is wrong by the aspect ratio — and it looks perfectly fine on isotropic data.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>When a pore diameter or porosity figure needs a defensible uncertainty, not just a value.</li>
+<li>When comparing results between operators or thresholding methods, to see where the difference comes from.</li>
+<li>When checking a CT-measured aperture against SEM, CAD or a nominal figure.</li>
+<li>When a report or customer deliverable has to state how threshold-sensitive the measurement is.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install the Prototype Apps package (or tick this plugin in the App Store).</p>
+<p>2. This plugin is <strong>disabled by default</strong> — enable it in the App Store or the Menu Item Manager.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> (plugins are discovered at startup only).</p>
+<p>4. Open it from: Prototype Apps ▸ Porosity Threshold Confidence… (group: Measurements &amp; Analysis).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>Nothing to install or configure.</strong> It runs entirely in Dragonfly&#x27;s own Python using the NumPy and SciPy it already ships. No GPU, no virtual environment, and the analysis never touches the network. The one exception is the optional Share Report tab, which performs no computation: publishing opens a temporary Cloudflare quick tunnel, and the first use downloads Cloudflare&#x27;s cloudflared.exe (about 52 MB) after you confirm it.</p>
+<p>The header shows what this build supports (publishing ROIs and Channels). Unavailable actions are disabled.</p>
+<h2 id="5-interface">5. Interface</h2>
+<p>The header always shows the environment, the current input, the running task, a progress bar and <strong>Cancel</strong>. The six numbered steps are the first six tabs. A seventh tab, <strong>Share Report</strong>, is not a workflow step — it puts a finished report on the internet temporarily and does no analysis.</p>
+<h3 id="1-inputs">1. Inputs</h3>
+<p>Pick a Channel (<strong>published objects only</strong>), an optional restricting ROI, and the timestep. Shape, spacing, anisotropy and timestep count are shown.</p>
+<h3 id="2-calibration-preprocessing">2. Calibration &amp; Preprocessing</h3>
+<p>Pore polarity (dark or bright), a manual voxel size for objects without geometry, and optional Gaussian smoothing. <strong>Preprocessing acts on a working copy and never modifies the input object.</strong></p>
+<h3 id="3-parameters">3. Parameters</h3>
+<p>Sweep steps, sweep span (0 = automatic from the histogram), selection mode, reference diameter, plateau window, confidence level and connectivity, with an order-of-magnitude runtime and memory estimate.</p>
+<h3 id="4-preview-qc">4. Preview &amp; QC</h3>
+<p>A fast pass on downsampled data showing the curve and every warning. <strong>Nothing is published here</strong> and the export buttons stay disabled. Spacing is scaled with the downsampling, so the preview diameter is comparable to the full-resolution one.</p>
+<h3 id="5-run">5. Run</h3>
+<p>One line spelling out exactly what will run, then the full-resolution pass, cancellable at any time.</p>
+<h3 id="6-results-export">6. Results &amp; Export</h3>
+<p>The curve (plateau shaded, chosen threshold dashed), the results table, all warnings, a button to publish the best-threshold ROI, and exports: the report as HTML, Word or PDF (one button plus a format chooser), plus CSV and JSON.</p>
+<h3 id="share-report">Share Report</h3>
+<p>Serves the report you just generated from <strong>this</strong> computer through a Cloudflare quick tunnel, and hands back a temporary public address. Nothing is uploaded and no account is needed. While it is running <strong>anyone who has the link can read the report — there is no password</strong>, and the report contains your image data. Pressing <strong>Stop sharing</strong>, closing the window or quitting Dragonfly makes the address stop working permanently; it is never reissued. The link is only offered once this machine has confirmed the address answers, or has said plainly that it could not confirm it.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. In step 1 pick the Channel, adding a restricting ROI if useful.</p>
+<p>2. In step 2 confirm the pore polarity and the voxel size.</p>
+<p>3. In step 4 run a preview first and check the curve looks sensible with no &#x27;NOT round&#x27; warning.</p>
+<p>4. In step 5 run at full resolution.</p>
+<p>5. In step 6 read the diameter and its interval, noting that the discretisation bias is listed separately.</p>
+<p>6. Publish the ROI or export the HTML report.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Pore polarity</td><td>dark</td><td>dark / bright</td><td>whether pores sit below or above the threshold</td></tr><tr><td>Override voxel size</td><td>off</td><td>on / off</td><td>only for objects that carry no geometry</td></tr><tr><td>Smoothing sigma</td><td>0 (off)</td><td>0 … 10 voxels</td><td>Gaussian smoothing of the working copy, to calm noisy boundaries</td></tr><tr><td>Sweep steps</td><td>21</td><td>3 … 512</td><td>sample points across the threshold range; more is finer but slower</td></tr><tr><td>Sweep span</td><td>0 (auto)</td><td>0 … any</td><td>0 centres the sweep on Otsu and sizes it from the histogram percentiles</td></tr><tr><td>Selection mode</td><td>plateau</td><td>plateau / reference</td><td>plateau needs no ground truth; reference is a calibration</td></tr><tr><td>Reference diameter</td><td>0 (unused)</td><td>0 … 1e6 mm</td><td>the SEM / CAD / nominal aperture</td></tr><tr><td>Plateau window</td><td>5</td><td>3 … 99</td><td>width in steps of the sliding window used to find the flat region</td></tr><tr><td>Confidence level</td><td>0.95</td><td>0.50 … 0.999</td><td>t-based interval over the plateau</td></tr><tr><td>Connectivity</td><td>6-connected</td><td>6 / 26</td><td>how the largest connected pore is found</td></tr><tr><td>Preview downsample factor</td><td>2</td><td>1 … 8</td><td>affects step 4 only</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Output</th><th>Meaning</th></tr><tr><td>diameter</td><td>the fitted pore diameter in mm at the chosen threshold</td></tr><tr><td>threshold / Otsu threshold</td><td>the chosen threshold, and Otsu&#x27;s for reference</td></tr><tr><td>basis</td><td>how that threshold was chosen (plateau, or reference calibration)</td></tr><tr><td>confidence interval</td><td>t-based interval over the plateau — threshold sensitivity only</td></tr><tr><td>boundary deviation from a circle</td><td>fit residual relative to the radius; above 15% raises a warning</td></tr><tr><td>discretisation bias</td><td>the boundary uses voxel CENTRES, so the diameter is biased LOW by up to one voxel</td></tr><tr><td>best-threshold ROI</td><td>the largest connected pore at the chosen threshold, published as a new ROI</td></tr><tr><td>HTML / CSV / JSON</td><td>a self-contained report with an inline SVG curve (no external requests) plus the raw sweep</td></tr></table></div>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>&quot;NOT round&quot; warning</strong> — the thresholded region&#x27;s boundary deviates badly from a circle. A circle can be least-squares fitted to any closed blob, so this warning means the diameter is not a pore diameter. Check the polarity, the restricting ROI, and whether there is a round bore in this volume at all.</li>
+<li><strong>&quot;even the flattest part of the curve varies by x%&quot;</strong> — the measurement genuinely is threshold-sensitive. The interval is the honest uncertainty; do not quote the central value alone.</li>
+<li><strong>The result is about one voxel small</strong> — that is the discretisation bias, expected and listed separately in the results table. Acquire at a higher resolution if it matters.</li>
+<li><strong>Reference mode shows a tiny deviation</strong> — that is not evidence of accuracy: the threshold was picked to match that reference. To assess accuracy, use plateau mode and then compare.</li>
+<li><strong>No threshold produces a fittable pore</strong> — usually the polarity is inverted, or the restricting ROI excludes the pore.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>This measures a <strong>single, approximately circular pore</strong> (a drilled hole, a channel, a lumen). It is not a general pore-size-distribution tool.</li>
+<li>The <strong>whole volume is read into memory</strong>; crop very large volumes, or use the preview to settle parameters first.</li>
+<li>Inputs must be <strong>published</strong> Channels; unpublished objects do not appear in the picker.</li>
+<li><strong>The confidence interval covers threshold sensitivity only</strong> — not the discretisation bias, noise, or systematic error in the segmentation approach. The first two are listed separately.</li>
+<li>Neither preprocessing nor preview modifies the input object, and publishing is always an explicit step-6 action.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<p>The workflow was informed by the STFC Multi Threshold Comparator (BSD licence): https://edata.stfc.ac.uk/items/dbcef852-e77b-4ac6-9690-dd71eef54ab9 — no source code was copied and no Avizo or Hx API is needed at runtime. Thresholding: N. Otsu, IEEE Trans. SMC 9(1), 1979. Circle fitting: I. Kasa, IEEE Trans. Instrum. Meas. 25(1), 1976, with geometric refinement.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>PorosityConfidence-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

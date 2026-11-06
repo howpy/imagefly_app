@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pores to Surface Analysis · Dragonfly Prototype Apps</title>
+<meta name="description" content="Pores to Surface Analysis - User Manual Dragonfly Prototype Apps · Pores to Surface Analysis... Version 1.0 · 2026-09-01 English Manual Contents 1. Introdu…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Pores to Surface Analysis</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Pores to Surface Analysis...</div>
+    <h1>Pores to Surface Analysis</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-09-01</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-what-counts-as-solid-outside-and-a-pore">2. What counts as solid, outside and a pore</a></li><li class="t2"><a href="#3-the-distance-and-the-two-conventions">3. The distance, and the two conventions</a></li><li class="t2"><a href="#4-when-the-part-is-cut-by-the-field-of-view">4. When the part is cut by the field of view</a></li><li class="t2"><a href="#5-how-to-use-it">5. How to use it</a></li><li class="t2"><a href="#6-what-the-table-and-the-csv-contain">6. What the table and the CSV contain</a></li><li class="t2"><a href="#7-requirements">7. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Pores to Surface Analysis - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Pores to Surface Analysis...</p>
+<p>Version 1.0 · 2026-09-01</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>One workflow over <strong>one image channel</strong>: segment the solid, mark the cavities it encloses, turn them into a MultiROI, measure how far every pore is from the surface of the part, and screen the pores against a distance threshold.</p>
+<p>The five tabs <strong>are</strong> the workflow, and each one opens only once the step before it has produced something: <strong>1 Source → 2 Segment → 3 Distance → 4 Publish → 5 Analysis</strong>.</p>
+<p><strong>Nothing in the session is created or modified until you press Publish.</strong> Steps 2, 3 and 5 read the channel and compute; you can explore a threshold all day without touching the data.</p>
+<p><strong>Execute All Steps with Current Settings</strong> on the Source tab runs the whole workflow unattended - read the image, segment the solid and find the pores, measure the distance to the surface, publish - each step with whatever its own tab shows at the moment you press it. Publishing is the only step that writes to the session, and it is included on purpose: without it an unattended run would leave nothing behind. Every tab stays open at all times so the parameters can be read and changed BEFORE the run; a step whose input does not exist yet refuses when you press ITS button and says which step is missing.</p>
+<h2 id="2-what-counts-as-solid-outside-and-a-pore">2. What counts as solid, outside and a pore</h2>
+<p><strong>Solid</strong> is the material — for a casting, the metal. It is a threshold on the channel, optionally cleaned, and by default reduced to its largest connected component.</p>
+<p><strong>Outside</strong> is every background voxel whose background component reaches the border of the volume. That is the air around the part.</p>
+<p><strong>A pore</strong> is any other background component: one that never reaches the border, i.e. a cavity fully enclosed by the solid. The background is labelled once and both answers come out of that same pass, so the pore segmentation and the decision about what counts as outside cannot disagree with each other.</p>
+<p><strong>The part</strong> is the solid plus its pores, and the boundary of the part is the <strong>part surface</strong> every distance below is measured to.</p>
+<p><strong>⚠ </strong><strong>Keep only the largest solid component is ON by default, and that matters.</strong><strong> A speck of noise elsewhere in the volume is otherwise treated as its own little part, with its own cavities and its own surface — and those cavities are not in the casting at all.</strong></p>
+<h2 id="3-the-distance-and-the-two-conventions">3. The distance, and the two conventions</h2>
+<p>The question is &quot;how far is this pore from the surface of the part&quot;, and on a voxel grid that has two honest answers about one voxel apart. Both are computed and both are reported; neither is presented as &quot;the&quot; distance.</p>
+<ul>
+<li><strong>Distance to surface</strong> — from the pore&#x27;s surface to the part&#x27;s surface: the thinnest wall of material between the cavity and the outside. Surfaces are the voxel FACES, matched with a k-d tree. This is exact when the two surfaces are flat and parallel, which is the usual near-surface case; on an oblique staircase surface, face-centre sampling can overestimate by at most half a face diagonal.</li>
+<li><strong>Centre distance</strong> — from a pore voxel centre to an outside voxel centre. No surface model at all, so there is nothing in it to get wrong.</li>
+</ul>
+<p>The Distance tab prints the measured median difference between the two, next to one voxel step, so you can see for your own data that they behave as expected instead of taking it on trust.</p>
+<h2 id="4-when-the-part-is-cut-by-the-field-of-view">4. When the part is cut by the field of view</h2>
+<p><strong>⚠ </strong><strong>Where the part runs out of the scanned volume, that boundary is a CUT, not a surface of the part.</strong><strong> A pore 1 mm from the edge of the reconstruction is not 1 mm from the surface of the casting.</strong></p>
+<p>The cut is kept in the surface by default, so a distance is never silently taken to a far-away real surface instead — but it is flagged everywhere it matters: the run says what percentage of the surface is a cut, and each pore&#x27;s row says whether its own nearest surface point lies on the cut or on the part.</p>
+<p>Untick <strong>Count the edge of the reconstruction as part surface</strong> on the Distance tab to measure to real surfaces only. Both answers are legitimate and which one you want depends on the scan; what is not legitimate is not knowing which you got.</p>
+<h2 id="5-how-to-use-it">5. How to use it</h2>
+<p>1. <strong>1 Source</strong> — pick the image channel (press <strong>Refresh</strong> after publishing a new one) and the time step, then press <strong>Read this image</strong>. The panel shows the size, the voxel size and the value range. If the voxel size cannot be read, calibrate the dataset in Dragonfly first: the analysis is refused, because every distance would be meaningless.</p>
+<p>2. <strong>2 Segment</strong> — choose whether the material is the bright phase (usual for metal in CT), the dark phase, or a value band. Press <strong>Otsu</strong> for a starting threshold, or click on the histogram, or type the value. Adjust the clean-up if you need it, then press <strong>Segment the solid and find the pores</strong>. The report gives the pore count and the porosity; the preview shows solid / pore / outside.</p>
+<p>3. <strong>3 Distance</strong> — decide whether the edge of the reconstruction counts as part surface, then press <strong>Measure distance to the surface</strong>. The report gives the nearest, median and farthest pore, and states both conventions.</p>
+<p>4. <strong>4 Publish</strong> — set a name prefix and press <strong>Publish</strong>. The pores arrive as a MultiROI carrying the measurements; the solid and all pores can come as ROIs too.</p>
+<p>5. <strong>5 Analysis</strong> — set the distance threshold. Every pore closer to the surface than that is marked <strong>red</strong> across its whole row, and the summary counts them. <strong>Mark them red in the MultiROI</strong> recolours the same pores in the session, so the 3-D view and the table agree. <strong>Export CSV…</strong> writes every column plus a below-threshold flag.</p>
+<h2 id="6-what-the-table-and-the-csv-contain">6. What the table and the CSV contain</h2>
+<ul>
+<li><strong>Pore</strong> — the label number, the same one the published MultiROI uses.</li>
+<li><strong>Distance to surface (µm)</strong> and <strong>Centre distance (µm)</strong> — the two conventions above.</li>
+<li><strong>Equivalent diameter (µm)</strong> — the diameter of the equal-volume sphere (for a 2-D image, of the equal-area disc).</li>
+<li><strong>Volume (µm³)</strong> and <strong>Voxels</strong> — the pore&#x27;s size.</li>
+<li><strong>Centroid Z / Y / X (µm)</strong> — where to find it.</li>
+<li><strong>Nearest surface</strong> — <em>part</em> or <em>field-of-view cut</em>.</li>
+</ul>
+<h2 id="7-requirements">7. Requirements</h2>
+<p>No install, no internet, no GPU, no venv — in-process PyQt6 + numpy + scipy, all bundled with Dragonfly. Needs a published single-component grey image channel with a calibrated voxel size. A 2-D image (a single slice) is supported, and its own two Z faces are not mistaken for surfaces of the part.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>PoresToSurface-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

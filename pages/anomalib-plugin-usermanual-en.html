@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anomaly / Defect Detection (Anomalib) · Dragonfly Prototype Apps</title>
+<meta name="description" content="Anomaly / Defect Detection (Anomalib) - User Manual Dragonfly Prototype Apps · Anomaly / Defect Detection (Anomalib)... Version 1.0 · 2026-07-09 English Ma…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Anomaly / Defect Detection (Anomalib)</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Anomaly / Defect Detection (Anomalib)...</div>
+    <h1>Anomaly / Defect Detection (Anomalib)</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-09</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t2"><a href="#2-use-cases">2. Use Cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; Enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</a></li><li class="t3"><a href="#4-1-what-setup-environment-does">4.1 What Setup Environment does</a></li><li class="t3"><a href="#4-2-download-size-hardware-requirements">4.2 Download size &amp; hardware requirements</a></li><li class="t3"><a href="#4-3-fallbacks-when-setup-fails">4.3 Fallbacks when setup fails</a></li><li class="t2"><a href="#5-interface-guide">5. Interface Guide</a></li><li class="t3"><a href="#5-1-setup-tab">5.1 Setup tab</a></li><li class="t3"><a href="#5-2-train-tab">5.2 Train tab</a></li><li class="t3"><a href="#5-3-apply-tab">5.3 Apply tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-Step Usage</a></li><li class="t3"><a href="#6-1-train-an-anomaly-model">6.1 Train an anomaly model</a></li><li class="t3"><a href="#6-2-apply-the-model-to-detect-defects">6.2 Apply the model to detect defects</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter Reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; Known Limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>Anomaly / Defect Detection (Anomalib) - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Anomaly / Defect Detection (Anomalib)...</p>
+<p>Version 1.0 · 2026-07-09</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>Anomaly / Defect Detection (Anomalib)</strong> is a Dragonfly plugin for <strong>unsupervised</strong> anomaly / defect detection. The key idea: you <strong>only need a batch of defect-free (&quot;normal&quot;) images</strong> to train a model — <strong>no defect annotations required</strong>. Once trained, you apply the model to a test Channel: the plugin computes a per-slice <strong>anomaly heatmap</strong> (higher = more anomalous) and publishes it back as a new heatmap Channel, then thresholds it into a <strong>defect MultiROI</strong> ready for measurement and visualization.</p>
+<p>The underlying engine is the open-source <strong>Anomalib</strong> library (built on PyTorch / PyTorch-Lightning). Three anomaly-detection models are offered: <strong>PatchCore</strong>, <strong>PaDiM</strong>, and <strong>FastFlow</strong>. PatchCore and PaDiM are memory-bank / feature-distribution models that fit in a <strong>single forward pass</strong>; FastFlow is a normalizing-flow model trained by gradient descent over <strong>Epochs</strong>.</p>
+<p>The plugin is primarily for <strong>2D images</strong>; a 3D Channel is processed <strong>slice/slab-wise</strong>: each z-slice is treated as an independent image, its anomaly map computed, then stacked back onto the source grid. All heavy computation (PyTorch CUDA + Anomalib) runs in the plugin&#x27;s <strong>own isolated virtual environment (venv) subprocess</strong>, talking to the panel via file-based JSON IPC, and <strong>never in Dragonfly&#x27;s bundled Python</strong> — so it neither pollutes nor slows down Dragonfly itself.</p>
+<p>On Dragonfly 2027.1 (Python 3.14) the bundled Python cannot build this environment: install a python.org Python (3.12 or 3.13) and enter it in the panel&#x27;s Base Python field; Dragonfly 2025.1 needs no separate Python.</p>
+<p><strong>Licensing note:</strong> Anomalib, PyTorch, torchvision and the rest are open-source libraries installed into the isolated environment by Setup Environment over the internet. The plugin <strong>bundles none</strong> of them and <strong>bundles no pretrained weights</strong> — pretrained backbone weights are downloaded automatically by Anomalib inside that environment at first train/apply. Please observe the licenses of each upstream library and its weights.</p>
+<h2 id="2-use-cases">2. Use Cases</h2>
+<p>This plugin is especially useful when <strong>normal samples are plentiful but defect examples are rare</strong> — you cannot collect enough labeled examples of every defect, but you have many good (in-spec) parts. Train on the good parts, and the model automatically locates regions that deviate from &quot;normal&quot;. Typical applications:</p>
+<ul>
+<li><strong>Industrial and materials CT / microscopy images</strong>: cracks, pores, inclusions, or foreign objects;</li>
+<li><strong>Castings and additive-manufactured (3D-printed) parts</strong>: surface or internal defects;</li>
+<li><strong>Semiconductor, electronics, and surface-quality inspection</strong>: deviation detection;</li>
+<li>Any quality-inspection task where defects are rare but good parts abound — train a &quot;normality&quot; model on the good parts, then flag anomalous regions.</li>
+</ul>
+<p>An unsupervised method flags everything that deviates from normal — this can be a real defect or merely a rare-but-valid structural variation. Combine threshold tuning with visual review to confirm results.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; Enabling</h2>
+<p>This plugin ships as part of the <strong>Prototype Apps Full Package</strong>. To install:</p>
+<p><strong>1. </strong>Unzip the package into any <strong>short</strong> folder (e.g. C:\PL\) to avoid &quot;path too long&quot; errors.</p>
+<p><strong>2. </strong>Double-click <strong>`Install_FullPackage.bat`</strong>.</p>
+<p><strong>3. </strong>In the dialog, choose a core install mode (<strong>Fresh</strong> or <strong>Compatible</strong>) and <strong>tick</strong> &quot;Anomaly / Defect Detection (Anomalib)...&quot; in the app list. Note: <strong>all plugins are OFF by default</strong> — you must tick it to enable it.</p>
+<p><strong>4. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>5. </strong><strong>Quit and restart Dragonfly completely</strong> (menus are only scanned at startup).</p>
+<p>After the restart, the plugin appears at <strong>Prototype Apps ▸ Anomaly / Defect Detection (Anomalib)...</strong> (in the Detection group, alongside detection plugins like LocateAnything and SCRFD). Clicking it opens a dockable / floating panel.</p>
+<p><strong>Changing the enable state later:</strong> the easiest way is inside Dragonfly — open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick / untick this plugin in the &quot;Prototype Apps (Full Package)&quot; list, then restart Dragonfly. Disabling <strong>never</strong> deletes the plugin&#x27;s built environment, so re-enabling is instant. You can also re-run the installer anytime to change your choices.</p>
+<p>Enabling / disabling a menu entry only affects whether the menu appears; it does <strong>not</strong> touch the plugin&#x27;s environment (venv) or settings. Disabling then re-enabling does not require re-running Setup Environment.</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime Environment &amp; First-Run Setup</h2>
+<p>The plugin uses a <strong>venv-in-code</strong> isolation model: the heavy ML dependencies are never installed into Dragonfly. Before first use you must build this environment on the <strong>Setup</strong> tab.</p>
+<h3 id="4-1-what-setup-environment-does">4.1 What Setup Environment does</h3>
+<p>Clicking <strong>Setup Environment (build venv + install torch + anomalib)</strong> on the Setup tab will:</p>
+<p><strong>1. </strong>Create an isolated venv using a <strong>base Python</strong> (by default <strong>Dragonfly&#x27;s own `Python_env\python.exe`</strong>, so no separate Python install is needed);</p>
+<p><strong>2. </strong>Upgrade pip / setuptools / wheel inside the venv;</p>
+<p><strong>3. </strong>Install <strong>torch + torchvision</strong> from the CUDA wheel index (default https://download.pytorch.org/whl/cu124);</p>
+<p><strong>4. </strong>Install the rest of the stack (<strong>anomalib</strong> + numpy, etc.);</p>
+<p><strong>5. </strong>Run an import smoke test reporting the torch version, whether CUDA is available, and the GPU name, then fill the venv python path back into the panel.</p>
+<p>The venv is created in a venv\ sub-folder inside the installed plugin code directory (%LOCALAPPDATA%\comet\&lt;Dragonfly version&gt;\pythonUserExtensions\GenericMenuItems\Anomalib\venv). On success, the venv python path shows in the &quot;Anomalib venv python&quot; field and is persisted.</p>
+<h3 id="4-2-download-size-hardware-requirements">4.2 Download size &amp; hardware requirements</h3>
+<p>The first Setup needs <strong>internet</strong> and downloads torch CUDA wheels + anomalib, totaling <strong>several GB</strong> and taking a few minutes. Training / applying needs an <strong>NVIDIA GPU</strong>; a CPU can run inference (apply) only, but slowly.</p>
+<p><strong>Pretrained weights are not bundled:</strong> the pretrained backbone weights Anomalib uses (e.g. the PatchCore / PaDiM feature extractor, FastFlow&#x27;s timm backbone) are <strong>downloaded lazily inside that venv at first train/apply</strong> — so the first train/apply also needs internet.</p>
+<h3 id="4-3-fallbacks-when-setup-fails">4.3 Fallbacks when setup fails</h3>
+<ul>
+<li><strong>Base Python (build) field:</strong> leave blank to use the current Dragonfly&#x27;s own python (recommended). If that Python lacks venv or the build fails, enter another CPython 3.9+ path (e.g. C:\Python312\python.exe) or write py -3.12.</li>
+<li><strong>Torch CUDA wheel index field:</strong> if your driver targets a different CUDA version, change the URL to match (e.g. replace cu124 with cu121).</li>
+<li><strong>venv rebuild:</strong> if a previous venv was only half-built (has python.exe but no working pip), clicking Setup Environment again <strong>rebuilds</strong> it automatically — no manual cleanup needed.</li>
+<li><strong>Run mode:</strong> offers windows (default, shipped) and wsl; only <strong>windows</strong> is supported in the shipped build.</li>
+</ul>
+<h2 id="5-interface-guide">5. Interface Guide</h2>
+<p>The top of the panel shows a blue note summarizing the train-then-apply flow. Below it are three tabs <strong>Setup / Train / Apply</strong>; at the very bottom sit a green <strong>result summary</strong> line and a read-only <strong>log</strong> view that streams progress and messages.</p>
+<h3 id="5-1-setup-tab">5.1 Setup tab</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Description</th></tr><tr><td>Anomalib venv python</td><td>Text field</td><td>The venv&#x27;s python path; filled automatically by Setup Environment — usually no need to edit.</td></tr><tr><td>Base Python (build)</td><td>Text field</td><td>Base Python used to build the venv; blank = use the current Dragonfly&#x27;s own python.exe (recommended).</td></tr><tr><td>Run mode</td><td>Dropdown</td><td>Run mode; windows (default) / wsl. Only windows is supported.</td></tr><tr><td>Torch CUDA wheel index</td><td>Text field</td><td>The CUDA wheel index for torch; default https://download.pytorch.org/whl/cu124.</td></tr><tr><td>Setup Environment</td><td>Button</td><td>Builds the venv and installs torch + torchvision + anomalib.</td></tr></table></div>
+<h3 id="5-2-train-tab">5.2 Train tab</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default / Range</th><th>Description</th></tr><tr><td>Output folder</td><td>Text + Browse</td><td>C:\AnomalibWorkspace</td><td>Workspace output folder; intermediates and the model folder are saved here.</td></tr><tr><td>Refresh channels</td><td>Button</td><td>-</td><td>Rescan the current scene&#x27;s Channels and refresh the dropdowns.</td></tr><tr><td>Normal-image Channel</td><td>Dropdown</td><td>(Channels in scene)</td><td>Select the defect-free (normal) image Channel to train on.</td></tr><tr><td>Model</td><td>Dropdown</td><td>PatchCore</td><td>Anomaly model: PatchCore / PaDiM / FastFlow.</td></tr><tr><td>Image size (px)</td><td>Spin box</td><td>256 (range 64-1024, step 32)</td><td>The side length images are resized to for training / inference.</td></tr><tr><td>Epochs (FastFlow only; 0 = default)</td><td>Spin box</td><td>0 (0-500; 0 shows as default)</td><td>Training epochs; only effective for FastFlow — disabled for other models.</td></tr><tr><td>Train</td><td>Button</td><td>-</td><td>Start training; on completion the model folder is pre-filled on the Apply tab.</td></tr></table></div>
+<h3 id="5-3-apply-tab">5.3 Apply tab</h3>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Control</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td>Model folder</td><td>Text + Browse</td><td>(auto-filled after Train)</td><td>The trained model folder produced by Train.</td></tr><tr><td>Model (must match Train)</td><td>Dropdown</td><td>PatchCore</td><td>Model used for apply; must match the one used for training.</td></tr><tr><td>Test Channel</td><td>Dropdown + Refresh</td><td>(Channels in scene)</td><td>Select the test Channel to inspect.</td></tr><tr><td>Threshold mode</td><td>Dropdown</td><td>auto</td><td>Threshold mode: auto (F1-optimal) / manual (fixed value).</td></tr><tr><td>Manual threshold (0-1)</td><td>Spin box</td><td>0.5 (0.000-1.000, step 0.05)</td><td>Manual threshold; enabled only in manual mode.</td></tr><tr><td>Heatmap title</td><td>Text field</td><td>(blank = Anomaly_heatmap)</td><td>Title of the output heatmap Channel.</td></tr><tr><td>Defect ROI title</td><td>Text field</td><td>(blank = Anomaly_defects)</td><td>Title of the output defect MultiROI.</td></tr><tr><td>Apply -&gt; heatmap Channel + defect MultiROI</td><td>Button</td><td>-</td><td>Apply the model and publish the heatmap Channel and defect MultiROI.</td></tr></table></div>
+<h2 id="6-step-by-step-usage">6. Step-by-Step Usage</h2>
+<h3 id="6-1-train-an-anomaly-model">6.1 Train an anomaly model</h3>
+<p><strong>Input required:</strong> a Channel containing only <strong>defect-free (normal) images</strong>. A 2D Channel is one image; a 3D Channel treats each z-slice as one normal image.</p>
+<p><strong>1. </strong>Open the panel, go to the <strong>Setup</strong> tab, and on first use click <strong>Setup Environment</strong> and wait for the environment to build (see Chapter 4).</p>
+<p><strong>2. </strong>Switch to the <strong>Train</strong> tab and set the <strong>Output folder</strong> (workspace).</p>
+<p><strong>3. </strong>Click <strong>Refresh channels</strong> and pick your normal-image Channel in <strong>Normal-image Channel</strong>.</p>
+<p><strong>4. </strong>Choose a <strong>Model</strong> (default PatchCore); adjust <strong>Image size</strong> if needed; if you chose FastFlow, set <strong>Epochs</strong>.</p>
+<p><strong>5. </strong>Click <strong>Train</strong>. The plugin exports the normal Channel to an (n,y,x) image stack and hands it to the venv runner to fit the model; the log shows progress (epoch, AUROC, F1).</p>
+<p><strong>6. </strong>On completion the result line reads &quot;Trained.&quot; and the trained model folder is <strong>pre-filled on the Apply tab</strong>, with the model selector kept in sync.</p>
+<h3 id="6-2-apply-the-model-to-detect-defects">6.2 Apply the model to detect defects</h3>
+<p><strong>Input required:</strong> a test Channel to inspect, and a model folder produced by Train.</p>
+<p><strong>1. </strong>Switch to the <strong>Apply</strong> tab, confirm <strong>Model folder</strong> points to the trained model folder (usually already filled), and that <strong>Model</strong> matches the training model.</p>
+<p><strong>2. </strong>Click <strong>Refresh</strong> and pick the Channel to inspect in <strong>Test Channel</strong>.</p>
+<p><strong>3. </strong>Choose a <strong>Threshold mode</strong>: auto lets the model pick the F1-optimal threshold; manual lets you enter a fixed 0-1 value in <strong>Manual threshold</strong>.</p>
+<p><strong>4. </strong>Optionally set <strong>Heatmap title</strong> and <strong>Defect ROI title</strong> (blank uses the default names).</p>
+<p><strong>5. </strong>Click <strong>Apply</strong>. The plugin exports the test Channel, runs inference slice by slice in the venv, normalizes the anomaly map to [0,1], and thresholds it into a binary mask.</p>
+<p><strong>6. </strong>On completion the plugin publishes an <strong>anomaly heatmap Channel</strong> and a <strong>defect MultiROI</strong> into the scene, and the result line reports the threshold used and the number of defect slices.</p>
+<h2 id="7-parameter-reference">7. Parameter Reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Description</th></tr><tr><td>Base Python (build)</td><td>blank = Dragonfly&#x27;s own python</td><td>Base interpreter that builds the venv; must be CPython 3.9+ with stdlib venv + pip.</td></tr><tr><td>Torch CUDA wheel index</td><td>https://download.pytorch.org/whl/cu124</td><td>The CUDA wheel index for torch / torchvision; should match your driver&#x27;s CUDA version.</td></tr><tr><td>Run mode</td><td>windows</td><td>Run mode; only windows is supported (wsl is a reserved option).</td></tr><tr><td>Output folder</td><td>C:\AnomalibWorkspace</td><td>Workspace for training / applying; holds intermediates and the model folder.</td></tr><tr><td>Model</td><td>PatchCore</td><td>Anomaly model: PatchCore / PaDiM (single-pass fit) or FastFlow (epoch-based).</td></tr><tr><td>Image size (px)</td><td>256</td><td>The side length images are resized to for training / inference; range 64-1024, step 32.</td></tr><tr><td>Epochs</td><td>0 (default)</td><td>Training epochs; only FastFlow uses it, 0 means default (FastFlow&#x27;s default is ~50); other models always fit in one pass.</td></tr><tr><td>Threshold mode</td><td>auto</td><td>auto = use the model&#x27;s fitted F1-optimal threshold; manual = use the value below.</td></tr><tr><td>Manual threshold (0-1)</td><td>0.5</td><td>Manual threshold in the normalized anomaly-score space [0,1]; score &gt;= threshold is a defect. Enabled only in manual mode.</td></tr><tr><td>Heatmap title</td><td>Anomaly_heatmap</td><td>Title of the output heatmap Channel (default if left blank).</td></tr><tr><td>Defect ROI title</td><td>Anomaly_defects</td><td>Title of the output defect MultiROI (default if left blank).</td></tr></table></div>
+<p>The threshold acts on the <strong>anomaly score normalized to [0,1]</strong> (0 = most normal, 1 = most anomalous), so a manual threshold should also be in 0-1; values outside that range are clamped to [0,1].</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>After a successful <strong>Apply</strong>, the plugin creates two kinds of objects in the Dragonfly scene (on the source Channel&#x27;s grid / spacing / origin):</p>
+<ul>
+<li><strong>Anomaly heatmap Channel</strong> (default title Anomaly_heatmap): a per-slice anomaly-score map normalized to [0,1] — higher = more anomalous. It can be overlaid in 2D / 3D views or displayed with a color LUT to visualize the anomaly distribution.</li>
+<li><strong>Defect MultiROI</strong> (default title Anomaly_defects): the binary defect mask from thresholding the heatmap, marking regions judged anomalous. Ready for measurement (area / volume / count) and visualization.</li>
+</ul>
+<p>The result summary line reports the threshold used and &quot;defect slices / total slices&quot;. All intermediate files (the exported image stack, heatmap and mask .npy files, logs) are saved under timestamped apply_* / train_* sub-folders in the Output folder, along with the model_* model folder.</p>
+<p>The <strong>Train</strong> output is a model_&lt;name&gt; folder containing the fitted checkpoint plus an anomalib_model.json recording the model name; that folder is the &quot;Model folder&quot; the Apply tab needs.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; Troubleshooting</h2>
+<p><strong>Q: Clicking Train / Apply says &quot;venv not set. Run Setup Environment first.&quot;</strong></p>
+<p>A: The isolated environment hasn&#x27;t been built. Go to the <strong>Setup</strong> tab, click <strong>Setup Environment</strong>, and wait for it to finish — the venv python path fills in automatically — then train / apply.</p>
+<p><strong>Q: Setup Environment fails, saying venv creation failed or there is no venv module.</strong></p>
+<p>A: The chosen base Python lacks stdlib venv or pip. Enter another CPython 3.9+ in <strong>Base Python (build)</strong> (e.g. C:\Python312\python.exe) and retry; if a venv was half-built, clicking the button again rebuilds it automatically.</p>
+<p><strong>Q: torch install fails, or it reports CUDA is not available.</strong></p>
+<p>A: Confirm the machine has an NVIDIA GPU with a working driver, and set <strong>Torch CUDA wheel index</strong> to match your driver&#x27;s CUDA version (e.g. cu121 / cu124). A CPU can run inference only (slowly). The first train / apply also needs internet to download pretrained weights.</p>
+<p><strong>Q: I don&#x27;t see my Channel in the Train / Apply dropdown.</strong></p>
+<p>A: Click <strong>Refresh channels / Refresh</strong> to rescan the current scene, and confirm the Channel is loaded. Train needs a normal (defect-free) image Channel; Apply needs the test Channel to inspect.</p>
+<p><strong>Q: Too many false positives / too few detections — how do I tune it?</strong></p>
+<p>A: Switch <strong>Threshold mode</strong> to <strong>manual</strong> and adjust <strong>Manual threshold</strong>: raising it reduces false positives (marks fewer regions), lowering it is more sensitive (marks more). You can also try a different model or a larger Image size.</p>
+<p><strong>Q: Apply reports &quot;apply finished but no anomaly heatmap was produced&quot;.</strong></p>
+<p>A: The runner produced no heatmap. Check that Model folder is a valid trained-model folder, that Model matches the training model, and read the log for the detailed error (e.g. missing input, CUDA out of memory).</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; Known Limitations</h2>
+<ul>
+<li><strong>Nature of unsupervised detection:</strong> the model only learns &quot;what is normal&quot;; anything deviating from the normal distribution is flagged — real defects and rare-but-valid variations alike. Combine thresholds with visual review.</li>
+<li><strong>Primarily 2D:</strong> a 3D Channel is processed slice by slice and stacked back, without modeling 3D context across slices.</li>
+<li><strong>Model must match:</strong> the Model selected for Apply must match the one used to train, otherwise the checkpoint cannot load correctly.</li>
+<li><strong>Epochs affect FastFlow only:</strong> PatchCore / PaDiM fit in a single pass; setting epochs has no effect (the field is auto-disabled).</li>
+<li><strong>Hardware &amp; VRAM:</strong> training / inference needs an NVIDIA GPU; PatchCore memory banks can be large, so watch VRAM for big images or datasets; Apply infers one slice at a time to bound memory.</li>
+<li><strong>First-run internet:</strong> the first Setup and the first train / apply both require internet (to download dependencies and pretrained weights).</li>
+<li><strong>Anomalib is version-sensitive:</strong> Anomalib&#x27;s API varies across versions and requirements do not pin an exact version; if upstream changes cause issues, re-run Setup Environment.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>Anomalib (anomaly detection library): https://github.com/openvinotoolkit/anomalib</li>
+<li>PyTorch: https://pytorch.org</li>
+<li>PyTorch CUDA wheel index: https://download.pytorch.org/whl/cu124</li>
+<li>PatchCore: Roth et al., &quot;Towards Total Recall in Industrial Anomaly Detection&quot; (2022)</li>
+<li>PaDiM: Defard et al., &quot;PaDiM: a Patch Distribution Modeling Framework for Anomaly Detection and Localization&quot; (2020)</li>
+<li>FastFlow: Yu et al., &quot;FastFlow: Unsupervised Anomaly Detection and Localization via 2D Normalizing Flows&quot; (2021)</li>
+</ul>
+<p>The UI controls, parameter defaults, and workflow described in this manual reflect the plugin&#x27;s current implementation.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>Anomalib-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROI to MultiROI via OpenPNM/SNOW · Dragonfly Prototype Apps</title>
+<meta name="description" content="ROI to MultiROI via OpenPNM/SNOW - User Manual Dragonfly Prototype Apps · ROI to MultiROI via OpenPNM/SNOW... Version 1.0 · 2026-07-05 English Manual Conte…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">ROI to MultiROI via OpenPNM/SNOW</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · ROI to MultiROI via OpenPNM/SNOW...</div>
+    <h1>ROI to MultiROI via OpenPNM/SNOW</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-07-05</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-overview">1. Overview</a></li><li class="t3"><a href="#engine-algorithm">Engine &amp; algorithm</a></li><li class="t3"><a href="#licensing">Licensing</a></li><li class="t2"><a href="#2-typical-scenarios">2. Typical scenarios</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-environment-first-time-setup">4. Environment &amp; first-time setup</a></li><li class="t3"><a href="#dependencies">Dependencies</a></li><li class="t3"><a href="#check-before-first-use">Check before first use</a></li><li class="t2"><a href="#5-interface-reference">5. Interface reference</a></li><li class="t3"><a href="#5-1-1-dependencies-tab">5.1 &#x27;1 Dependencies&#x27; tab</a></li><li class="t3"><a href="#5-2-2-input-roi-tab">5.2 &#x27;2 Input ROI&#x27; tab</a></li><li class="t3"><a href="#5-3-3-snow-tab">5.3 &#x27;3 SNOW&#x27; tab</a></li><li class="t3"><a href="#5-4-4-output-tab">5.4 &#x27;4 Output&#x27; tab</a></li><li class="t2"><a href="#6-step-by-step-usage">6. Step-by-step usage</a></li><li class="t2"><a href="#7-parameter-reference">7. Parameter reference</a></li><li class="t2"><a href="#8-outputs">8. Outputs</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>ROI to MultiROI via OpenPNM/SNOW - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · ROI to MultiROI via OpenPNM/SNOW...</p>
+<p>Version 1.0 · 2026-07-05</p>
+<p><br></p>
+<h2 id="1-overview">1. Overview</h2>
+<p><strong>ROI to MultiROI via OpenPNM/SNOW</strong> is a Dragonfly plugin that exposes the <strong>SNOW pore-body partitioning</strong> step of Dragonfly&#x27;s existing OpenPNM/PoreSpy pore-network workflow as a single, focused GUI tool.</p>
+<p>In short: you select one segmented <strong>ROI</strong> (a binary mask of the pore/body phase), the plugin runs Dragonfly&#x27;s bundled PoreSpy snow_partitioning to split the connected pore space into individual pore bodies, and converts those region labels into a Dragonfly <strong>MultiROI</strong> (one label per pore body). It also runs OpenPNM&#x27;s regions_to_network and writes each numeric pore property into a MultiROI <strong>scalar slot</strong>, so you can colour, filter, and measure the bodies by property.</p>
+<p>A <strong>Generate graph</strong> option additionally publishes an OpenPNM pore-network <strong>Graph</strong> (vertices = pore bodies, edges = throats) with vertex/edge scalar slots, and best-effort adds a vertex <strong>Connectivity</strong> scalar.</p>
+<h3 id="engine-algorithm">Engine &amp; algorithm</h3>
+<ul>
+<li><strong>PoreSpy</strong> porespy.filters.snow_partitioning: the SNOW (Sub-Network of an Over-segmented Watershed) partitioning that splits the connected pore space into individual pore-body region labels;</li>
+<li><strong>OpenPNM</strong> porespy.networks.regions_to_network + an OpenPNM Network: extracts the pore network and its numeric properties (used for the scalar slots);</li>
+<li><strong>ORS helpers (Dragonfly object model)</strong>: convert the region labels to a MultiROI, write the scalar slots, and optionally create the Graph.</li>
+</ul>
+<p>The compute layer (snow_logic.py) is ORS-free and imports PoreSpy/OpenPNM lazily; the heavy SNOW computation runs on a panel worker thread while ORSModel object access is marshalled back to the Qt thread to keep the UI responsive.</p>
+<h3 id="licensing">Licensing</h3>
+<p>The plugin bundles and downloads nothing; it <strong>reuses PoreSpy, OpenPNM, and NumPy already present in Dragonfly&#x27;s own Python</strong>. PoreSpy and OpenPNM are both MIT-licensed open-source projects, so the plugin adds no extra licensing obligation — follow the terms of Dragonfly and its bundled OpenPNM/PoreSpy components.</p>
+<h2 id="2-typical-scenarios">2. Typical scenarios</h2>
+<p>Use this plugin whenever you have a <strong>connected pore/body structure already segmented into a single ROI</strong> and want to split it into individual bodies for further analysis:</p>
+<ul>
+<li>Pore-space analysis of porous materials (rock cores, foams, ceramics, electrodes, filters, etc.);</li>
+<li>Grain/pore structures where a connected region must be split into individual bodies and measured one by one;</li>
+<li>Any binary ROI where you want pore/body-level MultiROI labels to colour, filter, or measure by pore property;</li>
+<li>Cases needing an OpenPNM pore-network Graph (body-throat topology) for later OpenPNM or Dragonfly network analysis.</li>
+</ul>
+<p>It is especially handy for users of Dragonfly Script Builder&#x27;s OpenPNM/PoreSpy SNOW workflow: this plugin packages the SNOW step into a one-click panel with the same parameters and behaviour, sparing you the manual recipe assembly.</p>
+<p>SNOW assumes the ROI mask represents the pore/body phase (selected via the phase value). If your target phase uses a different label value in the ROI, set &#x27;ROI phase value&#x27; accordingly.</p>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>The plugin ships as part of <strong>Prototype Apps</strong> and is best installed with the <strong>Full Package</strong> installer:</p>
+<p><strong>1. </strong>Unzip the Full Package to any (short) folder and double-click Install_FullPackage.bat.</p>
+<p><strong>2. </strong>In the installer dialog, pick the core install mode (Fresh / Compatible) and <strong>tick</strong> &#x27;ROI to MultiROI via OpenPNM/SNOW&#x27; in the app list. All plugins are unticked by default, so this one must be enabled manually.</p>
+<p><strong>3. </strong>Click <strong>Install</strong> and wait for the console to finish.</p>
+<p><strong>4. </strong><strong>Quit Dragonfly completely and restart it</strong> (menus are scanned only at startup).</p>
+<p>After the restart, open <strong>Prototype Apps ▸ ROI to MultiROI via OpenPNM/SNOW...</strong> (under the <strong>Measurements &amp; Analysis</strong> group) to show the dockable panel.</p>
+<p>To enable/disable it later, the easiest way is inside Dragonfly: open <strong>Developer ▸ Prototype Labs... ▸ Menu Item Manager</strong> and tick/untick the plugin in the &#x27;Prototype Apps (Full Package)&#x27; list, then restart Dragonfly. Disabling it does not touch Dragonfly&#x27;s own OpenPNM/PoreSpy components.</p>
+<p>Developers / advanced users can also run the install script directly (from the plugin folder):</p>
+<p>python install_roi_to_multiroi_snow_plugin.py</p>
+<p># to remove:</p>
+<p>python install_roi_to_multiroi_snow_plugin.py --uninstall</p>
+<h2 id="4-environment-first-time-setup">4. Environment &amp; first-time setup</h2>
+<p>This is an <strong>in-process</strong> plugin: it <strong>creates no venv, downloads nothing, and has no Setup Environment step</strong>. It runs directly inside Dragonfly&#x27;s own Python interpreter.</p>
+<h3 id="dependencies">Dependencies</h3>
+<p>It requires Dragonfly&#x27;s bundled Python to already include <strong>PoreSpy, OpenPNM, NumPy</strong>, and the ORS helper modules used by Dragonfly&#x27;s OpenPNM integration — the same requirement as the existing Script Builder SNOW block. If you can run that OpenPNM/PoreSpy workflow inside Dragonfly, this plugin will work.</p>
+<ul>
+<li><strong>Internet</strong>: not needed (nothing is downloaded).</li>
+<li><strong>GPU</strong>: not needed (SNOW/OpenPNM run on the CPU).</li>
+<li><strong>External software</strong>: no Fiji / ImageJ / Java / WSL.</li>
+</ul>
+<h3 id="check-before-first-use">Check before first use</h3>
+<p>Open the panel and look at the <strong>&#x27;1 Dependencies&#x27;</strong> tab: it auto-detects and reports whether PoreSpy and OpenPNM are available, with versions. If it shows <strong>MISSING</strong>, install or enable Dragonfly&#x27;s OpenPNM/PoreSpy components, restart Dragonfly, then click <strong>Check Dependencies</strong> to re-verify.</p>
+<p>Settings are saved to snow_roi_config.json in the plugin code folder (remembering your last parameters and checkbox states) and restored the next time you open the panel.</p>
+<h2 id="5-interface-reference">5. Interface reference</h2>
+<p>The panel has a one-line description at the top, four wizard-style tabs in the middle (1 Dependencies, 2 Input ROI, 3 SNOW, 4 Output), and at the bottom a green status line plus a read-only log box (progress and errors).</p>
+<h3 id="5-1-1-dependencies-tab">5.1 &#x27;1 Dependencies&#x27; tab</h3>
+<ul>
+<li><strong>Status</strong>: shows PoreSpy / OpenPNM availability and version, or the reason they are missing;</li>
+<li><strong>Check Dependencies</strong> button: re-runs the check (click it after installing/enabling components and restarting Dragonfly).</li>
+</ul>
+<h3 id="5-2-2-input-roi-tab">5.2 &#x27;2 Input ROI&#x27; tab</h3>
+<ul>
+<li><strong>Input ROI</strong> dropdown + <strong>Refresh</strong> button: pick the input ROI (each entry shows title and shape); Refresh re-enumerates all ROIs in Dragonfly;</li>
+<li><strong>Time step</strong>: time index for multi-timepoint data, range 0-1000000, default <strong>0</strong>;</li>
+<li><strong>ROI phase value</strong>: the label value of the pore/body phase in the ROI, range 0-255, default <strong>1</strong>;</li>
+<li><strong>Output MultiROI</strong>: title for the output MultiROI; blank = &lt;ROI&gt;_PoreSpy_SNOW_PoreBodies.</li>
+</ul>
+<h3 id="5-3-3-snow-tab">5.3 &#x27;3 SNOW&#x27; tab</h3>
+<ul>
+<li><strong>SNOW r_max</strong>: maximum radius for SNOW peak detection (integer), range 1-1000, default <strong>4</strong>;</li>
+<li><strong>Gaussian sigma</strong>: sigma of the Gaussian smoothing of the distance map (float, 3 decimals, step 0.1), range 0-100, default <strong>0.4</strong>;</li>
+<li><strong>Trim isolated / disconnected pores from the OpenPNM network</strong> checkbox, default <strong>off</strong>.</li>
+</ul>
+<p>The MultiROI is generated from SNOW region labels; even if you only want the MultiROI, regions_to_network still runs because the per-pore scalar measurements come from the OpenPNM network.</p>
+<h3 id="5-4-4-output-tab">5.4 &#x27;4 Output&#x27; tab</h3>
+<ul>
+<li><strong>Generate graph</strong>: also publish the OpenPNM pore-network Graph (checkbox), default <strong>on</strong>;</li>
+<li><strong>Graph title</strong>: title for the Graph; blank = Graph of &lt;ROI&gt;_PoreSpy_SNOW;</li>
+<li><strong>Publish results into Dragonfly</strong>: publish the result objects into Dragonfly (checkbox), default <strong>on</strong>;</li>
+<li><strong>Show only newly created object(s)</strong>: after the run, show only the new objects (checkbox), default <strong>on</strong>;</li>
+<li><strong>Run SNOW + Create MultiROI</strong> (blue button): start the run;</li>
+<li><strong>Summary table</strong> (Metric / Value): shows key metrics such as the number of pore bodies once the run finishes.</li>
+</ul>
+<h2 id="6-step-by-step-usage">6. Step-by-step usage</h2>
+<p><strong>1. </strong>Make sure a segmented ROI (the pore/body phase) already exists in Dragonfly.</p>
+<p><strong>2. </strong>Open <strong>Prototype Apps ▸ ROI to MultiROI via OpenPNM/SNOW...</strong>.</p>
+<p><strong>3. </strong>On the <strong>1 Dependencies</strong> tab, confirm PoreSpy and OpenPNM are both OK.</p>
+<p><strong>4. </strong>Go to <strong>2 Input ROI</strong>: select the input ROI from the dropdown (click Refresh if needed); set Time step for multi-timepoint data; set ROI phase value to the pore-phase label; optionally type an output MultiROI name.</p>
+<p><strong>5. </strong>Go to <strong>3 SNOW</strong>: set r_max and Gaussian sigma; tick Trim to drop isolated bodies if desired.</p>
+<p><strong>6. </strong>Go to <strong>4 Output</strong>: choose whether to Generate graph, Publish, and Show only new objects, and optionally set a Graph title.</p>
+<p><strong>7. </strong>Click <strong>Run SNOW + Create MultiROI</strong>. Watch progress in the log box at the bottom; the buttons are disabled while running.</p>
+<p><strong>8. </strong>When it finishes, read the summary table for the pore-body count; the status line reports the MultiROI (and Graph) titles. Inspect the new objects in Dragonfly&#x27;s object tree.</p>
+<h2 id="7-parameter-reference">7. Parameter reference</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range / type</th><th>Description</th></tr><tr><td>Input ROI</td><td>(none)</td><td>dropdown</td><td>The input ROI; one must be selected</td></tr><tr><td>Time step</td><td>0</td><td>0-1000000 int</td><td>Time index for multi-timepoint data</td></tr><tr><td>ROI phase value</td><td>1</td><td>0-255 int</td><td>Label value of the pore/body phase in the ROI</td></tr><tr><td>Output MultiROI</td><td>(blank)</td><td>text</td><td>Output name; blank = &lt;ROI&gt;_PoreSpy_SNOW_PoreBodies</td></tr><tr><td>SNOW r_max</td><td>4</td><td>1-1000 int</td><td>Maximum radius for SNOW peak detection</td></tr><tr><td>Gaussian sigma</td><td>0.4</td><td>0-100 float</td><td>Sigma of the distance-map Gaussian smoothing</td></tr><tr><td>Trim isolated pores</td><td>off</td><td>checkbox</td><td>Drop isolated/disconnected bodies</td></tr><tr><td>Generate graph</td><td>on</td><td>checkbox</td><td>Also publish the OpenPNM pore-network Graph</td></tr><tr><td>Graph title</td><td>(blank)</td><td>text</td><td>Graph name; blank = Graph of &lt;ROI&gt;_PoreSpy_SNOW</td></tr><tr><td>Publish results into Dragonfly</td><td>on</td><td>checkbox</td><td>Publish the result objects into Dragonfly</td></tr><tr><td>Show only newly created object(s)</td><td>on</td><td>checkbox</td><td>After the run, show only the new objects</td></tr></table></div>
+<p>Anisotropic voxels: regions_to_network uses the X spacing as voxel_size, matching Dragonfly&#x27;s existing OpenPNM block; a warning is logged when anisotropic spacing is detected.</p>
+<h2 id="8-outputs">8. Outputs</h2>
+<p>On success, the plugin creates the following objects in Dragonfly:</p>
+<ul>
+<li><strong>MultiROI</strong>: pore-body labels from the SNOW region map — one label per body, ready to view, colour, and measure by label in Dragonfly;</li>
+<li><strong>MultiROI scalar slots</strong>: each numeric pore property from regions_to_network is written to its own scalar slot (described by the property name, with a dimension unit where available), mapped onto the bodies by SNOW region label. Switch slots in the MultiROI to colour bodies by, e.g., their size;</li>
+<li><strong>Graph (optional, when Generate graph is ticked)</strong>: the OpenPNM pore network — vertices = pore bodies, edges = throats, with vertex/edge numeric properties in their own scalar slots; a vertex <strong>Connectivity</strong> scalar is added when Dragonfly exposes the matching helper/menu item or fallback API.</li>
+</ul>
+<p>With <strong>Publish results into Dragonfly</strong> ticked, these objects appear in the object tree; with <strong>Show only newly created object(s)</strong> also ticked, the view shows only what this run created, for immediate inspection.</p>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<p><strong>Q: The Dependencies tab reports PoreSpy/OpenPNM MISSING. What now?</strong></p>
+<p>A: The current Dragonfly Python lacks those libraries. Install or enable Dragonfly&#x27;s OpenPNM/PoreSpy components (the same prerequisite as the Script Builder SNOW block), <strong>restart Dragonfly</strong>, then click <strong>Check Dependencies</strong> to re-verify.</p>
+<p><strong>Q: Clicking Run says &#x27;Select a ROI first&#x27;.</strong></p>
+<p>A: No input ROI is selected. On the <strong>2 Input ROI</strong> tab click <strong>Refresh</strong>, then pick an ROI from the dropdown. If the list is empty, confirm that ROI objects actually exist in Dragonfly.</p>
+<p><strong>Q: I get too many tiny bodies (over-segmentation) or too few merged blobs (under-segmentation).</strong></p>
+<p>A: This is controlled by the SNOW parameters. For over-segmentation, increase <strong>Gaussian sigma</strong> or <strong>r_max</strong> to merge nearby peaks; for under-segmentation, decrease them. Adjust in small steps and watch the pore-body count in the summary table.</p>
+<p><strong>Q: The log warns &#x27;anisotropic spacing detected&#x27;.</strong></p>
+<p>A: This is informational, not an error. When the voxel spacing differs across axes, OpenPNM&#x27;s voxel_size uses the X spacing (matching Dragonfly&#x27;s existing OpenPNM block). If your data is strongly anisotropic, be aware the absolute network size metrics are affected.</p>
+<p><strong>Q: The MultiROI is created but there is no Graph.</strong></p>
+<p>A: Confirm <strong>Generate graph</strong> is ticked on the <strong>4 Output</strong> tab. Graph creation also needs Dragonfly APIs such as Graph, ArrayUnsignedLong, and the scalar helpers; if the current Dragonfly version lacks them, the plugin still creates the MultiROI but skips the Graph.</p>
+<p><strong>Q: The wrong phase is segmented and the result is almost empty.</strong></p>
+<p>A: Usually the <strong>ROI phase value</strong> does not match the actual pore-phase label. Check the label value of the pore/body phase in the ROI and set it on the 2 Input ROI tab.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>The plugin <strong>always</strong> creates a MultiROI and <strong>always</strong> runs regions_to_network (because the per-body scalar measurements come from the OpenPNM network); unticking Generate graph only skips the Dragonfly Graph creation/publication;</li>
+<li>SNOW assumes the ROI mask represents the pore/body phase indicated by the selected phase value;</li>
+<li>For anisotropic voxels, regions_to_network receives the X spacing as voxel_size (matching the existing Script Builder block);</li>
+<li>Graph generation depends on Dragonfly&#x27;s Graph, ArrayUnsignedLong, and scalar helper APIs; it is skipped when those are unavailable;</li>
+<li>The plugin has no bundled environment; its availability depends entirely on PoreSpy/OpenPNM being ready in Dragonfly&#x27;s own Python.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>PoreSpy docs (snow_partitioning / regions_to_network): https://porespy.org</li>
+<li>OpenPNM docs (Network / regions_to_network): https://openpnm.org</li>
+<li>Gostick et al., original SNOW algorithm paper: Physical Review E 96, 023307 (2017)</li>
+<li>Dragonfly Script Builder&#x27;s OpenPNM/PoreSpy SNOW workflow (the source this plugin&#x27;s SNOW step is packaged from)</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ROI-to-MultiROI-SNOW-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

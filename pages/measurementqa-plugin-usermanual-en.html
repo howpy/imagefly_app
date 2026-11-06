@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Measurement &amp; Acquisition QA · Dragonfly Prototype Apps</title>
+<meta name="description" content="3D Measurement &amp; Acquisition QA - User Manual Dragonfly Prototype Apps · 3D Measurement &amp; Acquisition QA... Version 1.0 · 2026-08-01 English Manual Content…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">3D Measurement &amp; Acquisition QA</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · 3D Measurement &amp; Acquisition QA...</div>
+    <h1>3D Measurement &amp; Acquisition QA</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-08-01</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-setup-data">1. Setup &amp; Data</a></li><li class="t3"><a href="#2-image-quality">2. Image Quality</a></li><li class="t3"><a href="#3-granularity">3. Granularity</a></li><li class="t3"><a href="#4-radial-distribution">4. Radial Distribution</a></li><li class="t3"><a href="#5-batch-qc-rules">5. Batch QC Rules</a></li><li class="t3"><a href="#6-results-export">6. Results &amp; Export</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>3D Measurement &amp; Acquisition QA - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · 3D Measurement &amp; Acquisition QA...</p>
+<p>Version 1.0 · 2026-08-01</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Before anything is measured, this plugin answers a more basic question: <strong>is this acquisition good enough to measure?</strong> It checks focus, saturation, noise and spectrum, reports the dominant structure scale, and examines how intensity is distributed inside each object.</p>
+<p>The panel is six numbered steps. Changing anything upstream invalidates the results below it, so an exported number always matches the settings on screen; long analyses run on a worker thread, and cancel or failure publishes nothing.</p>
+<p>Voxel spacing is read from Dragonfly&#x27;s geometry. <strong>Anisotropic data is genuinely resampled</strong> where a metric needs isotropy, instead of averaging the three spacings and calling the result a physical length — that number would not be a length.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Screen a batch of scans before analysis: catch out-of-focus, clipped or noisy data early.</li>
+<li>Multi-channel imaging: check for bleed-through or misalignment via channel correlation.</li>
+<li>Find the dominant particle or pore scale with 3D granulometry.</li>
+<li>See whether intensity inside an object is uniform or edge-loaded: shells, coatings, stain penetration depth.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install the Prototype Apps package (or tick this plugin in the App Store).</p>
+<p>2. The plugin is <strong>disabled by default</strong> — enable it in the App Store or the Menu Item Manager.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> (plugins are discovered at startup only).</p>
+<p>4. Open it from Prototype Apps ▸ 3D Measurement &amp; Acquisition QA… (group: Measurements &amp; Analysis).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>Nothing to install or configure.</strong> It runs entirely in Dragonfly&#x27;s own Python using the NumPy and SciPy it already ships. No internet, no download, no GPU, no virtual environment.</p>
+<p>The <strong>Environment</strong> line reports what is available (channel publishing, MultiROI reading). Anything unavailable disables the matching feature and says why.</p>
+<h2 id="5-interface">5. Interface</h2>
+<p>A fixed header shows the environment, the current input, the current task, a progress bar and <strong>Cancel</strong>.</p>
+<h3 id="1-setup-data">1. Setup &amp; Data</h3>
+<p>Pick a Channel (published objects only), optionally an ROI mask and a MultiROI, and a timestep. The shape, the three spacings, whether the data is anisotropic and the timestep count are shown, and the granulometry radius range is derived from the voxel size.</p>
+<h3 id="2-image-quality">2. Image Quality</h3>
+<p>Focus (global plus the minimum, median and 5th percentile over blocks), saturation (low and high counted separately), intensity statistics, noise (MAD x 1.4826) and SNR, and the power-spectrum slope.</p>
+<h3 id="3-granularity">3. Granularity</h3>
+<p>Grey openings over a series of <strong>physical</strong> radii give the retained curve, the size spectrum and the peak radius. The radius range follows the voxel size, and a radius too large for the data is skipped with an explicit message rather than exhausting memory.</p>
+<h3 id="4-radial-distribution">4. Radial Distribution</h3>
+<p>For each MultiROI label, intensity fraction and mean over <strong>equal-volume</strong> concentric shells, plus the radial CV. Equal volume rather than equal thickness, otherwise the outermost shell always dominates simply by being bigger.</p>
+<h3 id="5-batch-qc-rules">5. Batch QC Rules</h3>
+<p>Threshold rules applied to the step-2 metrics give pass / warn / fail with the triggering reason. A metric a rule names but the measurement does not provide is reported as <strong>missing</strong>, never as a pass.</p>
+<h3 id="6-results-export">6. Results &amp; Export</h3>
+<p>Publish a focus or noise Channel (a new object inheriting the source geometry), or export CSV, JSON and a self-contained HTML report.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Step 1: choose the Channel (and an ROI mask / MultiROI if needed).</p>
+<p>2. Step 2: run image quality; read saturation and SNR first.</p>
+<p>3. Step 3: run granularity and read the peak radius.</p>
+<p>4. Step 4 (needs a MultiROI): run the radial distribution.</p>
+<p>5. Step 5: set thresholds and run the batch QC.</p>
+<p>6. Step 6: publish a map or export a report.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Meaning</th></tr><tr><td>Timestep</td><td>0</td><td>0…T−1</td><td>Which frame of a multi-timestep dataset to analyse</td></tr><tr><td>Max radius</td><td>voxel x 8</td><td>voxel … voxel x 32</td><td>Largest structuring-element radius for granulometry, in physical units</td></tr><tr><td>Radius step</td><td>voxel</td><td>voxel … x64</td><td>Spacing between successive radii</td></tr><tr><td>Resample to isotropic</td><td>on</td><td>on / off</td><td>Resample anisotropic data first; with it off the result is not a physical length</td></tr><tr><td>Shells per object</td><td>8</td><td>2…64</td><td>Number of equal-volume shells for the radial distribution</td></tr><tr><td>Intensity-weighted center</td><td>on</td><td>on / off</td><td>Off uses the geometric centroid</td></tr><tr><td>saturated fraction &gt;</td><td>0.01</td><td>0…1</td><td>Fail threshold for the clipped fraction</td></tr><tr><td>SNR &lt;</td><td>3.0</td><td>0…1000</td><td>Fail threshold for signal-to-noise</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<ul>
+<li><strong>Focus / noise Channel</strong>: a newly published Channel inheriting the source spacing and geometry. The source is never modified.</li>
+<li><strong>CSV</strong>: image-quality metrics, the granulometry curve, and per-label per-shell radial values.</li>
+<li><strong>JSON</strong>: the full structured result set.</li>
+<li><strong>HTML</strong>: a self-contained report containing only the steps that actually ran.</li>
+</ul>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<p><strong>My channel is not listed.</strong> Only <strong>published</strong> objects appear; publish it, then press Refresh in step 1.</p>
+<p><strong>Granularity says radii were skipped.</strong> In voxels those radii exceed the cap (32 voxels, and never more than half the shortest volume axis). Downsample first, or lower the maximum radius.</p>
+<p><strong>The step-4 button is greyed out.</strong> The radial distribution needs a MultiROI; select one in step 1.</p>
+<p><strong>SNR is blank.</strong> The noise estimate was zero (perfectly flat synthetic data, for instance), which makes SNR meaningless.</p>
+<p><strong>The QC table shows &#x27;missing&#x27;.</strong> A rule names a metric this run did not measure; the plugin will not treat that as a pass.</p>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>This plugin does <strong>not</strong> compute Radiomics texture features (GLCM/GLRLM and friends) — the MultiROI Label Classifier owns those, and duplicating them would give one quantity two numbers.</li>
+<li>It does not do spatial-relationship analysis (the CPC plugin) or segmentation comparison (the MiC plugin).</li>
+<li>The structuring element is capped at 32 voxels and at half the shortest volume axis; for larger structures, downsample first.</li>
+<li>The power-spectrum slope depends on field of view and windowing. It is meant for comparing scans <strong>within one batch</strong>, not as an absolute number across instruments.</li>
+<li>Saturation is judged against the storage dtype&#x27;s range; float data has no intrinsic range, so the observed minimum and maximum are used.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<ul>
+<li>CellProfiler&#x27;s MeasureImageQuality / MeasureGranularity / MeasureObjectIntensityDistribution module documentation, used only as a reference for <strong>which quantities matter</strong> — no source was used: https://cellprofiler-manual.s3.amazonaws.com/CellProfiler-4.2.8/modules/measurement.html</li>
+<li>Matheron, G. — the mathematical-morphology basis of granulometry</li>
+<li>SciPy ndimage morphology and filter documentation</li>
+</ul></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>MeasurementQA-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

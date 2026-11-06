@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BounTI Hard Tissue Segmentation · Dragonfly Prototype Apps</title>
+<meta name="description" content="BounTI Hard Tissue Segmentation - User Manual Dragonfly Prototype Apps · BounTI Hard Tissue Segmentation... Version 1.0 · 2026-08-02 English Manual Content…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">BounTI Hard Tissue Segmentation</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · BounTI Hard Tissue Segmentation...</div>
+    <h1>BounTI Hard Tissue Segmentation</h1>
+    <div class="meta"><span class="badge">Version 1.0 · 2026-08-02</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-use-cases">2. Use cases</a></li><li class="t2"><a href="#3-installation-enabling">3. Installation &amp; enabling</a></li><li class="t2"><a href="#4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</a></li><li class="t2"><a href="#5-interface">5. Interface</a></li><li class="t3"><a href="#1-inputs">1. Inputs</a></li><li class="t3"><a href="#2-calibration-preprocessing">2. Calibration &amp; Preprocessing</a></li><li class="t3"><a href="#3-parameters">3. Parameters</a></li><li class="t3"><a href="#4-preview-qc">4. Preview &amp; QC</a></li><li class="t3"><a href="#5-run">5. Run</a></li><li class="t3"><a href="#6-results-export">6. Results &amp; Export</a></li><li class="t2"><a href="#6-how-to-use">6. How to use</a></li><li class="t2"><a href="#7-parameters">7. Parameters</a></li><li class="t2"><a href="#8-output">8. Output</a></li><li class="t2"><a href="#9-faq-troubleshooting">9. FAQ &amp; troubleshooting</a></li><li class="t2"><a href="#10-notes-known-limitations">10. Notes &amp; known limitations</a></li><li class="t2"><a href="#11-references">11. References</a></li></ul></nav>
+  <main class="manual"><p><strong>BounTI Hard Tissue Segmentation - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · BounTI Hard Tissue Segmentation...</p>
+<p>Version 1.0 · 2026-08-02</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Separates touching hard-tissue elements that a single threshold merges into one blob — the individual bones of a skull, for instance. Following BounTI: seed at a <strong>high threshold</strong> where only the dense cores survive and the elements are still apart, keep the largest N, then lower the threshold step by step, growing the existing labels into newly-revealed voxels while never letting two labels merge.</p>
+<p><strong>This is a separation tool</strong> — it decides which element each voxel belongs to — and computes no bone morphometry (BV/TV, Tb.Th, Tb.Sp, connectivity density and so on).</p>
+<p><strong>The label-collision rule is the algorithm.</strong> When two objects both reach the same voxel something has to break the tie, and different rules give different answers, so the choice is left explicitly to the user. The default leaves contested voxels unassigned — the plugin never invents a boundary position — and reports how many there were.</p>
+<h2 id="2-use-cases">2. Use cases</h2>
+<ul>
+<li>Separating the individual bones of a skull in CT.</li>
+<li>Splitting touching teeth, ossification centres or other dense structures.</li>
+<li>Anywhere a single threshold fuses dense objects that should be distinct.</li>
+</ul>
+<h2 id="3-installation-enabling">3. Installation &amp; enabling</h2>
+<p>1. Install the Prototype Apps package (or tick this plugin in the App Store).</p>
+<p>2. This plugin is <strong>disabled by default</strong> — enable it in the App Store or the Menu Item Manager.</p>
+<p>3. <strong>Restart Dragonfly completely</strong> (plugins are discovered at startup only).</p>
+<h2 id="4-runtime-environment-first-run-setup">4. Runtime environment &amp; first-run setup</h2>
+<p><strong>Nothing to install or configure.</strong> It runs entirely in Dragonfly&#x27;s own Python using the NumPy and SciPy it already ships. No internet, no download, no GPU, no virtual environment.</p>
+<h2 id="5-interface">5. Interface</h2>
+<h3 id="1-inputs">1. Inputs</h3>
+<p>Choose the Channel and an optional restricting ROI (published objects only), plus the timestep.</p>
+<h3 id="2-calibration-preprocessing">2. Calibration &amp; Preprocessing</h3>
+<p>Confirm the voxel size, or set it by hand for objects without geometry.</p>
+<h3 id="3-parameters">3. Parameters</h3>
+<p>Seed threshold (high), final threshold (low), number of objects, threshold steps, connectivity, minimum seed size, and the label-collision rule.</p>
+<h3 id="4-preview-qc">4. Preview &amp; QC</h3>
+<p>A fast pass on downsampled data with a short ladder. <strong>Nothing is published.</strong></p>
+<h3 id="5-run">5. Run</h3>
+<p>The full ladder at full resolution, cancellable at any time.</p>
+<h3 id="6-results-export">6. Results &amp; Export</h3>
+<p>Per-object voxel count, volume, seed size and growth factor; publish the final MultiROI and the seeds; export the object table (CSV) and JSON.</p>
+<h2 id="6-how-to-use">6. How to use</h2>
+<p>1. Pick the Channel in step 1.</p>
+<p>2. In step 3 set the seed threshold where only the dense cores survive and they are separate.</p>
+<p>3. Preview in step 4 and confirm the right number of seeds was found.</p>
+<p>4. Run at full resolution in step 5.</p>
+<p>5. Check the contested-voxel count in step 6, then publish or export.</p>
+<h2 id="7-parameters">7. Parameters</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col><col></colgroup><tr><th>Parameter</th><th>Default</th><th>Meaning</th></tr><tr><td>Seed threshold (high)</td><td>200</td><td>where only the dense cores survive and elements are still apart</td></tr><tr><td>Final threshold (low)</td><td>80</td><td>where growth stops; must be below the seed threshold</td></tr><tr><td>Number of objects</td><td>2</td><td>keep the largest N seeds</td></tr><tr><td>Threshold steps</td><td>10</td><td>levels between the seed and final thresholds</td></tr><tr><td>Connectivity</td><td>6-connected</td><td>how connectivity and growth directions are judged</td></tr><tr><td>Minimum seed size</td><td>1</td><td>seeds smaller than this are discarded</td></tr><tr><td>Label collision rule</td><td>boundary (unassigned)</td><td>or nearest object, or most confident object</td></tr></table></div>
+<h2 id="8-output">8. Output</h2>
+<div class="tablewrap"><table class="param"><colgroup><col><col></colgroup><tr><th>Output</th><th>Meaning</th></tr><tr><td>Final MultiROI</td><td>which element each voxel belongs to</td></tr><tr><td>Seeds MultiROI</td><td>the initial high-threshold seeds, for checking</td></tr><tr><td>Object table</td><td>voxels, volume, seed size and growth factor per object</td></tr><tr><td>Contested voxels</td><td>how many voxels more than one object reached</td></tr><tr><td>Growth curves</td><td>each object&#x27;s volume at every threshold level</td></tr></table></div>
+<h2 id="9-faq-troubleshooting">9. FAQ &amp; troubleshooting</h2>
+<ul>
+<li><strong>Fewer seeds than requested</strong> — the seed threshold is too low and the cores have not separated; raise it, or ask for fewer objects.</li>
+<li><strong>&quot;seed threshold must be HIGHER than the final threshold&quot;</strong> — the method works downwards; the two values are the wrong way round.</li>
+<li><strong>A very large contested set</strong> — those elements genuinely touch there, so the boundary is a choice rather than a measurement. Interpret accordingly.</li>
+<li><strong>Voxels above the final threshold left unassigned</strong> — they are not connected to any seed.</li>
+</ul>
+<h2 id="10-notes-known-limitations">10. Notes &amp; known limitations</h2>
+<ul>
+<li>The whole volume is read into memory; crop large data or settle parameters with the preview.</li>
+<li>Inputs must be <strong>published</strong> Channels.</li>
+<li>Publishing is always an explicit step-6 action.</li>
+<li>Growth is order-independent: the result does not depend on how the labels are numbered.</li>
+</ul>
+<h2 id="11-references">11. References</h2>
+<p>The method follows BounTI by Didziokas et al. (MIT): https://github.com/Didziokas/BounTI — no source was copied. Please cite the BounTI authors&#x27; publication if you publish results obtained with this method.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>BounTI-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>

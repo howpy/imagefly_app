@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Exporter · Dragonfly Prototype Apps</title>
+<meta name="description" content="Image Exporter - User Manual Dragonfly Prototype Apps · Image Exporter... Version 2.0 · 2026-08-11 English Manual Contents 1. Introduction 2. Tab 1 — Bruke…">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="../">Dragonfly <span>Prototype Apps</span></a>
+  <span class="crumb">Image Exporter</span>
+</nav>
+<div class="page">
+  <header class="cover">
+    <div class="overline">Dragonfly Prototype Apps · Image Exporter...</div>
+    <h1>Image Exporter</h1>
+    <div class="meta"><span class="badge">Version 2.0 · 2026-08-11</span><span class="badge badge-soft">Manual</span></div>
+    
+  </header>
+  <nav class="toc"><h2>Contents</h2><ul><li class="t2"><a href="#1-introduction">1. Introduction</a></li><li class="t2"><a href="#2-tab-1-bruker-ctan-8-bit-bmp">2. Tab 1 — Bruker CTAn (8-bit BMP)</a></li><li class="t2"><a href="#3-tab-2-dicom-series-independent-writer">3. Tab 2 — DICOM series (independent writer)</a></li><li class="t2"><a href="#4-tabs-3-5-nifti-itk-3d-slicer-vgstudio">4. Tabs 3–5 — NIfTI, ITK / 3D Slicer, VGStudio</a></li><li class="t2"><a href="#5-details-worth-knowing">5. Details worth knowing</a></li><li class="t2"><a href="#6-requirements">6. Requirements</a></li></ul></nav>
+  <main class="manual"><p><strong>Image Exporter - User Manual</strong></p>
+<p>Dragonfly Prototype Apps · Image Exporter...</p>
+<p>Version 2.0 · 2026-08-11</p>
+<p><br></p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Exports image channels in the exact file format some <strong>other software</strong> expects. The panel is a set of tabs — one per target software or file format: <strong>Bruker CTAn</strong> (8-bit BMP stack), <strong>DICOM series</strong>, <strong>NIfTI</strong>, <strong>ITK / 3D Slicer</strong> (MetaImage / NRRD) and <strong>VGStudio</strong> (.vgi + .vol).</p>
+<p><strong>Nothing is created or modified in the session.</strong> The plugin only reads the selected channel and writes files into the folder you choose.</p>
+<p>Every tab shares the same top section: pick the channel (<strong>Refresh</strong> after publishing a new one), see its size, data type and voxel size, pick the time step for 4D data, choose the output folder, press <strong>Export</strong>. A progress bar tracks the run, <strong>Cancel</strong> stops it, and <strong>Open output folder</strong> opens the result.</p>
+<p><strong>⚠ All formats except CTAn&#x27;s BMP carry geometry. When the voxel size cannot be read from the channel, the export is REFUSED rather than writing a guessed value; an unknown origin is written as 0, 0, 0 and stated in the result message.</strong></p>
+<p><strong>Values to export</strong> (above the tabs, applies to every tab): <strong>Original grayscale values</strong> (default) writes the voxels as stored; <strong>Calibrated values</strong> writes Dragonfly&#x27;s readout values — raw × slope + offset — always as <strong>float32</strong> (4-byte float). The channel info line shows the readout formula; the result message repeats it after a calibrated export. A channel whose slope/offset cannot be read REFUSES a calibrated export rather than silently exporting raw values. In the CTAn tab, calibrated data behaves like any float data (the 0–255 remapping still applies, and &quot;keep original values&quot; is unavailable); in DICOM it is quantized to 16-bit with the rescale slope/intercept reported.</p>
+<h2 id="2-tab-1-bruker-ctan-8-bit-bmp">2. Tab 1 — Bruker CTAn (8-bit BMP)</h2>
+<p>CTAn can <em>load</em> seven file types (BMP, JPG, PNG, TIFF, RAW, ISQ, DICOM), but its analysis pipeline <em>processes</em> only <strong>1-bit monochrome and 8-bit grayscale</strong> images. An 8-bit grayscale BMP stack is therefore the safest interchange format, and it is what this tab writes.</p>
+<ul>
+<li>Grayscale mapping: <strong>Keep original values</strong> (only when the data is already 8-bit), <strong>Auto</strong> (data min → 0, max → 255) or <strong>Custom range</strong> (values outside are clipped). <strong>Read data range</strong> fills the min/max fields with the measured range.</li>
+<li>File numbering: prefix (follows the channel name until you type your own), <strong>number of digits</strong> (3 = 000–999, 4 = 0000–9999) and <strong>start number</strong>, with a live preview of the first and last filename. A digit width that cannot hold the last file is refused before anything is written.</li>
+<li><strong>NRecon-style .log</strong>: ticked by default, writes &lt;prefix&gt;.log next to the slices with the pixel size in micrometres — CTAn, CTvox and DataViewer read it automatically, so the pixel size no longer has to be typed by hand. The log is only written when the X and Y voxel sizes agree (the format has a single pixel-size field); if the Z spacing differs, the log is still written but the result message warns that CTAn assumes cubic voxels.</li>
+</ul>
+<p>In CTAn, open the FIRST file of the stack; CTAn picks up the rest by the shared prefix and the equal-width numbering.</p>
+<h2 id="3-tab-2-dicom-series-independent-writer">3. Tab 2 — DICOM series (independent writer)</h2>
+<p>Writes a DICOM series with a writer that is <strong>fully independent of Dragonfly&#x27;s own DICOM export</strong> (it uses a bundled copy of pydicom 2.4.4 and none of Dragonfly&#x27;s code). It exists as a <strong>cross-check</strong>: if a dataset exported by Dragonfly lands with deviations in other software, export the same channel here and compare.</p>
+<ul>
+<li>One <strong>CT Image Storage</strong> file per slice, Explicit VR Little Endian, with the geometry stated per slice: PixelSpacing in DICOM&#x27;s [row, column] = [Y, X] order, ImagePositionPatient stepping by the Z spacing, SliceThickness, InstanceNumber.</li>
+<li>Pixels are stored as 16-bit. uint16/int16 data passes through unchanged (slope 1, intercept 0); 8-bit widens losslessly; float and 32-bit integer data is quantized to 65536 levels with a <strong>RescaleSlope/Intercept</strong> that maps stored cells back to the original values — the result message states the exact slope, intercept and quantization step.</li>
+<li>Patient name, patient ID and series description are editable fields (defaults: &quot;Dragonfly Export&quot;, &quot;DF&quot;, the channel title). Chinese titles survive (UTF-8 character set).</li>
+</ul>
+<h2 id="4-tabs-3-5-nifti-itk-3d-slicer-vgstudio">4. Tabs 3–5 — NIfTI, ITK / 3D Slicer, VGStudio</h2>
+<ul>
+<li><strong>NIfTI</strong>: one .nii file, gzipped to .nii.gz when the file name ends with .gz (the default). The common format of 3D Slicer, ITK-SNAP, nnU-Net and MONAI. Voxel size and origin in millimetres (sform/qform code 1). NIfTI&#x27;s axes are RAS while Dragonfly&#x27;s world is LPS (as in DICOM), so the x and y axes are written negated — exactly what ITK / SimpleITK write — and the image lands on the same physical points as this plugin&#x27;s NRRD and MetaImage files. (Before 2026-09-23 the NIfTI was written unflipped, i.e. rotated 180° about Z against them.)</li>
+<li><strong>ITK / 3D Slicer</strong>: MetaImage as .mhd + .raw pair or single-file .mha, or NRRD (gzip encoding, LPS space). The formats of the ITK/elastix/Slicer world; the file-name extension follows the chosen format automatically.</li>
+<li><strong>VGStudio</strong>: a .vol raw file plus the .vgi descriptor VGSTUDIO opens directly (size, data type, voxel size in mm). Supported cell types are 8/16-bit unsigned and float32; other data is converted to float32 and the result message says so. If a particular VGStudio build rejects the .vgi, the .vgi itself lists every parameter a manual raw import needs.</li>
+<li>Unsupported data types are converted to the nearest type the format can hold, and the conversion is always named in the result message — nothing is converted silently.</li>
+</ul>
+<h2 id="5-details-worth-knowing">5. Details worth knowing</h2>
+<ul>
+<li>If target files already exist, the panel asks before overwriting them.</li>
+<li>Non-finite voxels (NaN/Inf in float data) are written as 0 in BMP, and as the data minimum in DICOM; the result message notes it.</li>
+<li>Cancelling a slice-stack export keeps the complete files already written; cancelling a single-file export deletes the partial file.</li>
+<li>For 4D data, pick the time step to export; one time step is exported per run.</li>
+<li>Every writer is implemented in this plugin and produces byte-deterministic output; the automated tests parse the files back by hand AND read them through SimpleITK as an independent decoder (geometry included).</li>
+</ul>
+<h2 id="6-requirements">6. Requirements</h2>
+<p>No install, no internet, no GPU, no virtual environment — the panel runs in-process on Dragonfly&#x27;s own Python (PyQt6 + numpy); the DICOM tab uses a copy of pydicom bundled with the plugin. It needs a published image Channel in the session.</p></main>
+  <footer class="pagefoot">
+    <p>Generated from <code><code>ImageExporter-Plugin-UserManual_EN.docx</code></code> · <a href="../">&larr; All manuals</a></p>
+  </footer>
+</div>
+</body>
+</html>
